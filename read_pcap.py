@@ -82,7 +82,6 @@ class BeamformReader:
             csi.append(np.complex(x, next(it)))
 
         csi = np.array(csi, dtype="complex")
-        scipy.io.savemat("test.mat", {"csi": csi})
 
         return {
             "timestamp": timestamp,
