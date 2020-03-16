@@ -2,8 +2,6 @@ from math import floor
 from matlab import db, dbinv
 from pathlib import Path
 
-import pcapkit
-import binascii
 import scipy.io
 
 import numpy as np
@@ -14,12 +12,100 @@ import sys
 import time
 start = time.time()
 
-class BeamformReader:
+class Frame:
+    FRAME_HEADER_DTYPE = np.dtype([
+        ("ts_sec", np.uint32), 
+        ("ts_usec", np.uint32), 
+        ("incl_len", np.uint32), 
+        ("orig_len", np.uint32), 
+    ])
 
-    def __init__(self, filename=""):
+    def __init__(self, data, offset):
+        self.data = data
+        self.offset = offset
+
+        self.header = self.read_header(data)
+        self.payload = self.read_payload(data)
+            
+    def read_header(self, data):
+        header = np.frombuffer(self.data[self.offset:self.offset+self.FRAME_HEADER_DTYPE.itemsize], dtype=self.FRAME_HEADER_DTYPE)
+        self.offset += self.FRAME_HEADER_DTYPE.itemsize
+        return header
+    
+    def read_payloadHeader(self, payload):
+        payloadHeader = {}
+
+        payloadHeader["magic_bytes"] = payload[:4]
+        payloadHeader["source_mac"] = payload[4:10]
+        payloadHeader["sequence_no"] = payload[10:12]
+
+        coreSpatialBytes = int.from_bytes(payload[12:14], byteorder="little")
+        payloadHeader["core"] = [int(coreSpatialBytes&x != 0) for x in range(3)]
+        payloadHeader["spatial_stream"] = [int(coreSpatialBytes&x != 0) for x in range(3, 6)]
+
+        payloadHeader["channel_spec"] = payload[14:16]
+        payloadHeader["chip"] = payload[18:20]
+
+        return payloadHeader
+        
+    def read_payload(self, data):
+        incl_len = self.header["incl_len"][0]
+        if incl_len <= 0:
+            return False
+
+        if (incl_len % 4) == 0:
+            ints_size = int(incl_len / 4)
+            payload = np.array(struct.unpack(ints_size*"I", data[self.offset:self.offset+incl_len]), dtype=np.uint32)
+        else:
+            ints_size = incl_len
+            payload = np.array(struct.unpack(ints_size*"B", data[self.offset:self.offset+incl_len]), dtype=np.uint8)
+
+        self.payloadHeader = self.read_payloadHeader(data[self.offset+42:self.offset+62])
+        self.offset += incl_len
+
+        return payload
+
+class Pcap:
+    BW = 80
+    HOFFSET = 16
+    NFFT = int(BW*3.2)
+
+    PCAP_HEADER_DTYPE = np.dtype([
+        ("magic_number", np.uint32), 
+        ("version_major", np.uint16), 
+        ("version_minor", np.uint16), 
+        ("thiszone", np.int32), 
+        ("sigfigs", np.uint32), 
+        ("snaplen", np.uint32), 
+        ("network", np.uint32)
+    ])
+
+    def __init__(self, filename):
+        self.data = open(filename, "rb").read()
+        self.header = self.readHeader()
+        self.frames = []
+
+        offset = self.PCAP_HEADER_DTYPE.itemsize
+        while offset < len(self.data):
+            nextFrame = Frame(self.data, offset)
+            offset = nextFrame.offset
+
+            if nextFrame.header["orig_len"][0]-(self.HOFFSET-1)*4 != self.NFFT*4:
+                print("Skipped frame with incorrect size.")
+            else:
+                self.frames.append(nextFrame)
+
+    def readHeader(self):
+        return np.frombuffer(self.data[:self.PCAP_HEADER_DTYPE.itemsize], dtype=self.PCAP_HEADER_DTYPE)
+
+class BeamformReader:
+    def __init__(self, filename="", chip="43455c0"):
         self.filename = filename
+        self.chip = chip
         if os.path.exists(filename):
-            self.csi_trace = self.read_bf_file(filename)
+            self.pcap = Pcap(filename)
+            self.csi_trace = self.read_frames(self.pcap.frames)
+
             self.scale_timestamps()
 
     def scale_timestamps(self):
@@ -34,67 +120,36 @@ class BeamformReader:
             x["timestamp"] = relativeTimestamps[i]
 
     def read_bfee(self, frame):
+        timestamp = frame.header["ts_usec"][0]
+        data = frame.payload
 
-        n = 0
+        if self.chip in ["4339", "43455c0"]:
+            data.dtype = np.int16
+        # elif self.chip == "4358":
+        # elif self.chip == "4366c0":
+        else:
+            print("Invalid chip: " + self.chip)
+            print("Current supported chipsets: 4339,43455c0,4358,4366c0")
+            exit(1)
 
-        timestamp = frame.info.time_epoch
-
-        data = binascii.hexlify(frame.info.packet).decode("utf-8")
-
-        #First we need to find the 0x11111111 to indicate the start.
-        n = data.find("11111111")
-        if n == -1:
-            #Invalid frame found.
-            print("Found invalid frame with no CSI data.")
-            return None
-        n += 8
-
-        #Next is the 6 byte source MAC address.
-        srcMac = data[n:n+12]
-        #Optionally: tidy this up for viewing.
-        srcMac = ":".join([srcMac[x:x+2] for x in range(0, len(srcMac), 2)]).upper()
-        n += 12
-
-        #Bitmask containing Core and Spatial stream numbers.
-        coreSpatialByte = data[n:n+4]
-        n += 4
-        # print(coreSpatialByte)
-
-        #Empty 2 bytes here for some reason.
-        #These are future use bytes, but they
-        #should be after the channel spec.
-
-        n += 4
-
-        #Channel specification, in (big??) endian.
-        #Reading two bytes in backwards order.
-        chanspec = data[n+2:n+4]+data[n:n+2]
-        n += 4
-
-        #More future use bytes???
-        #2 here.
-        n += 4
-
-        csi = []
-        csiData = np.frombuffer(binascii.unhexlify(data[n:]), dtype="int16")
-        it = iter(csiData)
-        for x in it:
-            csi.append(np.complex(x, next(it)))
-
-        csi = np.array(csi, dtype="complex")
+        csi = np.zeros((256,), dtype=np.complex)
+        sourceData = data[30:]
+        csiData = sourceData.reshape(-1, 2)
+        i = 0
+        for x in csiData:
+            csi[i] = np.complex(x[0], x[1])
+            i += 1
 
         return {
             "timestamp": timestamp,
-            "source_mac": srcMac,
-            "core_spatial": coreSpatialByte,
+            "header": frame.payloadHeader,
             "csi": csi,
         }
 
-    def read_bf_file(self, filename):
+    def read_frames(self, frames):
         #Split the file into individual frames.
         #Send payloads to read_bfee so they can be extracted.
-        extraction = pcapkit.extract(fin=str(filename), nofile=True)
-        return [self.read_bfee(x) for x in extraction.frame]
+        return [self.read_bfee(x) for x in frames]
 
 if __name__ == "__main__":
 
@@ -102,9 +157,16 @@ if __name__ == "__main__":
         path = sys.argv[1]
     else:
         basePath = Path(__file__).parent
-        path = (basePath / "../sample_data/out.pcap").resolve()
+        path = (basePath / "../../sample_data/out.pcap").resolve()
 
-    reader = BeamformReader(path)
+    reader = BeamformReader(path, "43455c0")
+
+    # Output for testing.
+    # csi = np.zeros((122, 256), dtype="complex")
+    # for i, x in enumerate(reader.csi_trace):
+    #     csi[i] = x["csi"]
+    # scipy.io.savemat("test.mat", {"csi": csi})
+
     print("Have CSI for {} packets.".format(len(reader.csi_trace)))
     end = time.time()
     print(end-start)

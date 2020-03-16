@@ -21,7 +21,7 @@ def breathingfilter(reader):
     no_frames = len(scaled_csi)
     no_subcarriers = np.array(scaled_csi[0]["csi"]).shape[0]
     # no_subcarriers = 70
-    xax = list([x["timestamp"] for x in scaled_csi])
+    # xax = list([x["timestamp"] for x in scaled_csi])
 
     finalEntries = [np.zeros((no_frames, 1)) for x in range(no_subcarriers)]
 
@@ -39,11 +39,12 @@ def breathingfilter(reader):
             variation = stats.variation(finalEntry)
 
             # if variation < 0.025:
-            if x == 100:
+            if x == 50:
                 hampelData = hampel(finalEntry, 5)
                 smoothedData = running_mean(hampelData, 5)
                 finalEntries[x] = smoothedData
-                plt.plot(xax, finalEntries[x], alpha=0.5)
+                # plt.plot(xax, finalEntries[x], alpha=0.5)
+                plt.plot(finalEntries[x], alpha=0.5)
 
     # entries = []
 
@@ -307,7 +308,7 @@ def traceStats(reader):
 def main():
 
     basePath = Path(__file__).parent
-    path = (basePath / "../sample_data/breathtest1.pcap").resolve()
+    path = (basePath / "../../sample_data/breathtest1.pcap").resolve()
 
     if len(sys.argv) > 1:
         tmpPath = sys.argv[1]
