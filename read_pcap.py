@@ -111,16 +111,13 @@ class BeamformReader:
     def scale_timestamps(self):
         csi_trace = self.csi_trace
         sourceTimestamps = [x["timestamp"] for x in csi_trace]
-
-        timediff = np.diff(sourceTimestamps)
-        relativeTimestamps = list(np.cumsum(timediff))
-        relativeTimestamps.insert(0, 0)
+        sourceStamp = sourceTimestamps[0]
     
         for i, x in enumerate(csi_trace):
-            x["timestamp"] = relativeTimestamps[i]
+            x["scaled_timestamp"] = sourceTimestamps[i]-sourceStamp
 
     def read_bfee(self, frame):
-        timestamp = frame.header["ts_usec"][0]
+        timestamp = int(str(frame.header["ts_sec"][0])+str(frame.header["ts_usec"][0]))
         data = frame.payload
 
         if self.chip in ["4339", "43455c0"]:

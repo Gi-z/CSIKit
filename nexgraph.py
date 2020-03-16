@@ -19,9 +19,8 @@ def breathingfilter(reader):
     #are from the Rx antenna.
 
     no_frames = len(scaled_csi)
-    no_subcarriers = np.array(scaled_csi[0]["csi"]).shape[0]
-    # no_subcarriers = 70
-    # xax = list([x["timestamp"] for x in scaled_csi])
+    no_subcarriers = scaled_csi[0]["csi"].shape[0]
+    xax = list([x["timestamp"] for x in scaled_csi])
 
     finalEntries = [np.zeros((no_frames, 1)) for x in range(no_subcarriers)]
 
@@ -34,17 +33,14 @@ def breathingfilter(reader):
     #Now we want to find subcarrier variance and clip a threshold.
 
     for x in range(no_subcarriers):
-        finalEntry = finalEntries[x].flatten()
-        if len(set(finalEntry)) != 1:
-            variation = stats.variation(finalEntry)
+        if x == 100:
+            finalEntry = finalEntries[x].flatten()
 
-            # if variation < 0.025:
-            if x == 50:
-                hampelData = hampel(finalEntry, 5)
-                smoothedData = running_mean(hampelData, 5)
-                finalEntries[x] = smoothedData
-                # plt.plot(xax, finalEntries[x], alpha=0.5)
-                plt.plot(finalEntries[x], alpha=0.5)
+            hampelData = hampel(finalEntry, 5)
+            smoothedData = running_mean(hampelData, 10)
+            finalEntries[x] = smoothedData
+            plt.plot(xax, finalEntries[x], alpha=0.5)
+            # plt.plot(finalEntries[x], alpha=0.5)
 
     # entries = []
 
@@ -181,10 +177,8 @@ def heatmap(reader):
     scaled_csi = reader.csi_trace
 
     no_frames = len(scaled_csi)
-    no_subcarriers = int(np.array(scaled_csi[0]["csi"]).shape[0])
-    xax = list([x["timestamp"] for x in scaled_csi])
-    if xax[0] != 0:
-        xax -= xax[0]
+    no_subcarriers = scaled_csi[0]["csi"].shape[0]
+    xax = list([x["scaled_timestamp"] for x in scaled_csi])
 
     Fs = 1/np.mean(np.diff(xax))
     print("Sampling Rate: " + str(Fs))
@@ -205,18 +199,11 @@ def heatmap(reader):
 
     for x in range(no_subcarriers):
         fe = finalEntry[x].flatten()
+        hampelData = hampel(finalEntry[x].flatten(), 10)
+        smoothedData = running_mean(hampelData, 10)
 
-        variation = stats.variation(fe)
-        if not np.isnan(variation) and variation < 0.05:
-            hampelData = hampel(finalEntry[x].flatten(), 10)
-            smoothedData = running_mean(hampelData, 10)
-
-            b, a = signal.butter(2, [1/(Fs/2), 2/(Fs/2)], "bandpass")
-            finalEntry[x] = signal.lfilter(b, a, finalEntry[x].flatten())
-            # for i in range(0, 100):
-            #     finalEntry[x][i] = 0
-        else:
-            finalEntry[x] = np.zeros((no_frames))
+        b, a = signal.butter(2, [1/int(Fs/2), 2/int(Fs/2)], "bandpass")
+        finalEntry[x] = signal.lfilter(b, a, finalEntry[x].flatten())
 
     fig, ax = plt.subplots()
     im = ax.imshow(finalEntry, cmap="jet", extent=limits, aspect="auto")
@@ -321,10 +308,10 @@ def main():
     reader = BeamformReader(path)
 
     # traceStats(reader)
-    # heatmap(reader)
+    heatmap(reader)
     # beatsfilter(reader)
     # multibreathefilter(reader)
-    breathingfilter(reader)
+    # breathingfilter(reader)
     # statsgraph(reader)
 
 main()
