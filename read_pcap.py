@@ -153,8 +153,9 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         path = sys.argv[1]
     else:
-        basePath = Path(__file__).parent
-        path = (basePath / "../../sample_data/out.pcap").resolve()
+        # basePath = Path(__file__).parent
+        # path = (basePath / "../../sample_data/out.pcap").resolve()
+        path = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\out.pcap"
 
     reader = BeamformReader(path, "43455c0")
 

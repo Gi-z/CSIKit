@@ -50,26 +50,6 @@ class BeamformReader:
             x["timestamp"] = time_stamp[csi_trace.index(x)-1]
 
     def read_bfee(self, header, csiData):
-
-        # code = csiHeader[0]
-        # timestamp_low = csiHeader[1] + (csiHeader[2] << 8) + (csiHeader[3] << 16) + (csiHeader[4] << 24)
-        # bfee_count = csiHeader[5]
-        # reserved1 = csiHeader[6]
-
-        # Nrx = csiHeader[7]
-        # Ntx = csiHeader[8]
-
-        # rssi_a = csiHeader[9]
-        # rssi_b = csiHeader[10]
-        # rssi_c = csiHeader[11]
-
-        # noise = csiHeader[12]
-        # agc = csiHeader[13]
-
-        # antenna_sel = csiHeader[14]
-        # length = csiHeader[15]
-        # rate = csiHeader[16]
-
         code = header["code"][0]
         timestamp_low = header["timestamp_low"][0]
         bfee_count = header["bfee_count"][0]
@@ -196,8 +176,7 @@ class BeamformReader:
         while cur < (length - 3):
             field_len = struct.unpack(">H", data[cur:cur+2])[0]
             cur += 2
-
-            # csiHeader = struct.unpack(">BBBBBHHBBbbbBBBHH", data[cur:cur+21])
+            
             csiHeader = np.frombuffer(data[cur:cur+21], dtype=DTYPE_CSI_HEADER_TLV)
             allData = [x[0] for x in struct.Struct("B").iter_unpack(data[cur+21:cur+field_len])]
             cur += field_len
