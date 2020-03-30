@@ -117,7 +117,11 @@ class BeamformReader:
             x["scaled_timestamp"] = sourceTimestamps[i]-sourceStamp
 
     def read_bfee(self, frame):
-        timestamp = int(str(frame.header["ts_sec"][0])+str(frame.header["ts_usec"][0]))
+
+        #ts_usec contains microseconds as an offset to the main seconds timestamp.
+        usecs = frame.header["ts_usec"][0]/1e+6
+        timestamp = frame.header["ts_sec"][0]+usecs
+
         data = frame.payload
 
         if self.chip in ["4339", "43455c0"]:

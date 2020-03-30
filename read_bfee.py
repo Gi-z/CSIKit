@@ -2,6 +2,8 @@ from math import floor
 from matlab import db, dbinv
 from pathlib import Path
 
+import scipy.io
+
 import numpy as np
 import os
 import struct
@@ -72,7 +74,7 @@ class BeamformReader:
             perm[1] = ((antenna_sel >> 2) & 0x3)
             perm[2] = ((antenna_sel >> 4) & 0x3)
 
-        csi = np.empty((30, Nrx, Ntx), dtype=np.complex64)
+        csi = np.empty((30, Nrx, Ntx), dtype=np.clongdouble)
 
         index = 0
         for i in range(30):
@@ -98,7 +100,8 @@ class BeamformReader:
         csi_pwr = np.sum(csi_sq)
         csi_pwr = np.real(csi_pwr)
 
-        rssi_pwr = dbinv(self.get_total_rss(rssiA, rssiB, rssiC, agc))
+        rssi_pwr_db = self.get_total_rss(rssiA, rssiB, rssiC, agc)
+        rssi_pwr = dbinv(rssi_pwr_db)
         #Scale CSI -> Signal power : rssi_pwr / (mean of csi_pwr)
         scale = rssi_pwr / (csi_pwr / 30)
 
@@ -109,7 +112,7 @@ class BeamformReader:
             noise_db = -92
 
         noise_db = np.float(noise_db)
-        thermal_noise_pwr  = np.power(10.0, noise_db/10)
+        thermal_noise_pwr  = dbinv(noise_db)
 
         #Quantization error: the coefficients in the matrices are 8-bit signed numbers,
         #max 127/-128 to min 0/1. Given that Intel only uses a 6-bit ADC, I expect every
@@ -123,7 +126,7 @@ class BeamformReader:
         #Noise and error power.
         total_noise_pwr = thermal_noise_pwr + quant_error_pwr
 
-        #ret now has units of sqrt(SNR) just like H in textbooks.
+        # ret now has units of sqrt(SNR) just like H in textbooks.
         ret = csi * np.sqrt(scale / total_noise_pwr)
         if Ntx == 2:
             ret = ret * np.sqrt(2)
@@ -132,6 +135,8 @@ class BeamformReader:
             #Intel and other makers approximate a factor of 3.
             #You may need to change this if your card does the right thing.
             ret = ret * np.sqrt(dbinv(4.5))
+
+        # ret = np.transpose(ret)
 
         return {
             "timestamp_low": timestamp_low,
@@ -201,14 +206,16 @@ class BeamformReader:
 
 if __name__ == "__main__":
 
-    path = ""
     if len(sys.argv) > 1:
         path = sys.argv[1]
     else:
-        basePath = Path(__file__).parent
-        path = (basePath / "../sample_data/tasty.dat").resolve()
+        # basePath = Path(__file__).parent
+        # path = (basePath / "../../sample_data/out.pcap").resolve()
+        path = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\10breathtest.dat"
 
     reader = BeamformReader(path)
     print("Have CSI for {} packets.".format(len(reader.csi_trace)))
     end = time.time()
     print(end-start)
+
+    # scipy.io.savemat("inteltest.mat", {"csi": reader.csi_trace})

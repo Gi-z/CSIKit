@@ -4,6 +4,8 @@ from matlab import db
 from pathlib import Path
 from scipy import fftpack, signal, stats
 
+import scipy.io
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -39,16 +41,19 @@ def fft(reader):
     scaled_csi = reader.csi_trace
 
     no_frames = len(scaled_csi)
-    no_subcarriers = scaled_csi[1]["csi"].shape[0]
+    no_subcarriers = scaled_csi[0]["csi"].shape[0]
 
-    finalEntry = getCSI(scaled_csi)
+    finalEntry = getCSI(scaled_csi)[15].flatten()
 
     hampelData = hampel(finalEntry, 20)
     smoothedData = running_mean(hampelData, 30)
     y = smoothedData.flatten()
     y -= np.mean(y)
 
-    x = list([x["timestamp"] for x in scaled_csi])
+    b, a = signal.butter(5, [1/10, 2/10], "bandpass")
+    y = signal.lfilter(b, a, y)
+
+    x = [i/20 for i in range(no_frames)]
     tdelta = (x[-1] - x[0]) / len(x)
 
     Fs = 1/tdelta
@@ -106,18 +111,14 @@ def shorttime(reader, subcarrier):
     smoothedData = running_mean(hampelData, 20)
     y = smoothedData
 
-    #Sampling at 100Hz.
     tdelta = 0.01
     x = list([x*tdelta for x in range(0, no_frames)])
 
-    # Fs = 1/tdelta
-    Fs = 100
+    Fs = 1/tdelta
     n = no_frames
 
     fmin = 0.7
     fmax = 2.3
-
-    # y = y*10000
 
     b, a = signal.butter(3, [fmin/(Fs/2), fmax/(Fs/2)], "bandpass")
     y = signal.lfilter(b, a, y)
@@ -127,9 +128,6 @@ def shorttime(reader, subcarrier):
     #bin indices for the observed amplitude peak in each segment.
     Zxx = np.abs(Zxx)
     maxAx = np.argmax(Zxx, axis=0)
-    # for x in range(0, len(maxAx)):
-    #     maxSpot = maxAx[x]
-    #     Zxx[maxSpot][x] = 1
 
     freqs = []
     for i in maxAx:
@@ -165,49 +163,37 @@ def shorttime(reader, subcarrier):
 
 #Averages the PSD measurements from every subcarrier after data preprocessing.
 def beatsfilter(reader, Fs):
-
     scaled_csi = reader.csi_trace
 
     no_subcarriers = np.array(scaled_csi[0]["csi"]).shape[0]
     finalEntries = getCSI(scaled_csi)
 
-    stabilities = []
+    sigs = []
 
     for x in range(no_subcarriers):
         finalEntry = finalEntries[x].flatten()
-        hampelData = hampel(finalEntry, 10, 0.4)
-        detrended = dynamic_detrend(hampelData, 5, 3, 1.2, Fs)
-        rehampeledData = hampel(detrended, 10, 0.1)
+        # hampelData = hampel(finalEntry, 10, 0.4)
+        # detrended = dynamic_detrend(hampelData, 5, 3, 1.2, Fs)
+        # rehampeledData = hampel(detrended, 10, 0.1)
 
-        b, a = signal.butter(6, [1/(Fs/2), 2/(Fs/2)], "bandpass")
-        filtData = signal.lfilter(b, a, rehampeledData)
+        b, a = signal.butter(7, [1/10, 1.5/10], btype="band")
+        filtData = signal.lfilter(b, a, finalEntries[x].flatten())
+        # filtData = signal.lfilter(b, a, hampelData)
+        
+        for i in range(0, 70):
+            filtData[i] = 0
 
-        # plt.plot(smoothedData, label="Smoothed")
+        # plt.plot(filtData, alpha=0.5)
+        sigs.append(filtData)
 
-        # plt.plot(finalEntry, label="Unfiltered")
-        # plt.plot(hampelData, label="Hampeled")
-        # plt.legend(loc="upper right")
-        # plt.show()
-
-        # plt.plot(hampelData, label="Hampeled")
-        # plt.plot(detrended, label="Detrended")
-        # plt.legend(loc="upper right")
-        # plt.show()
-
-        # plt.plot(detrended, label="Detrended")
-        # plt.plot(rehampeledData, label="Rehampeled")
-        # plt.legend(loc="upper right")
-        # plt.show()
-
-        # plt.plot(filtData, label="Filtered Data")
-        # plt.plot(rehampeledData, label="Rehampeled")
-        # plt.legend(loc="upper right")
-        # plt.show()
-
-        stabilities.append(filtData)
+    # plt.title('Signal')
+    # plt.ylabel('Amplitude')
+    # plt.xlabel('Samples')
+    # plt.show()
 
     pxxs = []
-    for data in stabilities:
+
+    for data in sigs:
         f, Pxx_den = signal.welch(data, Fs)
         pxxs.append(Pxx_den)
 
@@ -241,29 +227,8 @@ def specstabfilter(reader, Fs):
         detrended = dynamic_detrend(hampelData, 5, 3, 1.2, Fs)
         rehampeledData = hampel(detrended, 10, 0.1)
 
-        b, a = signal.butter(5, [1/(Fs/2), 1.3/(Fs/2)], "bandpass")
+        b, a = signal.butter(7, [1/(Fs/2), 1.3/(Fs/2)], "bandpass")
         filtData = signal.lfilter(b, a, rehampeledData)
-        # filtData = filtData[100:]
-
-        # plt.plot(finalEntry, label="Unfiltered")
-        # plt.plot(hampelData, label="Hampeled")
-        # plt.legend(loc="upper right")
-        # plt.show()
-
-        # plt.plot(hampelData, label="Hampeled")
-        # plt.plot(detrended, label="Detrended")
-        # plt.legend(loc="upper right")
-        # plt.show()
-
-        # plt.plot(detrended, label="Detrended")
-        # plt.plot(rehampeledData, label="Rehampeled")
-        # plt.legend(loc="upper right")
-        # plt.show()
-
-        # plt.plot(filtData, label="Filtered Data")
-        # plt.plot(rehampeledData, label="Rehampeled")
-        # plt.legend(loc="upper right")
-        # plt.show()
 
         #Spectral Stability section.
         #The spectral stability metric aims to score subcarriers based on the
@@ -334,8 +299,6 @@ def specstabfilter(reader, Fs):
     #The mean PSD of the top subcarriers is then selected, with the
     #peak taken as the final heart rate estimation.
 
-    #So far the error rate is not consistent, but is usually above +/-5bpm.
-
     meanPsd = np.mean(pxxs, axis=0)
     return f[np.argmax(meanPsd)]*60
 
@@ -348,8 +311,8 @@ def prepostfilter(reader):
     finalEntry = getCSI(scaled_csi)[15]
 
     stdev = running_stdev(finalEntry.flatten(), 2)
-    hampelData = hampel(finalEntry.flatten(), 30)
-    smoothedData = running_mean(hampelData.copy(), 30)
+    hampelData = hampel(finalEntry.flatten(), 15)
+    smoothedData = running_mean(hampelData.copy(), 15)
 
     y = finalEntry
     y2 = hampelData
@@ -412,8 +375,6 @@ def varianceGraph(reader):
         smoothedData = running_mean(hampelData, 25)
         y.append(variance(smoothedData))
 
-    x = list(range(1, 31))
-
     plt.xlabel("Subcarrier Index")
     plt.ylabel("Variance")
 
@@ -430,7 +391,8 @@ def heatmap(reader):
     no_frames = len(scaled_csi)
     # ylimit = scaled_csi[no_frames-1]["timestamp"]
     # print(ylimit)
-    ylimit = no_frames/Fs
+    # ylimit = no_frames/Fs
+    ylimit = no_frames
 
     limits = [0, ylimit, 1, no_subcarriers]
 
@@ -439,31 +401,23 @@ def heatmap(reader):
     #x = subcarrier index
     #y = time (s)
     #z = amplitude (dBm)
-
-    # for x in range(no_subcarriers):
-    #     hampelData = hampel(finalEntry[x].flatten(), 20, 0.4)
-    #     runningMeanData = running_mean(hampelData, 20)
-    #     # smoothedData = dynamic_detrend(hampelData, 5, 3, 1.2, 20)
-    #     # doubleHampel = hampel(smoothedData, 10, 0.4)
-    #     # finalEntry[x] = hampel(finalEntry[x].flatten(), 10)
-
-    #     b, a = signal.butter(5, [1/10, 1.3/10], btype="band")
-    #     finalEntry[x] = signal.lfilter(b, a, runningMeanData)
-
-    #     for i in range(0, 400):
-    #         finalEntry[x][i] = 0
+    sigs = []
 
     for x in range(no_subcarriers):
-        hampelData = hampel(finalEntry[x].flatten(), 20, 0.4)
-        smoothedData = dynamic_detrend(hampelData, 5, 3, 1.2, 20)
-        doubleHampel = hampel(smoothedData, 10, 0.4)
+        # hampelData = hampel(finalEntry[x].flatten(), 10, 0.4)
+        # runningMeanData = running_mean(hampelData, 20)
+        # smoothedData = dynamic_detrend(hampelData, 5, 3, 1.2, 10)
+        # doubleHampel = hampel(smoothedData, 10, 0.4)
 
-        b, a = signal.butter(5, [1/10, 1.3/10], btype="band")
-        finalEntry[x] = signal.lfilter(b, a, doubleHampel)
+        b, a = signal.butter(7, [1/10, 1.5/10], btype="band")
+        finalEntry[x] = signal.lfilter(b, a, finalEntry[x].flatten())
 
-        for i in range(160, no_frames):
-            finalEntry[x][i] = 0
+        # for i in range(0, 140):
+        #     finalEntry[x][i] = 0
 
+        # finalEntry[x] = runningMeanData
+        # sigs.append(finalEntry[x])
+        
     fig, ax = plt.subplots()
     im = ax.imshow(finalEntry, cmap="jet", extent=limits, aspect="auto")
 
@@ -475,20 +429,37 @@ def heatmap(reader):
 
     plt.show()
 
+    pxxs = []
+
+    # for data in sigs:
+    #     f, Pxx_den = signal.welch(data, 10)
+    #     pxxs.append(Pxx_den)
+
+    # meanPsd = np.mean(pxxs, axis=0)
+    # print(f[np.argmax(meanPsd)]*60)
+
+    # f, Pxx_den = signal.welch(sigs[27], 20)
+
+    # plt.plot(f, Pxx_den)
+    # plt.xlabel("Frequency")
+    # plt.ylabel("Amplitude")
+    # plt.show()
+
 def getPath(partialPath):
     basePath = Path(__file__).parent
     return (basePath / partialPath).resolve()
 
 def main():
-    partialPath = "../sample_data/dtest4.dat"
-    reader = BeamformReader(getPath(partialPath), x_antenna=0, y_antenna=0)
+    # partialPath = "../sample_data/dtest4.dat"
+    partialPath = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\htest4.dat"
+    reader = BeamformReader(partialPath, x_antenna=0, y_antenna=0)
 
     scaled_csi = reader.csi_trace
 
-    # heatmap(reader)
-    plotAllSubcarriers(reader)
+    heatmap(reader)
+    # plotAllSubcarriers(reader)
     # prepostfilter(reader)
-    # beatsfilter(reader)
+    # print(beatsfilter(reader, 20))
     # print(specstabfilter(reader, 20))
     # varianceGraph(reader)
     # fft(reader)
@@ -516,17 +487,19 @@ def hrTestSuite():
         ["htest1", 20, 67],
         ["htest2", 20, 67],
         ["htest3", 20, 81],
-        ["htest4", 20, 79],
+        # ["htest4", 20, 79],
     ]
 
     estimationDiffs = []
 
     for test in tests:
-        partialPath = "../sample_data/{}.dat".format(test[0])
-        reader = BeamformReader(getPath(partialPath), x_antenna=0, y_antenna=0)
+        # partialPath = "../sample_data/{}.dat".format(test[0])
+        path = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\{}.dat".format(test[0])
 
-        scaled_csi = reader.csi_trace
-        hrEstimation = specstabfilter(reader, test[1])
+        # reader = BeamformReader(getPath(partialPath), x_antenna=0, y_antenna=0)
+        reader = BeamformReader(path, x_antenna=0, y_antenna=0)
+        # hrEstimation = specstabfilter(reader, test[1])
+        hrEstimation = beatsfilter(reader, test[1])
         estErr = np.abs(hrEstimation-test[2])
         print("{} estimation error: {}bpm".format(test[0], estErr))
         estimationDiffs.append(estErr)
@@ -536,83 +509,5 @@ def hrTestSuite():
 
 
 if __name__ == "__main__":
-    main()
-    # hrTestSuite()
-
-#Works for dtest1-4, etest1-4, ftest3.
-# def oldbeatsfilter(reader, Fs):
-
-#     scaled_csi = reader.csi_trace
-
-#     #Grabbing the +128 subcarriers, under the assumption these
-#     #are from the Rx antenna.
-
-#     no_frames = len(scaled_csi)
-#     no_subcarriers = np.array(scaled_csi[0]["csi"]).shape[0]
-#     # no_subcarriers = 70
-#     # x = list([x["timestamp"] for x in scaled_csi])
-#     # tdelta = (x[-1] - x[0]) / len(x)
-
-#     # Fs = 1/tdelta
-
-#     finalEntries = [np.zeros((no_frames, 1)) for x in range(no_subcarriers)]
-
-#     for x in range(no_frames):
-#         scaled_entry = scaled_csi[x]["csi"]
-#         for y in range(no_subcarriers):
-#             finalEntries[y][x] = db(abs(scaled_entry[y][0][0]))
-
-#     #We have finalEntries[subcarriers][frames].
-#     #Now we want to find subcarrier variance and clip a threshold.
-
-#     stabilities = []
-
-#     for x in range(no_subcarriers):
-#         finalEntry = finalEntries[x].flatten()
-#         variation = stats.variation(finalEntry)
-
-#         if not np.isnan(variation) and variation < 0.5:
-#             hampelData = hampel(finalEntry, 20)
-#             smoothedData = running_mean(hampelData, 20)
-
-#             b, a = signal.butter(3, [1/(Fs/2), 2/(Fs/2)], "bandpass")
-#             filtData = signal.lfilter(b, a, smoothedData.flatten())
-
-#             #Removed the first 50 values to cut out the spike.
-#             #Average HR should be 70.
-
-#             wLength = 1*Fs
-#             N = np.mod(len(filtData), wLength)
-#             windows = np.array_split(filtData, N)
-
-#             psds = []
-#             for window in windows:
-#                 f, Pxx_den = signal.welch(window, Fs)
-#                 fMax = f[np.argmax(Pxx_den)]
-#                 psds.append(fMax)
-
-#             specStab = 1/np.var(psds)
-#             print("Sub: {} has spectral stability: {}".format(x, specStab))
-#             stabilities.append({"sub": x, "stability": specStab, "data": filtData})
-
-#     stabilities.sort(key=lambda x: x["stability"], reverse=True)
-
-#     bestStab = stabilities[0]["stability"]
-#     news = [x for x in stabilities if x["stability"] >= (bestStab/100)*20]
-
-#     print("Using {} subcarriers.".format(len(news)))
-#     pxxs = []
-#     for sub in news:
-#         filtData = sub["data"]
-#         f, Pxx_den = signal.welch(filtData, Fs)
-#         pxxs.append(Pxx_den)
-
-#     meanPsd = np.mean(pxxs, axis=0)
-#     return f[np.argmax(meanPsd)]*60
-
-#     # plt.plot(f*60, meanPsd, alpha=0.5)
-
-#     # plt.xlabel("Estimated Heart Rate [bpm]")
-#     # plt.ylabel("PSD [V**2/Hz]")
-#     # plt.legend(loc="upper right")
-#     # plt.show()
+    # main()
+    hrTestSuite()

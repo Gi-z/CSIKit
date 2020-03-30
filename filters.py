@@ -31,7 +31,7 @@ def hampel(csi, k=3, nsigma=1):
 
 #Adapted from top answer on Stackoverflow.
 #Fastest implementation.
-#May be slightly incorrect? Answer below had complaints.
+# May be slightly incorrect? Answer below had complaints.
 # def hampel(csi, k=3, nsigma=1):
 #     csi = pd.Series(csi)
 
@@ -67,22 +67,6 @@ def mad(x, axis=None):
 #                 sect[i] = u
 
 #     return new_series
-
-#Stackoverflow response to above version.
-#Slightly slower implementation.
-# def hampel(csi, k=3, nsigma=1):
-#     csi = pd.Series(csi)
-#     L = 1.4826
-#     rolling_median = csi.rolling(k).median()
-#     MAD = lambda x: np.median(np.abs(x - np.median(x)))
-#     rolling_MAD = csi.rolling(window=k, center=True).apply(MAD)
-#     threshold = nsigma * L * rolling_MAD
-#     difference = np.abs(csi - rolling_median)
-
-#     outlier_idx = difference > threshold
-#     csi[outlier_idx] = np.nan
-
-#     return csi.to_numpy()
 
 def get_ev(data, position, window_size, c):
     window = data[position:position+window_size]

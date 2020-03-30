@@ -5,101 +5,57 @@ from scipy import fftpack, signal, stats
 from read_pcap import BeamformReader
 from pathlib import Path
 
+from csitools import getCSI, getTimestamps
+
 import matplotlib.pyplot as plt
 import numpy as np
 
+import math
 import os
 import sys
 
-def breathingfilter(reader):
+def breathingfilter(scaled_csi):
+    xax = getTimestamps(scaled_csi)
+    csi, no_frames, no_subcarriers = getCSI(scaled_csi)
 
-    scaled_csi = reader.csi_trace
-
-    #Grabbing the +128 subcarriers, under the assumption these
-    #are from the Rx antenna.
-
-    no_frames = len(scaled_csi)
-    no_subcarriers = scaled_csi[0]["csi"].shape[0]
-    xax = list([x["timestamp"] for x in scaled_csi])
-
-    finalEntries = [np.zeros((no_frames, 1)) for x in range(no_subcarriers)]
-
-    for x in range(no_frames):
-        scaled_entry = scaled_csi[x]["csi"]
-        for y in range(no_subcarriers):
-            finalEntries[y][x] = db(abs(scaled_entry[y]))
-
-    #We have finalEntries[subcarriers][frames].
-    #Now we want to find subcarrier variance and clip a threshold.
-
-    for x in range(no_subcarriers):
-        if x == 100:
-            finalEntry = finalEntries[x].flatten()
-
-            hampelData = hampel(finalEntry, 5)
-            smoothedData = running_mean(hampelData, 10)
-            finalEntries[x] = smoothedData
-            plt.plot(xax, finalEntries[x], alpha=0.5)
-            # plt.plot(finalEntries[x], alpha=0.5)
-
-    # entries = []
+    # Zeroing out invalid subcarriers.
+    # for i in []:
+    #     for x in range(no_frames):
+    #         csi[i][x] = 0
 
     # for x in range(no_subcarriers):
-    #     finalEntry = finalEntries[x].flatten()
-    #     if len(set(finalEntry)) != 1:
-    #         variation = stats.variation(finalEntry)
+    for x in range(80, 100):
+        finalEntry = csi[x].flatten()
 
-    #         if not np.isnan(variation) and variation < 0.05:
-    #             hampelData = hampel(finalEntry, 5)
-    #             smoothedData = running_mean(hampelData, 2)
-    #             finalEntries[x] = smoothedData
-    #             entries.append(smoothedData)
-
-    # plt.plot(xax, np.mean(entries, axis=0))
+        hampelData = hampel(finalEntry, 10)
+        smoothedData = running_mean(hampelData, 10)
+        # csi[x] = hampelData
+        csi[x] = smoothedData
+        plt.plot(xax, csi[x], alpha=0.5, label=x)
 
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude")
     plt.legend(loc="upper right")
     plt.show()
 
-def beatsfilter(reader):
-
-    scaled_csi = reader.csi_trace
-
-    #Grabbing the +128 subcarriers, under the assumption these
-    #are from the Rx antenna.
-
-    no_frames = len(scaled_csi)
-    no_subcarriers = np.array(scaled_csi[0]["csi"]).shape[0]
-    # no_subcarriers = 70
-    xax = list([x["timestamp"] for x in scaled_csi])
-    if xax[0] != 0:
-        xax -= xax[0]
+def beatsfilter(scaled_csi):
+    xax = getTimestamps(scaled_csi)
+    csi, no_frames, no_subcarriers = getCSI(scaled_csi)
 
     Fs = 1/np.mean(np.diff(xax))
-
-    finalEntries = [np.zeros((no_frames, 1)) for x in range(no_subcarriers)]
-
-    for x in range(no_frames):
-        scaled_entry = scaled_csi[x]["csi"]
-        for y in range(no_subcarriers):
-            finalEntries[y][x] = db(abs(scaled_entry[y]))
-
-    #We have finalEntries[subcarriers][frames].
-    #Now we want to find subcarrier variance and clip a threshold.
 
     stabilities = []
 
     for x in range(no_subcarriers):
-        finalEntry = finalEntries[x].flatten()
+        finalEntry = csi[x].flatten()
         variation = stats.variation(finalEntry)
 
         if not np.isnan(variation) and variation < 0.5:
-            hampelData = hampel(finalEntry, 20)
-            smoothedData = running_mean(hampelData, 20)
+            hampelData = hampel(finalEntry, 5)
+            smoothedData = running_mean(hampelData, 5)
 
-            b, a = signal.butter(3, [1/(Fs/2), 2/(Fs/2)], "bandpass")
-            filtData = signal.lfilter(b, a, smoothedData.flatten())[20:]
+            b, a = signal.butter(5, [1/(Fs/2), 1.3/(Fs/2)], "bandpass")
+            filtData = signal.lfilter(b, a, smoothedData.flatten())[70:]
 
             #Removed the first 50 values to cut out the spike.
             #Average HR should be 70.
@@ -144,69 +100,30 @@ def beatsfilter(reader):
     plt.legend(loc="upper right")
     plt.show()
 
-def multibreathefilter(reader):
+def heatmap(scaled_csi):
 
-    scaled_csi = reader.csi_trace
-
-    no_frames = len(scaled_csi)
-    no_subcarriers = np.array(scaled_csi[1]["csi"]).shape[0]
-    xax = list([x["timestamp"] for x in scaled_csi])
-
-    finalEntries = [np.zeros((no_frames, 1)) for x in range(no_subcarriers)]
-
-    for x in range(no_frames):
-        scaled_entry = scaled_csi[x]["csi"]
-        for y in range(no_subcarriers):
-            finalEntries[y][x] = db(abs(scaled_entry[y]))
-
-    for x in range(no_subcarriers):
-        finalEntry = finalEntries[x].flatten()
-        hampelData = hampel(finalEntry, 20)
-        smoothedData = running_mean(hampelData, 5)
-        finalEntries[x] = smoothedData
-
-        plt.plot(xax, finalEntries[x], alpha=0.5)
-
-    plt.xlabel("Time (s)")
-    plt.ylabel("Amplitude")
-    plt.legend(loc="upper right")
-    plt.show()
-
-def heatmap(reader):
-
-    scaled_csi = reader.csi_trace
-
-    no_frames = len(scaled_csi)
-    no_subcarriers = scaled_csi[0]["csi"].shape[0]
-    xax = list([x["scaled_timestamp"] for x in scaled_csi])
+    xax = getTimestamps(scaled_csi)
+    csi, no_frames, no_subcarriers = getCSI(scaled_csi)
 
     Fs = 1/np.mean(np.diff(xax))
     print("Sampling Rate: " + str(Fs))
 
     limits = [0, xax[-1], 1, no_subcarriers]
 
-    finalEntry = np.zeros((no_subcarriers, no_frames))
-
-    # Replace complex CSI with amplitude.
-    for y in range(no_subcarriers):
-        for x in range(no_frames):
-            scaled_entry = scaled_csi[x]["csi"]
-            finalEntry[y][x] = db(abs(scaled_entry[y]))
-
     #x = subcarrier index
     #y = time (s)
     #z = amplitude (dBm)
 
     for x in range(no_subcarriers):
-        fe = finalEntry[x].flatten()
-        hampelData = hampel(finalEntry[x].flatten(), 10)
-        smoothedData = running_mean(hampelData, 10)
+        hampelData = hampel(csi[x].flatten(), 5)
+        smoothedData = running_mean(hampelData, 5)
 
-        b, a = signal.butter(2, [1/int(Fs/2), 2/int(Fs/2)], "bandpass")
-        finalEntry[x] = signal.lfilter(b, a, finalEntry[x].flatten())
+        # b, a = signal.butter(9, [1/int(Fs/2), 2/int(Fs/2)], "bandpass")
+        # csi[x] = signal.lfilter(b, a, csi[x].flatten())
+        csi[x] = smoothedData
 
     fig, ax = plt.subplots()
-    im = ax.imshow(finalEntry, cmap="jet", extent=limits, aspect="auto")
+    im = ax.imshow(csi, cmap="jet", extent=limits, aspect="auto")
 
     cbar = ax.figure.colorbar(im, ax=ax)
     cbar.ax.set_ylabel("Amplitude (dBm)")
@@ -216,35 +133,25 @@ def heatmap(reader):
 
     plt.show()
 
-def statsgraph(reader):
+def statsgraph(scaled_csi):
 
-    scaled_csi = reader.csi_trace
-
-    no_frames = len(scaled_csi)
-    no_subcarriers = np.array(scaled_csi[1]["csi"]).shape[0]
-    xax = list([x["timestamp"] for x in scaled_csi])
-
-    finalEntries = [np.zeros((no_frames, 1)) for x in range(no_subcarriers)]
-
-    for x in range(no_frames):
-        scaled_entry = scaled_csi[x]["csi"]
-        for y in range(no_subcarriers):
-            finalEntries[y][x] = db(abs(scaled_entry[y]))
+    xax = getTimestamps(scaled_csi)
+    csi, no_frames, no_subcarriers = getCSI(scaled_csi)
 
     means = []
     stds = []
 
     for x in range(no_subcarriers):
-        variation = stats.variation(finalEntries[x])
-        mean = np.mean(finalEntries[x])
-        std = np.std(finalEntries[x])*20
+        variation = stats.variation(csi[x])
+        mean = np.mean(csi[x])
+        std = np.std(csi[x])*20
 
         if variation <= 0.05:
             print(x)
 
         if np.isnan(variation):
             variation = np.array(0)
-        finalEntries[x] = variation
+        csi[x] = variation
 
         means.append(mean)
         stds.append(std)
@@ -265,7 +172,7 @@ def statsgraph(reader):
 
     color = "tab:red"
 
-    ax2.bar(range(no_subcarriers), finalEntries, label="CV", color=color)
+    ax2.bar(range(no_subcarriers), csi, label="CV", color=color)
     ax2.plot(range(no_subcarriers), np.full((no_subcarriers), 0.05), label="threshold", color=color, linestyle="dashed")
 
     ax2.legend(loc="upper right")
@@ -273,45 +180,39 @@ def statsgraph(reader):
     fig.tight_layout()
     plt.show()
 
-    # plt.xticks(np.arange(0, no_subcarriers, step=10))
-
-    # plt.xlabel("Subcarrier Index")
-    # plt.ylabel("Coefficient of Variance")
-    # plt.legend(loc="upper right")
-    # plt.show()
-
-def traceStats(reader):
-
-    csi_trace = reader.csi_trace
+def traceStats(scaled_csi):
+    xax = getTimestamps(scaled_csi)
+    csi, no_frames, no_subcarriers = getCSI(scaled_csi)
 
     #Average sampling rate.
-    x = list([x["timestamp"] for x in csi_trace])
-    tdelta = (x[-1] - x[0]) / len(x)
+    tdelta = (xax[-1] - xax[0]) / len(xax)
 
-    print("Frames: {}".format(len(csi_trace)))
+    print("Frames: {}".format(no_frames))
     print("Average sampling rate: {}Hz".format((1/tdelta)))
-    print("CSI Shape: {}".format(np.array(csi_trace[0]["csi"]).shape))
+    print("CSI Shape: {}".format(csi.shape))
 
 def main():
 
-    basePath = Path(__file__).parent
-    path = (basePath / "../../sample_data/breathtest1.pcap").resolve()
+    # basePath = Path(__file__).parent
+    # path = (basePath / "../../sample_data/breathtest1.pcap").resolve()
 
-    if len(sys.argv) > 1:
-        tmpPath = sys.argv[1]
-        if os.path.exists(tmpPath):
-            path = tmpPath
-        else:
-            print("File at {} not found.".format(tmpPath))
-            exit(1)
+    path = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\5breathtest.pcap"
+
+    # if len(sys.argv) > 1:
+    #     tmpPath = sys.argv[1]
+    #     if os.path.exists(tmpPath):
+    #         path = tmpPath
+    #     else:
+    #         print("File at {} not found.".format(tmpPath))
+    #         exit(1)
 
     reader = BeamformReader(path)
+    scaled_csi = reader.csi_trace
 
-    # traceStats(reader)
-    heatmap(reader)
-    # beatsfilter(reader)
-    # multibreathefilter(reader)
-    # breathingfilter(reader)
-    # statsgraph(reader)
+    # traceStats(scaled_csi)
+    heatmap(scaled_csi)
+    # beatsfilter(scaled_csi)
+    # breathingfilter(scaled_csi)
+    # statsgraph(scaled_csi)
 
 main()

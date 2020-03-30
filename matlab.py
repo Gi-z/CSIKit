@@ -5,7 +5,7 @@ def dbinv(x):
     return np.power(10, x/10)
 
 def db(x):
-    return 20. * np.log10(x)
+    return 10 * np.log10(x)
 
 def variance(samples):
     overallMean = np.mean(samples)
