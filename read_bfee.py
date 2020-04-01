@@ -156,7 +156,7 @@ class BeamformReader:
         }
 
     def read_bf_entry(self, data):
-        csiHeader = np.frombuffer(data[:21], dtype=DTYPE_CSI_HEADER_TLV)
+        csiHeader = np.frombuffer(data[4:25], dtype=DTYPE_CSI_HEADER_TLV)
         allData = [x[0] for x in struct.Struct(">B").iter_unpack(data[25:])]
 
         ret = self.read_bfee(csiHeader, allData)
@@ -164,15 +164,8 @@ class BeamformReader:
         return ret
 
     def read_bf_file(self, file):
-
-        #Check we can seek to the end of file.
-        file.seek(0, 2)
-        length = file.tell()
-
-        #Back to start of file.
-        file.seek(0, 0)
-
         data = file.read()
+        length = len(data)
 
         ret = []
         cur = 0

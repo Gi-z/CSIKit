@@ -3,10 +3,14 @@ from scipy import signal
 import pandas as pd
 import numpy as np
 
+def bandpass(order, low, high, fs, data):
+    b, a = signal.butter(order, [low/int(fs/2), high/int(fs/2)], "bandpass")
+    return signal.lfilter(b, a, data)
+
 #Original implementation.
 #Novel, by Chris
 #Runs slightly slower than Pandas implementation.
-def hampel(csi, k=3, nsigma=1):
+def hampel(csi, k=3, nsigma=3):
     index = 0
     csi = csi.copy()
     for x in csi:
@@ -29,44 +33,8 @@ def hampel(csi, k=3, nsigma=1):
 
     return csi
 
-#Adapted from top answer on Stackoverflow.
-#Fastest implementation.
-# May be slightly incorrect? Answer below had complaints.
-# def hampel(csi, k=3, nsigma=1):
-#     csi = pd.Series(csi)
-
-#     #Hampel Filter
-#     L= 1.4286
-#     rolling_median = csi.rolling(k).median()
-#     difference = np.abs(rolling_median - csi)
-#     median_abs_deviation = difference.rolling(k).median()
-#     threshold = nsigma * L * median_abs_deviation
-#     outlier_idx = difference > threshold
-#     csi[outlier_idx] = rolling_median[outlier_idx]
-
-#     return csi.to_numpy()
-
 def mad(x, axis=None):
     return np.mean(np.absolute(x - np.mean(x, axis)), axis)
-
-# def hampel(csi, T1, nsigma=1):
-#     n = len(csi)
-#     new_series = csi.copy()
-
-#     for i in range(T1, n-T1):
-#         u = np.median(csi[i:i+T1])
-#         m = mad(csi[i:i+T1])
-#         intervalUpper = u+nsigma*m
-#         intervalLower = u-nsigma*m
-
-#         sect = new_series[i:i+T1]
-
-#         for i in range(len(sect)):
-#             x = sect[i]
-#             if x > intervalUpper or x < intervalLower:
-#                 sect[i] = u
-
-#     return new_series
 
 def get_ev(data, position, window_size, c):
     window = data[position:position+window_size]

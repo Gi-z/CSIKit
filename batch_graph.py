@@ -1,4 +1,4 @@
-from filters import hampel, running_mean, running_stdev, dynamic_detrend
+from filters import hampel, running_mean, running_stdev, dynamic_detrend, bandpass
 from read_bfee import BeamformReader
 from matlab import db
 from pathlib import Path
@@ -43,21 +43,18 @@ def fft(reader):
     no_frames = len(scaled_csi)
     no_subcarriers = scaled_csi[0]["csi"].shape[0]
 
-    finalEntry = getCSI(scaled_csi)[15].flatten()
-
-    hampelData = hampel(finalEntry, 20)
-    smoothedData = running_mean(hampelData, 30)
-    y = smoothedData.flatten()
-    y -= np.mean(y)
-
-    b, a = signal.butter(5, [1/10, 2/10], "bandpass")
-    y = signal.lfilter(b, a, y)
-
     x = [i/20 for i in range(no_frames)]
     tdelta = (x[-1] - x[0]) / len(x)
 
     Fs = 1/tdelta
     n = no_frames
+
+    finalEntry = getCSI(scaled_csi)[15].flatten()
+
+    hampelData = hampel(finalEntry, 20)
+    smoothedData = running_mean(hampelData, 30)
+
+    y = bandpass(5, 1, 2, Fs, smoothedData)
 
     #rfft is a real Fast Fourier Transform, as we aren't interested in the imaginary parts.
     #as half of the points lie in the imaginary/negative domain, we get an n/2 point FFT.
@@ -120,8 +117,7 @@ def shorttime(reader, subcarrier):
     fmin = 0.7
     fmax = 2.3
 
-    b, a = signal.butter(3, [fmin/(Fs/2), fmax/(Fs/2)], "bandpass")
-    y = signal.lfilter(b, a, y)
+    y = bandpass(3, fmin, fmax, Fs, y)
 
     f, t, Zxx = signal.stft(y, Fs, nperseg=2000, noverlap=1750)
 
@@ -176,9 +172,8 @@ def beatsfilter(reader, Fs):
         # detrended = dynamic_detrend(hampelData, 5, 3, 1.2, Fs)
         # rehampeledData = hampel(detrended, 10, 0.1)
 
-        b, a = signal.butter(7, [1/10, 1.5/10], btype="band")
-        filtData = signal.lfilter(b, a, finalEntries[x].flatten())
-        # filtData = signal.lfilter(b, a, hampelData)
+        filtData = bandpass(7, 1, 1.5, 20, finalEntry)
+        # filtData = bandpass(7, 1, 1.5, 20, rehampeledData)
         
         for i in range(0, 70):
             filtData[i] = 0
@@ -227,8 +222,7 @@ def specstabfilter(reader, Fs):
         detrended = dynamic_detrend(hampelData, 5, 3, 1.2, Fs)
         rehampeledData = hampel(detrended, 10, 0.1)
 
-        b, a = signal.butter(7, [1/(Fs/2), 1.3/(Fs/2)], "bandpass")
-        filtData = signal.lfilter(b, a, rehampeledData)
+        filtData = bandpass(7, 1, 1.3, Fs, rehampeledData)
 
         #Spectral Stability section.
         #The spectral stability metric aims to score subcarriers based on the
@@ -389,19 +383,12 @@ def heatmap(reader):
 
     no_subcarriers = scaled_csi[0]["csi"].shape[0]
     no_frames = len(scaled_csi)
-    # ylimit = scaled_csi[no_frames-1]["timestamp"]
-    # print(ylimit)
-    # ylimit = no_frames/Fs
-    ylimit = no_frames
+    ylimit = scaled_csi[no_frames-1]["timestamp"]
+    ylimit = no_frames/Fs
 
     limits = [0, ylimit, 1, no_subcarriers]
 
     finalEntry = getCSI(scaled_csi, metric="amplitude")
-
-    #x = subcarrier index
-    #y = time (s)
-    #z = amplitude (dBm)
-    sigs = []
 
     for x in range(no_subcarriers):
         # hampelData = hampel(finalEntry[x].flatten(), 10, 0.4)
@@ -409,14 +396,9 @@ def heatmap(reader):
         # smoothedData = dynamic_detrend(hampelData, 5, 3, 1.2, 10)
         # doubleHampel = hampel(smoothedData, 10, 0.4)
 
-        b, a = signal.butter(7, [1/10, 1.5/10], btype="band")
-        finalEntry[x] = signal.lfilter(b, a, finalEntry[x].flatten())
-
+        finalEntry[x] = bandpass(7, 1, 1.3, Fs, finalEntry[x].flatten())
         # for i in range(0, 140):
         #     finalEntry[x][i] = 0
-
-        # finalEntry[x] = runningMeanData
-        # sigs.append(finalEntry[x])
         
     fig, ax = plt.subplots()
     im = ax.imshow(finalEntry, cmap="jet", extent=limits, aspect="auto")
@@ -429,29 +411,13 @@ def heatmap(reader):
 
     plt.show()
 
-    pxxs = []
-
-    # for data in sigs:
-    #     f, Pxx_den = signal.welch(data, 10)
-    #     pxxs.append(Pxx_den)
-
-    # meanPsd = np.mean(pxxs, axis=0)
-    # print(f[np.argmax(meanPsd)]*60)
-
-    # f, Pxx_den = signal.welch(sigs[27], 20)
-
-    # plt.plot(f, Pxx_den)
-    # plt.xlabel("Frequency")
-    # plt.ylabel("Amplitude")
-    # plt.show()
-
 def getPath(partialPath):
     basePath = Path(__file__).parent
     return (basePath / partialPath).resolve()
 
 def main():
     # partialPath = "../sample_data/dtest4.dat"
-    partialPath = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\htest4.dat"
+    partialPath = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\dtest3.dat"
     reader = BeamformReader(partialPath, x_antenna=0, y_antenna=0)
 
     scaled_csi = reader.csi_trace
@@ -492,16 +458,16 @@ def hrTestSuite():
 
     estimationDiffs = []
 
-    for test in tests:
+    for [filename, Fs, bpm] in tests:
         # partialPath = "../sample_data/{}.dat".format(test[0])
-        path = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\{}.dat".format(test[0])
+        path = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\{}.dat".format(filename)
 
         # reader = BeamformReader(getPath(partialPath), x_antenna=0, y_antenna=0)
         reader = BeamformReader(path, x_antenna=0, y_antenna=0)
         # hrEstimation = specstabfilter(reader, test[1])
-        hrEstimation = beatsfilter(reader, test[1])
-        estErr = np.abs(hrEstimation-test[2])
-        print("{} estimation error: {}bpm".format(test[0], estErr))
+        hrEstimation = beatsfilter(reader, Fs)
+        estErr = np.abs(hrEstimation-bpm)
+        print("{} estimation error: {}bpm".format(filename, estErr))
         estimationDiffs.append(estErr)
 
     median = np.nanmedian(estimationDiffs)
@@ -509,5 +475,5 @@ def hrTestSuite():
 
 
 if __name__ == "__main__":
-    # main()
-    hrTestSuite()
+    main()
+    # hrTestSuite()

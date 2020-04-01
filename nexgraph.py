@@ -1,4 +1,4 @@
-from filters import hampel, running_mean, running_stdev
+from filters import hampel, running_mean, running_stdev, bandpass
 from matlab import db
 from scipy import fftpack, signal, stats
 
@@ -53,12 +53,7 @@ def beatsfilter(scaled_csi):
         if not np.isnan(variation) and variation < 0.5:
             hampelData = hampel(finalEntry, 5)
             smoothedData = running_mean(hampelData, 5)
-
-            b, a = signal.butter(5, [1/(Fs/2), 1.3/(Fs/2)], "bandpass")
-            filtData = signal.lfilter(b, a, smoothedData.flatten())[70:]
-
-            #Removed the first 50 values to cut out the spike.
-            #Average HR should be 70.
+            filtData = bandpass(5, 1, 1.3, Fs, smoothedData)
 
             wLength = 1*Fs
             N = np.mod(len(filtData), wLength)
@@ -102,25 +97,19 @@ def beatsfilter(scaled_csi):
 
 def heatmap(scaled_csi):
 
-    xax = getTimestamps(scaled_csi)
+    timestamps = getTimestamps(scaled_csi)
     csi, no_frames, no_subcarriers = getCSI(scaled_csi)
 
-    Fs = 1/np.mean(np.diff(xax))
+    Fs = 1/np.mean(np.diff(timestamps))
     print("Sampling Rate: " + str(Fs))
 
-    limits = [0, xax[-1], 1, no_subcarriers]
-
-    #x = subcarrier index
-    #y = time (s)
-    #z = amplitude (dBm)
+    limits = [0, timestamps[-1], 1, no_subcarriers]
 
     for x in range(no_subcarriers):
         hampelData = hampel(csi[x].flatten(), 5)
         smoothedData = running_mean(hampelData, 5)
-
-        # b, a = signal.butter(9, [1/int(Fs/2), 2/int(Fs/2)], "bandpass")
-        # csi[x] = signal.lfilter(b, a, csi[x].flatten())
-        csi[x] = smoothedData
+        butteredData = bandpass(7, 0.2, 0.3, Fs, smoothedData)
+        csi[x] = butteredData
 
     fig, ax = plt.subplots()
     im = ax.imshow(csi, cmap="jet", extent=limits, aspect="auto")
@@ -196,7 +185,7 @@ def main():
     # basePath = Path(__file__).parent
     # path = (basePath / "../../sample_data/breathtest1.pcap").resolve()
 
-    path = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\5breathtest.pcap"
+    path = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\hrtest2.pcap"
 
     # if len(sys.argv) > 1:
     #     tmpPath = sys.argv[1]
@@ -210,8 +199,8 @@ def main():
     scaled_csi = reader.csi_trace
 
     # traceStats(scaled_csi)
-    heatmap(scaled_csi)
-    # beatsfilter(scaled_csi)
+    # heatmap(scaled_csi)
+    beatsfilter(scaled_csi)
     # breathingfilter(scaled_csi)
     # statsgraph(scaled_csi)
 

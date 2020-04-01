@@ -1,5 +1,3 @@
-from math import floor
-from matlab import db, dbinv
 from pathlib import Path
 
 import scipy.io
