@@ -10,15 +10,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-def variance(samples):
-    overallMean = np.mean(samples)
-    return sum(list(map(lambda x: (x-overallMean)**2, samples))) / (len(samples)-1)
-
-def getCSI(scaled_csi, metric="phasediff"):
+def getCSI(scaled_csi, metric="amplitude"):
     no_frames = len(scaled_csi)
-    no_subcarriers = np.array(scaled_csi[0]["csi"]).shape[0]
+    no_subcarriers = scaled_csi[0]["csi"].shape[0]
 
-    finalEntries = [np.zeros((no_frames, 1)) for x in range(no_subcarriers)]
+    finalEntries = np.zeros((no_subcarriers, no_frames))
 
     for x in range(no_frames):
         scaled_entry = scaled_csi[x]["csi"]
@@ -32,29 +28,22 @@ def getCSI(scaled_csi, metric="phasediff"):
                     #reuse the previous value.
                     finalEntries[y][x] = finalEntries[y][x-1]
             elif metric == "amplitude":
-                finalEntries[y][x] = db(abs(scaled_entry[y][1][0]))
+                if scaled_entry.shape[1] >= 2:
+                    finalEntries[y][x] = db(abs(scaled_entry[y][1][0]))
+                else:
+                    finalEntries[y][x] = db(abs(scaled_entry[y][0][0]))
 
-    return finalEntries
+    return (no_frames, no_subcarriers, finalEntries)
 
 def fft(reader):
 
     scaled_csi = reader.csi_trace
 
-    no_frames = len(scaled_csi)
-    no_subcarriers = scaled_csi[0]["csi"].shape[0]
+    Fs = 20
 
-    x = [i/20 for i in range(no_frames)]
-    tdelta = (x[-1] - x[0]) / len(x)
+    no_frames, no_subcarriers, finalEntry = getCSI(scaled_csi)
 
-    Fs = 1/tdelta
-    n = no_frames
-
-    finalEntry = getCSI(scaled_csi)[15].flatten()
-
-    hampelData = hampel(finalEntry, 20)
-    smoothedData = running_mean(hampelData, 30)
-
-    y = bandpass(5, 1, 2, Fs, smoothedData)
+    y = bandpass(7, 1, 1.5, Fs, finalEntry[15])
 
     #rfft is a real Fast Fourier Transform, as we aren't interested in the imaginary parts.
     #as half of the points lie in the imaginary/negative domain, we get an n/2 point FFT.
@@ -69,21 +58,21 @@ def fft(reader):
     # ((binNumber*samplingRate)/n)*60 produces a per minute rate.
 
     ffty = np.fft.rfft(y, len(y))
-    freq = np.fft.rfftfreq(len(y), tdelta)
-    freqX = [((i*Fs)/n)*60 for i in range(len(freq))]
+    freq = np.fft.rfftfreq(len(y), 0.05)
+    freqX = [((i*Fs)/no_frames)*60 for i in range(len(freq))]
 
     plt.subplot(211)
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude (Hz)")
 
-    plt.plot(x, y)
+    plt.plot(y)
 
     plt.subplot(212)
     plt.xlabel("Breaths Per Minute (BPM)")
     plt.ylabel("Amplitude (dB/Hz)")
 
     axes = plt.gca()
-    axes.set_xlim([0, 30])
+    axes.set_xlim([50, 100])
 
     plt.plot(freqX, np.abs(ffty))
 
@@ -93,20 +82,13 @@ def shorttime(reader, subcarrier):
 
     scaled_csi = reader.csi_trace
 
-    no_frames = len(scaled_csi)
-    no_subcarriers = scaled_csi[0]["csi"].shape[0]
-
-    finalEntry = np.zeros((no_frames, 1))
-    hampelData = np.zeros((no_frames, 1))
-    smoothedData = np.zeros((no_frames, 1))
-
     #Replace complex CSI with amplitude.
 
-    finalEntry = [db(abs(scaled_csi[x]["csi"][subcarrier][reader.x_antenna][reader.y_antenna])) for x in range(no_frames)]
+    no_frames, no_subcarriers, finalEntry = getCSI(scaled_csi)
 
-    hampelData = hampel(finalEntry, 30)
-    smoothedData = running_mean(hampelData, 20)
-    y = smoothedData
+    # hampelData = hampel(finalEntry, 30)
+    # smoothedData = running_mean(hampelData, 20)
+    y = finalEntry
 
     tdelta = 0.01
     x = list([x*tdelta for x in range(0, no_frames)])
@@ -114,10 +96,12 @@ def shorttime(reader, subcarrier):
     Fs = 1/tdelta
     n = no_frames
 
-    fmin = 0.7
-    fmax = 2.3
+    Fs = 20
 
-    y = bandpass(3, fmin, fmax, Fs, y)
+    fmin = 1
+    fmax = 1.5
+
+    y = bandpass(7, fmin, fmax, Fs, y)
 
     f, t, Zxx = signal.stft(y, Fs, nperseg=2000, noverlap=1750)
 
@@ -160,31 +144,23 @@ def shorttime(reader, subcarrier):
 #Averages the PSD measurements from every subcarrier after data preprocessing.
 def beatsfilter(reader, Fs):
     scaled_csi = reader.csi_trace
-
-    no_subcarriers = np.array(scaled_csi[0]["csi"]).shape[0]
-    finalEntries = getCSI(scaled_csi)
+    no_frames, no_subcarriers, finalEntries = getCSI(scaled_csi, metric="phasediff")
 
     sigs = []
 
     for x in range(no_subcarriers):
-        finalEntry = finalEntries[x].flatten()
-        # hampelData = hampel(finalEntry, 10, 0.4)
+        finalEntry = finalEntries[x]
+        # hampelData = hampel(finalEntry, 20)
         # detrended = dynamic_detrend(hampelData, 5, 3, 1.2, Fs)
-        # rehampeledData = hampel(detrended, 10, 0.1)
+        # rehampeledData = hampel(detrended, 20)
 
-        filtData = bandpass(7, 1, 1.5, 20, finalEntry)
+        filtData = bandpass(7, 1, 1.7, Fs, finalEntry)
         # filtData = bandpass(7, 1, 1.5, 20, rehampeledData)
         
         for i in range(0, 70):
             filtData[i] = 0
 
-        # plt.plot(filtData, alpha=0.5)
         sigs.append(filtData)
-
-    # plt.title('Signal')
-    # plt.ylabel('Amplitude')
-    # plt.xlabel('Samples')
-    # plt.show()
 
     pxxs = []
 
@@ -193,6 +169,9 @@ def beatsfilter(reader, Fs):
         pxxs.append(Pxx_den)
 
     meanPsd = np.mean(pxxs, axis=0)
+    # plt.plot(f, meanPsd)
+    # plt.show()
+
     return f[np.argmax(meanPsd)]*60
 
 #Attempts to recreate the Spectral Stability subcarrier selection metric from CardioFi.
@@ -200,16 +179,14 @@ def beatsfilter(reader, Fs):
 def specstabfilter(reader, Fs):
 
     scaled_csi = reader.csi_trace
-
-    no_subcarriers = np.array(scaled_csi[0]["csi"]).shape[0]
-    finalEntries = getCSI(scaled_csi)
+    no_frames, no_subcarriers, finalEntries = getCSI(scaled_csi)
 
     #Using CSI phase difference data.
 
     stabilities = []
 
     for x in range(no_subcarriers):
-        finalEntry = finalEntries[x].flatten()
+        finalEntry = finalEntries[x]
 
         #CardioFi paper uses 100Hz uniformly sampled data, which may mean we need to use different
         #filter parameters. For now, we will copy them verbatim.
@@ -218,11 +195,11 @@ def specstabfilter(reader, Fs):
         #          the second hampel filter is run using T1=0.5s t1=0.1
         #          the bandpass filter is run at 5th order with a range of 1-2Hz.
 
-        hampelData = hampel(finalEntry, 10, 0.4)
+        hampelData = hampel(finalEntry, 20)
         detrended = dynamic_detrend(hampelData, 5, 3, 1.2, Fs)
-        rehampeledData = hampel(detrended, 10, 0.1)
+        rehampeledData = hampel(detrended, 20)
 
-        filtData = bandpass(7, 1, 1.3, Fs, rehampeledData)
+        filtData = bandpass(7, 1, 1.5, Fs, rehampeledData)
 
         #Spectral Stability section.
         #The spectral stability metric aims to score subcarriers based on the
@@ -244,7 +221,7 @@ def specstabfilter(reader, Fs):
         #measurements over a 40 second period.
 
         wLength = 5*Fs
-        dataLength = 10*Fs
+        dataLength = 10 *Fs
         windows = []
         position = 0
 
@@ -304,8 +281,8 @@ def prepostfilter(reader):
     no_subcarriers = scaled_csi[0]["csi"].shape[0]
     finalEntry = getCSI(scaled_csi)[15]
 
-    stdev = running_stdev(finalEntry.flatten(), 2)
-    hampelData = hampel(finalEntry.flatten(), 15)
+    stdev = running_stdev(finalEntry, 2)
+    hampelData = hampel(finalEntry, 15)
     smoothedData = running_mean(hampelData.copy(), 15)
 
     y = finalEntry
@@ -365,7 +342,7 @@ def varianceGraph(reader):
     finalEntry = getCSI(scaled_csi)
 
     for x in range(no_subcarriers):
-        hampelData = hampel(finalEntry[x].flatten(), 10)
+        hampelData = hampel(finalEntry[x], 10)
         smoothedData = running_mean(hampelData, 25)
         y.append(variance(smoothedData))
 
@@ -378,25 +355,25 @@ def varianceGraph(reader):
 def heatmap(reader):
 
     scaled_csi = reader.csi_trace
+    no_frames, no_subcarriers, finalEntry = getCSI(scaled_csi, metric="phasediff")
+
+    x = list([x["timestamp"] for x in scaled_csi])
+    tdelta = (x[-1] - x[0]) / len(x)
 
     Fs = 20
 
-    no_subcarriers = scaled_csi[0]["csi"].shape[0]
-    no_frames = len(scaled_csi)
     ylimit = scaled_csi[no_frames-1]["timestamp"]
     ylimit = no_frames/Fs
 
     limits = [0, ylimit, 1, no_subcarriers]
 
-    finalEntry = getCSI(scaled_csi, metric="amplitude")
-
     for x in range(no_subcarriers):
-        # hampelData = hampel(finalEntry[x].flatten(), 10, 0.4)
+        # hampelData = hampel(finalEntry[x], 10, 3)
         # runningMeanData = running_mean(hampelData, 20)
-        # smoothedData = dynamic_detrend(hampelData, 5, 3, 1.2, 10)
-        # doubleHampel = hampel(smoothedData, 10, 0.4)
+        # smoothedData = dynamic_detrend(runningMeanData, 5, 3, 1.2, 10)
+        # doubleHampel = hampel(smoothedData, 10, 3)
 
-        finalEntry[x] = bandpass(7, 1, 1.3, Fs, finalEntry[x].flatten())
+        finalEntry[x] = bandpass(7, 1, 1.5, Fs, finalEntry[x])
         # for i in range(0, 140):
         #     finalEntry[x][i] = 0
         
@@ -417,7 +394,7 @@ def getPath(partialPath):
 
 def main():
     # partialPath = "../sample_data/dtest4.dat"
-    partialPath = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\dtest3.dat"
+    partialPath = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\hometest1.dat"
     reader = BeamformReader(partialPath, x_antenna=0, y_antenna=0)
 
     scaled_csi = reader.csi_trace
@@ -429,7 +406,7 @@ def main():
     # print(specstabfilter(reader, 20))
     # varianceGraph(reader)
     # fft(reader)
-    # shorttime(reader)
+    # shorttime(reader, 15)
 
 def hrTestSuite():
 
@@ -453,7 +430,18 @@ def hrTestSuite():
         ["htest1", 20, 67],
         ["htest2", 20, 67],
         ["htest3", 20, 81],
-        # ["htest4", 20, 79],
+        ["htest4", 20, 79],
+
+        ["hometest1", 10, 86],
+        ["hometest2", 10, 81],
+        ["hometest3", 10, 80],
+        ["hometest4", 10, 75],
+        ["hometest5", 10, 85],
+        ["hometest6", 10, 87],
+        ["hometest7", 10, 95],
+        ["hometest8", 10, 90],
+        ["hometest9", 10, 88],
+        ["hometest10", 10, 93],
     ]
 
     estimationDiffs = []
@@ -464,16 +452,17 @@ def hrTestSuite():
 
         # reader = BeamformReader(getPath(partialPath), x_antenna=0, y_antenna=0)
         reader = BeamformReader(path, x_antenna=0, y_antenna=0)
-        # hrEstimation = specstabfilter(reader, test[1])
+        # hrEstimation = specstabfilter(reader, Fs)
         hrEstimation = beatsfilter(reader, Fs)
         estErr = np.abs(hrEstimation-bpm)
+        print("{} result: {}bpm".format(filename, hrEstimation))
         print("{} estimation error: {}bpm".format(filename, estErr))
         estimationDiffs.append(estErr)
 
-    median = np.nanmedian(estimationDiffs)
-    print("Median Estimation Error: " + str(median))
+    mean = np.nanmean(estimationDiffs)
+    print("Mean Estimation Error: " + str(mean))
 
 
 if __name__ == "__main__":
-    main()
-    # hrTestSuite()
+    # main()
+    hrTestSuite()

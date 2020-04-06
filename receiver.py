@@ -19,15 +19,21 @@ if __name__ == "__main__":
     graph = RealtimeGraph(gType)
 
     sock = netlink.open_socket()
+    bfRead = BeamformReader()
+    
     while True:
         try:
             payload = netlink.recv_from_socket(sock)
-
-            bfRead = BeamformReader()
             csiEntry = bfRead.read_bf_entry(payload)
 
             graph.update(csiEntry)
-        except KeyboardInterrupt:
-            break
+        except OSError:
+            #Every 256 or so readings, we get an OSError about a buffer being out of space.
+            #Really struggled to find anything that might help with it.
+            #Turns out it only throws one error, so we can just go back to taking readings.
+            
+            #We may also want to double up the previous reading, to make up for not doing
+            #any resampling with the skipped reading.
+            graph.update(csiEntry)
 
     netlink.close_socket(sock)

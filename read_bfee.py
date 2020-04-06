@@ -44,7 +44,7 @@ class BeamformReader:
     def scale_timestamps(self, csi_trace):
         time = [x["timestamp_low"] for x in csi_trace]
 
-        timediff = (np.diff(time))*10e-6
+        timediff = (np.diff(time))*10e-7
         time_stamp = np.cumsum(timediff)
 
         csi_trace[0]["timestamp"] = 0

@@ -51,6 +51,12 @@ class RealtimeGraph:
             plt.ylabel("Variance")
 
     def update(self, data):
+        self.all_data.append(data)
+        # if not self.updateTimestamps():
+        #     self.all_data = self.all_data[:-1]
+        #     return None
+        scaled_csi = self.all_data
+
         if self.graphType == "default":
             self.updateContents(data)
         elif self.graphType == "butter":
@@ -64,25 +70,45 @@ class RealtimeGraph:
         elif self.graphType == "variance":
             self.updateVariance(data)
         elif self.graphType == "justbeats":
-            self.beatsfilter(data)
+            self.beatsfilter(scaled_csi)
 
-    def updateTimestamps(self):
-        csi_trace = self.all_data
-        time = [x["timestamp_low"] for x in csi_trace]
+    # def updateTimestamps(self):
+    #     csi_trace = self.all_data
+    #     time = [x["timestamp_low"] for x in csi_trace]
 
-        timediff = (np.diff(time))*10e-7
-        time_stamp = np.cumsum(timediff)
+    #     timediff = (np.diff(time))*10e-7
+    #     time_stamp = np.cumsum(timediff)
 
-        csi_trace[0]["timestamp"] = 0
-        for x in csi_trace[1:]:
-            x["timestamp"] = time_stamp[csi_trace.index(x)-1]
+    #     csi_trace[0]["timestamp"] = 0
+    #     for x in csi_trace[1:]:
+    #         x["timestamp"] = time_stamp[csi_trace.index(x)-1]
       
-        return True
+    #     return True
+
+    def getCSI(scaled_csi, metric="phasediff"):
+        no_frames = len(scaled_csi)
+        no_subcarriers = np.array(scaled_csi[0]["csi"]).shape[0]
+
+        finalEntries = [np.zeros((no_frames, 1)) for x in range(no_subcarriers)]
+
+        for x in range(no_frames):
+            scaled_entry = scaled_csi[x]["csi"]
+            for y in range(no_subcarriers):
+                if metric == "phasediff":
+                    if scaled_entry.shape[1] >= 2:
+                        #Not 100% sure this generates correct Phase Difference.
+                        finalEntries[y][x] = np.angle(scaled_entry[y][1][0])-np.angle(scaled_entry[y][0][0])
+                    else:
+                        #In cases where only one antenna is available,
+                        #reuse the previous value.
+                        finalEntries[y][x] = finalEntries[y][x-1]
+                elif metric == "amplitude":
+                    finalEntries[y][x] = db(abs(scaled_entry[y][1][0]))
+
+        return finalEntries
 
     def updateButterLive(self, data):
         self.all_data.append(data)
-        self.updateTimestamps()
-
         if not self.updateTimestamps():
             self.all_data = self.all_data[:-1]
             return None
@@ -117,8 +143,6 @@ class RealtimeGraph:
 
     def updateButterworth(self, data):
         self.all_data.append(data)
-        self.updateTimestamps()
-
         if not self.updateTimestamps():
             self.all_data = self.all_data[:-1]
             return None
@@ -159,7 +183,6 @@ class RealtimeGraph:
 
     def updateBreath(self, data):
         self.all_data.append(data)
-
         if not self.updateTimestamps():
             self.all_data = self.all_data[:-1]
             return None
@@ -277,70 +300,8 @@ class RealtimeGraph:
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
 
-    # def updateHeat2(self, data):
-    #     self.all_data.append(data)
-    #     if not self.updateTimestamps():
-    #         self.all_data = self.all_data[:-1]
-    #         return None
-    #     scaled_csi = self.all_data
-
-    #     no_frames = len(scaled_csi)
-    #     no_subcarriers = scaled_csi[0]["csi"].shape[0]
-    #     ylimit = scaled_csi[no_frames-1]["timestamp"]
-
-    #     if no_frames < 100:
-    #         return None
-
-    #     limits = [1, no_subcarriers, 0, ylimit]
-
-    #     finalEntry = np.zeros((no_frames, no_subcarriers))
-
-    #     #Replace complex CSI with amplitude.
-    #     for y in range(no_subcarriers):
-    #         for x in range(no_frames):
-    #             scaled_entry = scaled_csi[x]["csi"]
-    #             finalEntry[y][x] = db(abs(scaled_entry[y][0][0]))
-
-
-    #     for j in range(no_subcarriers):
-       
-    #         sig = finalEntry[j] 
-    #         #hampelData = hampel(sig, 10)
-    #         #smoothedData = running_mean(sig, 30)
-        
-    #         y = sig.flatten()
-    #         x = list([x["timestamp"] for x in scaled_csi])
-    #         tdelta = (x[-1] - x[0]) / len(x)
-
-    #         Fs = 1/tdelta
-    #         n = no_frames
-    #         y = bandpass(5, 1.0, 1.3, Fs, y)
-
-    #         for x in range(70):
-    #             y[x] = 0
-
-    #         finalEntry[j] = y
-
-    #     #x = subcarrier index
-    #     #y = time (s)
-    #     #z = amplitude (cBm)
-
-    #     im = self.ax.imshow(finalEntry, cmap=plt.cm.gist_rainbow_r, extent=limits, aspect="auto")
-
-    #     cbar = self.ax.figure.colorbar(im, ax=self.ax)
-    #     cbar.ax.set_ylabel("Amplitude (dBm)", rotation=-90, va="bottom")
-
-    #     self.ax.relim()
-    #     self.ax.autoscale_view()
-    #     self.fig.canvas.draw()
-    #     self.fig.canvas.flush_events()
-
     def beatsfilter(self, data):
-        self.all_data.append(data)
-        if not self.updateTimestamps():
-            self.all_data = self.all_data[:-1]
-            return None
-        scaled_csi = self.all_data
+        scaled_csi = data
         no_frames = len(scaled_csi)
 
         if no_frames < 80:
@@ -351,14 +312,8 @@ class RealtimeGraph:
 
         Fs = 1/tdelta
 
-        no_subcarriers = np.array(scaled_csi[0]["csi"]).shape[0]
-        finalEntries = np.zeros((no_subcarriers, no_frames))
-
-        #Replace complex CSI with amplitude.
-        for y in range(no_subcarriers):
-            for x in range(no_frames):
-                scaled_entry = scaled_csi[x]["csi"]
-                finalEntries[y][x] = db(abs(scaled_entry[y][0][0]))
+        no_subcarriers = scaled_csi[0]["csi"].shape[0]
+        finalEntries = self.getCSI(scaled_csi)
 
         sigs = []
 
@@ -368,28 +323,22 @@ class RealtimeGraph:
             # detrended = dynamic_detrend(hampelData, 5, 3, 1.2, Fs)
             # rehampeledData = hampel(detrended, 10, 0.1)
 
-            filtData = bandpass(7, 1, 1.5, 20, finalEntry)
+            filtData = bandpass(7, 1, 1.5, Fs, finalEntry)
             # filtData = bandpass(7, 1, 1.5, 20, rehampeledData)
             
             for i in range(0, 70):
                 filtData[i] = 0
 
-            # plt.plot(filtData, alpha=0.5)
             sigs.append(filtData)
-
-        # plt.title('Signal')
-        # plt.ylabel('Amplitude')
-        # plt.xlabel('Samples')
-        # plt.show()
 
         pxxs = []
 
         for data in sigs:
-            f, Pxx_den = signal.welch(data, Fs)
+            f, Pxx_den = signal.welch(data, Fs, nperseg=no_frames)
             pxxs.append(Pxx_den)
 
         meanPsd = np.mean(pxxs, axis=0)
-        print("Beats: ", f[np.argmax(meanPsd)]*60)
+        print("Beats: ", "%.2f" % f[np.argmax(meanPsd)]*60)
 
     def updateHeat2(self, data):
         self.all_data.append(data)

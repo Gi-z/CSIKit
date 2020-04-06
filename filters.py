@@ -4,7 +4,8 @@ import pandas as pd
 import numpy as np
 
 def bandpass(order, low, high, fs, data):
-    b, a = signal.butter(order, [low/int(fs/2), high/int(fs/2)], "bandpass")
+    fshalf = fs/2
+    b, a = signal.butter(order, [low/fshalf, high/fshalf], "bandpass")
     return signal.lfilter(b, a, data)
 
 #Original implementation.
