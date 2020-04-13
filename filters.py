@@ -3,10 +3,15 @@ from scipy import signal
 import pandas as pd
 import numpy as np
 
+# def bandpass(order, low, high, fs, data):
+#     fshalf = 0.5*fs
+#     b, a = signal.butter(order, [low/fshalf, high/fshalf], "bandpass")
+#     return signal.lfilter(b, a, data)
+
 def bandpass(order, low, high, fs, data):
-    fshalf = fs/2
+    fshalf = 0.5*fs
     b, a = signal.butter(order, [low/fshalf, high/fshalf], "bandpass")
-    return signal.lfilter(b, a, data)
+    return signal.filtfilt(b, a, data)
 
 #Original implementation.
 #Novel, by Chris

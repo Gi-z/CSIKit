@@ -6,9 +6,9 @@ def dbinv(x):
 
 def db(x, metric="voltage"):
     if metric == "voltage":
-        return 20 * np.log10(x)
-    elif metric == "pow":
         return 10 * np.log10(x)
+    elif metric == "pow":
+        return 20 * np.log10(x)
 
 def variance(samples):
     overallMean = np.mean(samples)

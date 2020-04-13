@@ -44,7 +44,7 @@ class BeamformReader:
     def scale_timestamps(self, csi_trace):
         time = [x["timestamp_low"] for x in csi_trace]
 
-        timediff = (np.diff(time))*10e-7
+        timediff = (np.diff(time))*10e-6
         time_stamp = np.cumsum(timediff)
 
         csi_trace[0]["timestamp"] = 0
@@ -195,7 +195,7 @@ class BeamformReader:
         if rssi_c != 0:
             rssi_mag = rssi_mag + dbinv(rssi_c)
 
-        return db(rssi_mag) - 44 - agc
+        return db(rssi_mag, "pow") - 44 - agc
 
 if __name__ == "__main__":
 

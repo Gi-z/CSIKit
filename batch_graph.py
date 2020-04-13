@@ -85,25 +85,20 @@ def shorttime(reader, subcarrier):
     #Replace complex CSI with amplitude.
 
     no_frames, no_subcarriers, finalEntry = getCSI(scaled_csi)
-
     # hampelData = hampel(finalEntry, 30)
     # smoothedData = running_mean(hampelData, 20)
-    y = finalEntry
-
-    tdelta = 0.01
-    x = list([x*tdelta for x in range(0, no_frames)])
-
-    Fs = 1/tdelta
+    y = finalEntry[subcarrier]
     n = no_frames
 
     Fs = 20
 
     fmin = 1
-    fmax = 1.5
+    fmax = 1.7
 
-    y = bandpass(7, fmin, fmax, Fs, y)
+    y = bandpass(9, fmin, fmax, Fs, y)
 
-    f, t, Zxx = signal.stft(y, Fs, nperseg=2000, noverlap=1750)
+    # f, t, Zxx = signal.stft(y, Fs, nperseg=2000, noverlap=1750)
+    f, t, Zxx = signal.stft(y, Fs)
 
     #bin indices for the observed amplitude peak in each segment.
     Zxx = np.abs(Zxx)
@@ -150,12 +145,21 @@ def beatsfilter(reader, Fs):
 
     for x in range(no_subcarriers):
         finalEntry = finalEntries[x]
-        # hampelData = hampel(finalEntry, 20)
-        # detrended = dynamic_detrend(hampelData, 5, 3, 1.2, Fs)
-        # rehampeledData = hampel(detrended, 20)
+        # hampelData = hampel(finalEntry, 10, 5)
+        # # detrended = dynamic_detrend(hampelData, 5, 3, 1.2, Fs)
+        # # rehampeledData = hampel(detrended, 10, 0.1)
 
-        filtData = bandpass(7, 1, 1.7, Fs, finalEntry)
-        # filtData = bandpass(7, 1, 1.5, 20, rehampeledData)
+        # # hampelData = hampel(finalEntry, 10)
+        # # runningMeanData = running_mean(hampelData, 20)
+
+        # filtData = bandpass(7, 1, 1.5, Fs, hampelData)
+
+        # hampelData = hampel(finalEntries[x], 5, 3)
+        # runningMeanData = running_mean(hampelData, 20)
+        # smoothedData = dynamic_detrend(runningMeanData, 5, 3, 1.2, 10)
+        # doubleHampel = hampel(smoothedData, 10, 3)
+
+        filtData = bandpass(7, 1.1, 1.4, Fs, finalEntry)
         
         for i in range(0, 70):
             filtData[i] = 0
@@ -169,7 +173,8 @@ def beatsfilter(reader, Fs):
         pxxs.append(Pxx_den)
 
     meanPsd = np.mean(pxxs, axis=0)
-    # plt.plot(f, meanPsd)
+    # plt.plot(f*60, meanPsd)
+    # plt.xlim([40, 100])
     # plt.show()
 
     return f[np.argmax(meanPsd)]*60
@@ -368,12 +373,12 @@ def heatmap(reader):
     limits = [0, ylimit, 1, no_subcarriers]
 
     for x in range(no_subcarriers):
-        # hampelData = hampel(finalEntry[x], 10, 3)
-        # runningMeanData = running_mean(hampelData, 20)
+        hampelData = hampel(finalEntry[x], 5, 3)
+        runningMeanData = running_mean(hampelData, 20)
         # smoothedData = dynamic_detrend(runningMeanData, 5, 3, 1.2, 10)
         # doubleHampel = hampel(smoothedData, 10, 3)
 
-        finalEntry[x] = bandpass(7, 1, 1.5, Fs, finalEntry[x])
+        finalEntry[x] = bandpass(9, 1, 2, Fs, runningMeanData)
         # for i in range(0, 140):
         #     finalEntry[x][i] = 0
         
@@ -394,19 +399,19 @@ def getPath(partialPath):
 
 def main():
     # partialPath = "../sample_data/dtest4.dat"
-    partialPath = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\hometest1.dat"
+    partialPath = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\hometest8.dat"
     reader = BeamformReader(partialPath, x_antenna=0, y_antenna=0)
 
     scaled_csi = reader.csi_trace
 
-    heatmap(reader)
+    # heatmap(reader)
     # plotAllSubcarriers(reader)
     # prepostfilter(reader)
-    # print(beatsfilter(reader, 20))
+    print(beatsfilter(reader, 10))
     # print(specstabfilter(reader, 20))
     # varianceGraph(reader)
     # fft(reader)
-    # shorttime(reader, 15)
+    # shorttime(reader, 20)
 
 def hrTestSuite():
 
@@ -432,16 +437,16 @@ def hrTestSuite():
         ["htest3", 20, 81],
         ["htest4", 20, 79],
 
-        ["hometest1", 10, 86],
-        ["hometest2", 10, 81],
-        ["hometest3", 10, 80],
-        ["hometest4", 10, 75],
-        ["hometest5", 10, 85],
-        ["hometest6", 10, 87],
-        ["hometest7", 10, 95],
-        ["hometest8", 10, 90],
-        ["hometest9", 10, 88],
-        ["hometest10", 10, 93],
+        # ["hometest1", 20, 86],
+        # ["hometest2", 20, 81],
+        # ["hometest3", 20, 80],
+        # ["hometest4", 20, 75],
+        # ["hometest5", 20, 85],
+        # ["hometest6", 20, 87],
+        # ["hometest7", 20, 95],
+        # ["hometest8", 20, 90],
+        # ["hometest9", 20, 88],
+        # ["hometest10", 20, 93],
     ]
 
     estimationDiffs = []
@@ -455,14 +460,17 @@ def hrTestSuite():
         # hrEstimation = specstabfilter(reader, Fs)
         hrEstimation = beatsfilter(reader, Fs)
         estErr = np.abs(hrEstimation-bpm)
-        print("{} result: {}bpm".format(filename, hrEstimation))
-        print("{} estimation error: {}bpm".format(filename, estErr))
+        print("{0} result: {1:.2f}bpm".format(filename, hrEstimation))
+        print("{0} estimation error: {1:.2f}bpm".format(filename, estErr))
         estimationDiffs.append(estErr)
 
     mean = np.nanmean(estimationDiffs)
-    print("Mean Estimation Error: " + str(mean))
+    print("Mean Estimation Error: %2.f" % mean)
+
+    median = np.nanmedian(estimationDiffs)
+    print("Median Estimation Error: %2.f" % median)
 
 
 if __name__ == "__main__":
-    # main()
-    hrTestSuite()
+    main()
+    # hrTestSuite()
