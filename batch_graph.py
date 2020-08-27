@@ -360,27 +360,28 @@ def varianceGraph(reader):
 def heatmap(reader):
 
     scaled_csi = reader.csi_trace
-    no_frames, no_subcarriers, finalEntry = getCSI(scaled_csi, metric="phasediff")
+    no_frames, no_subcarriers, finalEntry = getCSI(scaled_csi, metric="amplitude")
 
     x = list([x["timestamp"] for x in scaled_csi])
     tdelta = (x[-1] - x[0]) / len(x)
+    print(1/tdelta)
 
-    Fs = 20
+    # Fs = 100
 
-    ylimit = scaled_csi[no_frames-1]["timestamp"]
-    ylimit = no_frames/Fs
+    # ylimit = scaled_csi[no_frames-1]["timestamp"]
+    # ylimit = no_frames/Fs
 
-    limits = [0, ylimit, 1, no_subcarriers]
+    limits = [0, max(x), 1, no_subcarriers]
 
-    for x in range(no_subcarriers):
-        hampelData = hampel(finalEntry[x], 5, 3)
-        runningMeanData = running_mean(hampelData, 20)
-        # smoothedData = dynamic_detrend(runningMeanData, 5, 3, 1.2, 10)
-        # doubleHampel = hampel(smoothedData, 10, 3)
+    # for x in range(no_subcarriers):
+    #     hampelData = hampel(finalEntry[x], 5, 3)
+    #     runningMeanData = running_mean(hampelData, 20)
+    #     # smoothedData = dynamic_detrend(runningMeanData, 5, 3, 1.2, 10)
+    #     # doubleHampel = hampel(smoothedData, 10, 3)
 
-        finalEntry[x] = bandpass(9, 1, 2, Fs, runningMeanData)
-        # for i in range(0, 140):
-        #     finalEntry[x][i] = 0
+    #     finalEntry[x] = bandpass(9, 1, 2, Fs, runningMeanData)
+    #     # for i in range(0, 140):
+    #     #     finalEntry[x][i] = 0
         
     fig, ax = plt.subplots()
     im = ax.imshow(finalEntry, cmap="jet", extent=limits, aspect="auto")
@@ -391,23 +392,65 @@ def heatmap(reader):
     plt.xlabel("Time (s)")
     plt.ylabel("Subcarrier Index")
 
+    plt.title(reader.filename.split("/")[-1])
+
     plt.show()
-
-def getPath(partialPath):
-    basePath = Path(__file__).parent
-    return (basePath / partialPath).resolve()
-
-def main():
-    # partialPath = "../sample_data/dtest4.dat"
-    partialPath = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\hometest8.dat"
-    reader = BeamformReader(partialPath, x_antenna=0, y_antenna=0)
+    
+def rawHeatmap(reader, reader2):
 
     scaled_csi = reader.csi_trace
+    no_frames, no_subcarriers, finalEntry = getCSI(scaled_csi, metric="amplitude")
+    finalEntry = finalEntry - finalEntry.mean(axis=1)
 
-    # heatmap(reader)
+    x = list([x["timestamp"] for x in scaled_csi])
+    tdelta = (x[-1] - x[0]) / len(x)
+    print(1/tdelta)
+
+    limits = [0, max(x), 1, no_subcarriers]
+        
+    plt.subplot(1, 2, 1)
+    plt.imshow(finalEntry, cmap="jet", extent=limits, aspect="auto")
+
+    plt.xlabel("Time (s)")
+    plt.ylabel("Subcarrier Index")
+
+    plt.title("May: " + reader.filename.split("/")[-1])
+
+    scaled_csi2 = reader2.csi_trace
+    no_frames2, no_subcarriers2, finalEntry2 = getCSI(scaled_csi2, metric="amplitude")
+    finalEntry2 = finalEntry2 - finalEntry2.mean(axis=1)
+
+    x2 = list([x["timestamp"] for x in scaled_csi2])
+    tdelta2 = (x2[-1] - x2[0]) / len(x2)
+    print(1/tdelta2)
+
+    limits2 = [0, max(x2), 1, no_subcarriers2]
+        
+    plt.subplot(1, 2, 2)
+    plt.imshow(finalEntry2, cmap="jet", extent=limits2, aspect="auto")
+    # cbar2 = ax2.figure.colorbar(im2, ax=ax2)
+    # cbar2.ax.set_ylabel("Amplitude (dBm)")
+
+    plt.xlabel("Time (s)")
+    plt.ylabel("Subcarrier Index")
+    plt.colorbar()
+    
+
+    plt.title("August: " + reader2.filename.split("/")[-1])
+
+    plt.show()
+
+def main():
+    partialPath = "./data/intel/activity/may/washingdishes_1590160990.dat"
+    reader = BeamformReader(partialPath)
+
+    partialPath2 = "./data/intel/activity/august/washingdishes_1597160719.dat"
+    reader2 = BeamformReader(partialPath2)
+
+    rawHeatmap(reader, reader2)
     # plotAllSubcarriers(reader)
     # prepostfilter(reader)
-    print(beatsfilter(reader, 10))
+    # print(beatsfilter(reader, 10))
     # print(specstabfilter(reader, 20))
     # varianceGraph(reader)
     # fft(reader)

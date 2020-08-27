@@ -182,10 +182,10 @@ def traceStats(scaled_csi):
 
 def main():
 
-    # basePath = Path(__file__).parent
-    # path = (basePath / "../../sample_data/breathtest1.pcap").resolve()
+    basePath = Path(__file__).parent
+    path = (basePath / "./data/pi/walk.pcap").resolve()
 
-    path = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\hrtest2.pcap"
+    # path = r"E:\\DataLab PhD Albyn 2018\\Code\\sample_data\\hrtest2.pcap"
 
     # if len(sys.argv) > 1:
     #     tmpPath = sys.argv[1]
