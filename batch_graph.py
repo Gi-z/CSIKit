@@ -400,7 +400,7 @@ def rawHeatmap(reader, reader2):
 
     scaled_csi = reader.csi_trace
     no_frames, no_subcarriers, finalEntry = getCSI(scaled_csi, metric="amplitude")
-    finalEntry = finalEntry - finalEntry.mean(axis=1)
+    # finalEntry = finalEntry - finalEntry.mean(axis=1)
 
     x = list([x["timestamp"] for x in scaled_csi])
     tdelta = (x[-1] - x[0]) / len(x)
@@ -418,7 +418,7 @@ def rawHeatmap(reader, reader2):
 
     scaled_csi2 = reader2.csi_trace
     no_frames2, no_subcarriers2, finalEntry2 = getCSI(scaled_csi2, metric="amplitude")
-    finalEntry2 = finalEntry2 - finalEntry2.mean(axis=1)
+    # finalEntry2 = finalEntry2 - finalEntry2.mean(axis=1)
 
     x2 = list([x["timestamp"] for x in scaled_csi2])
     tdelta2 = (x2[-1] - x2[0]) / len(x2)

@@ -1,5 +1,5 @@
 from math import floor
-from .matlab import db, dbinv
+from matlab import db, dbinv
 from pathlib import Path
 
 import scipy.io
@@ -12,19 +12,19 @@ import sys
 import time
 start = time.time()
 
+SIZE_STRUCT = struct.Struct(">H").unpack
+CODE_STRUCT = struct.Struct("B").unpack
 HEADER_STRUCT = struct.Struct("<LHHBBBBBbBBHH").unpack
 
 class BeamformReader:
 
-    def __init__(self, filename="", x_antenna=0, y_antenna=0):
+    def __init__(self, filename=""):
         self.filename = filename
-        self.x_antenna = x_antenna
-        self.y_antenna = y_antenna
 
         if os.path.exists(filename):
             with open(filename, "rb") as file:
                 self.csi_trace = self.read_bf_file(file)
-                # self.scale_timestamps(self.csi_trace)
+                self.scale_timestamps(self.csi_trace)
 
     def scale_timestamps(self, csi_trace):
         time = [x["timestamp_low"] for x in csi_trace]
@@ -51,7 +51,7 @@ class BeamformReader:
         length = header[11]
         rate = header[12]
 
-        dataLength = len(list(data))
+        dataLength = len(data)
 
         if length != dataLength:
             print("Invalid length")
@@ -79,16 +79,15 @@ class BeamformReader:
                     ind8 = floor(index/8)
 
                     if (ind8+2 >= len(payload)):
-                        print("hit breakpoint")
                         break
 
-                    tmp = (payload[ind8] >> remainder) | (payload[1+ind8] << (8-remainder))
-                    tmp2 = (payload[1+ind8] >> remainder) | (payload[2+ind8] << (8-remainder))
+                    real = (payload[ind8] >> remainder) | (payload[1+ind8] << (8-remainder))
+                    imag = (payload[1+ind8] >> remainder) | (payload[2+ind8] << (8-remainder))
 
-                    tmp = np.int8(tmp)
-                    tmp2 = np.int8(tmp2)
+                    real = np.int8(real)
+                    imag = np.int8(imag)
 
-                    complexNo = tmp + tmp2 * 1j
+                    complexNo = real + imag * 1j
 
                     try:
                         csi[i][perm[k]][j] = complexNo
@@ -96,6 +95,80 @@ class BeamformReader:
                         csi[i][k][j] = complexNo
 
                     index += 16
+
+        header = {
+            "timestamp_low": timestamp_low,
+            "bfee_count": bfee_count,
+            "Nrx": Nrx,
+            "Ntx": Ntx,
+            "rssi_a": rssiA,
+            "rssi_b": rssiB,
+            "rssi_c": rssiC,
+            "noise": noise,
+            "agc": agc,
+            "antenna_sel": antenna_sel,
+            "length": length,
+            "rate": rate,
+            "csi": csi,
+            "perm": perm
+        }
+
+        csi = self.scale_csi_entry(header)
+        header["csi"] = csi
+
+        return header
+
+    def read_bf_entry(self, data):
+        csiHeader = struct.unpack("<LHHBBBBBbBBHH", data[4:25])
+        allData = [x[0] for x in struct.Struct(">B").iter_unpack(data[25:])]
+
+        ret = self.read_bfee(csiHeader, allData)
+
+        return ret
+
+    def read_bf_file(self, file):
+        data = file.read()
+        length = len(data)
+
+        ret = []
+        cur = 0
+        count = 0
+
+        while (length - cur) > 100:
+            size = SIZE_STRUCT(data[cur:cur+2])[0]
+            code = CODE_STRUCT(data[cur+2:cur+3])[0]
+            
+            cur += 3
+
+            if code == 187:
+                allBlock = data[cur:cur+size-1]
+
+                headerBlock = HEADER_STRUCT(allBlock[:20])
+                dataBlock = allBlock[20:]
+
+                csiData = self.read_bfee(headerBlock, dataBlock)
+                if csiData:
+                    ret.append(csiData)
+                    count += 1
+            else:
+                print("Invalid code for beamforming measurement at offset {}".format(hex(cur)))
+
+            cur += size-1
+
+        return ret
+
+    def scale_csi_entry(self, header):
+        csi = header["csi"]
+
+        Nrx = header["Nrx"]
+        Ntx = header["Ntx"]
+
+        rssiA = header["rssi_a"]
+        rssiB = header["rssi_b"]
+        rssiC = header["rssi_c"]
+
+        agc = header["agc"]
+        noise = header["noise"]
 
         #Calculate the scale factor between normalized CSI and RSSI (mW).
         csi_sq = np.multiply(csi, np.conj(csi))
@@ -138,61 +211,6 @@ class BeamformReader:
             #You may need to change this if your card does the right thing.
             ret = ret * np.sqrt(dbinv(4.5))
 
-        return {
-            "timestamp_low": timestamp_low,
-            "bfee_count": bfee_count,
-            "Nrx": Nrx,
-            "Ntx": Ntx,
-            "rssi_a": rssiA,
-            "rssi_b": rssiB,
-            "rssi_c": rssiC,
-            "noise": noise,
-            "agc": agc,
-            "antenna_sel": antenna_sel,
-            "length": length,
-            "rate": rate,
-            "csi": ret,
-            # "csi": csi,
-            "perm": perm
-        }
-
-    def read_bf_entry(self, data):
-        csiHeader = struct.unpack("<LHHBBBBBbBBHH", data[4:25])
-        allData = [x[0] for x in struct.Struct(">B").iter_unpack(data[25:])]
-
-        ret = self.read_bfee(csiHeader, allData)
-
-        return ret
-
-    def read_bf_file(self, file):
-        data = file.read()
-        length = len(data)
-
-        ret = []
-        cur = 0
-        count = 0
-
-        while (length - cur) > 100:
-            size = struct.unpack(">H", data[cur:cur+2])[0]
-            code = struct.unpack("B", data[cur+2:cur+3])[0]
-            
-            cur += 3
-
-            if code == 187:
-                allBlock = data[cur:cur+size-1]
-
-                headerBlock = HEADER_STRUCT(allBlock[:20])
-                dataBlock = allBlock[20:]
-
-                csiData = self.read_bfee(headerBlock, dataBlock)
-                if csiData:
-                    ret.append(csiData)
-                    count += 1
-            else:
-                print("Invalid code for beamforming measurement at offset {}".format(hex(cur)))
-
-            cur += size-1
-
         return ret
 
     def get_total_rss(self, rssi_a, rssi_b, rssi_c, agc):
@@ -206,16 +224,14 @@ class BeamformReader:
         if rssi_c != 0:
             rssi_mag = rssi_mag + dbinv(rssi_c)
 
-        return db(rssi_mag, "pow") - 44 - agc
+        return db(rssi_mag) - 44 - agc
 
 if __name__ == "__main__":
 
-    if len(sys.argv) > 1:
-        path = sys.argv[1]
-    else:
-        # basePath = Path(__file__).parent
-        # path = (basePath / "../../sample_data/out.pcap").resolve()
-        path = r"C:\Users\gizmo\Desktop\tests\newintel\brushteeth_post_1597163619.dat"
+    # if len(sys.argv) > 1:
+    #     path = sys.argv[1]
+    # else:
+    path = r"C:\Users\gizmo\Desktop\tests\newintel\brushteeth_post_1597163619.dat"
 
     reader = BeamformReader(path)
     print("Have CSI for {} packets.".format(len(reader.csi_trace)))
