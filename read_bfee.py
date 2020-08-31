@@ -20,6 +20,7 @@ class BeamformReader:
     """
         This class handles parsing for CSI data from both batched files and realtime CSI packets from IWL5300 hardware.
         It is optimised for speed, with minor sanity checking throughout.
+        On a modern system, frames are usually processed in around 9e-4 seconds.
 
         The testing options allow for mat files to be generated, whose integrity can be verified with the matlab/intelcompare.m script.
     """
@@ -36,24 +37,6 @@ class BeamformReader:
             csitools.scale_timestamps(self.csi_trace)
         else:
             print("Could not find file: {}".format(filename))
-
-    def print_length_error(self, length, data_length, i):
-        """
-            Prints an error to highlight a difference between the frame's stated data size and the actual size.
-            This usually stems from file termination.
-
-            Args:
-                length {int} -- Stated length of the CSI data payload from the frame header.
-                data_length {int} -- Actual length as derived from the payload.
-        """
-
-        print("Invalid length for CSI frame {} in {}.".format(i, os.path.basename(self.filename)))
-        print("\tExpected {} bytes but got {} bytes.".format(length, data_length))
-        if data_length < length:
-            print("\tLast packet was likely cut off by an improper termination.")
-            print("\tWhen killing log_to_file, use SIGTERM and ensure writes have been flushed, and files closed.")
-
-        return False
 
     def read_bfee(self, header, data, i=0):
         """
@@ -82,7 +65,7 @@ class BeamformReader:
         #Flag invalid payloads so we don't error out trying to parse them into matrices.
         data_length = len(data)
         if length != data_length:
-            return self.print_length_error(length, data_length, i)
+            return csitools.print_length_error(length, data_length, i, self.filename)
 
         #If less than 3 Rx antennas are detected, default permutation should be used.
         #Otherwise invalid indices will likely be raised.

@@ -1,6 +1,7 @@
 from matlab import db, dbinv
 
 import numpy as np
+import os
 
 def getCSI(trace, metric="amplitude"):
     no_frames = len(trace)
@@ -19,8 +20,7 @@ def getCSI(trace, metric="amplitude"):
                     #Not 100% sure this generates correct Phase Difference.
                     csi[y][x] = np.angle(scaled_entry[y][1][0])-np.angle(scaled_entry[y][0][0])
                 else:
-                    #In cases where only one antenna is available,
-                    #reuse the previous value.
+                    #In cases where only one antenna is available, reuse the previous value.
                     csi[y][x] = csi[y][x-1]
 
     return (csi, no_frames, no_subcarriers)
@@ -127,3 +127,21 @@ def scale_timestamps(csi_trace):
     csi_trace[0]["timestamp"] = 0
     for x in csi_trace[1:]:
         x["timestamp"] = time_stamp[csi_trace.index(x)-1]
+
+def print_length_error(self, length, data_length, i):
+    """
+        Prints an error to highlight a difference between the frame's stated data size and the actual size.
+        This usually stems from file termination.
+
+        Args:
+            length {int} -- Stated length of the CSI data payload from the frame header.
+            data_length {int} -- Actual length as derived from the payload.
+    """
+
+    print("Invalid length for CSI frame {} in {}.".format(i, os.path.basename(filename)))
+    print("\tExpected {} bytes but got {} bytes.".format(length, data_length))
+    if data_length < length:
+        print("\tLast packet was likely cut off by an improper termination.")
+        print("\tWhen killing log_to_file, use SIGTERM and ensure writes have been flushed, and files closed.")
+
+    return False
