@@ -128,7 +128,7 @@ class BeamformReader:
         # elif self.chip == "4366c0":
         else:
             print("Invalid chip: " + self.chip)
-            print("Current supported chipsets: 4339,43455c0,4358,4366c0")
+            print("Current supported chipsets: 4339,43455c0")
             exit(1)
 
         csi = np.zeros((256,), dtype=np.complex)
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     reader = BeamformReader(path, "43455c0")
 
     # Output for testing.
-    # csi = np.zeros((122, 256), dtype="complex")
+    # csi = np.zeros((len(reader.csi_trace), 256), dtype="complex")
     # for i, x in enumerate(reader.csi_trace):
     #     csi[i] = x["csi"]
     # scipy.io.savemat("test.mat", {"csi": csi})
