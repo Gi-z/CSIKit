@@ -96,7 +96,7 @@ class Pcap:
     def readHeader(self):
         return np.frombuffer(self.data[:self.PCAP_HEADER_DTYPE.itemsize], dtype=self.PCAP_HEADER_DTYPE)
 
-class BeamformReader:
+class NEXBeamformReader:
     def __init__(self, filename="", chip="43455c0"):
         self.filename = filename
         self.chip = chip
@@ -153,7 +153,7 @@ class BeamformReader:
 if __name__ == "__main__":
     path = ".\\data\\pi\\walk_1597159475.pcap"
 
-    reader = BeamformReader(path, "43455c0")
+    reader = NEXBeamformReader(path, "43455c0")
 
     # Output for testing.
     # csi = np.zeros((len(reader.csi_trace), 256), dtype="complex")

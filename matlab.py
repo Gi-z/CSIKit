@@ -1,9 +1,9 @@
 import numpy as np
 
-def dbinv(x, metric="pow"):
+def dbinv(x):
     return np.power(10, x/10)
 
-def db(x, metric="pow"):
+def db(x, metric="voltage"):
     if metric == "voltage":
         return 20 * np.log10(x)
     elif metric == "pow":
