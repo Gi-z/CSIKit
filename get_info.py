@@ -5,7 +5,7 @@ def display_info(path):
     hardware_info_string = get_hardware(reader)
 
     unmodified_csi_matrix = reader.csi_trace[0]["csi"]
-    csi_matrix, no_frames, no_subcarriers = get_CSI(reader.csi_trace)
+    _, no_frames, no_subcarriers = get_CSI(reader.csi_trace)
 
     if len(unmodified_csi_matrix.shape) <= 2:
         rx_count, tx_count = (1, 1)

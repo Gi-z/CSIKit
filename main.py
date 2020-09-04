@@ -1,7 +1,7 @@
 import argparse
 
 from batch_graph import BatchGraph
-from convert_csv import CSV
+from convert_csv import generate_csv
 from get_info import display_info
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ class BatchGraph:
         reader = self.reader
 
         csi_trace = reader.csi_trace
-        finalEntry, no_frames, no_subcarriers = get_CSI(csi_trace)
+        finalEntry, no_frames, _ = get_CSI(csi_trace)
 
         finalEntry = finalEntry[15]
 
@@ -53,7 +53,7 @@ class BatchGraph:
         scaled_csi = reader.csi_trace
 
         no_frames = len(scaled_csi)
-        no_subcarriers = scaled_csi[0]["csi"].shape[0]
+        # no_subcarriers = scaled_csi[0]["csi"].shape[0]
         finalEntry = get_CSI(scaled_csi)
 
         for x in finalEntry:
@@ -74,8 +74,8 @@ class BatchGraph:
         x_label = "Time (s)"
 
         x = list([x["timestamp"] for x in csi_trace])
-        tdelta = (x[-1] - x[0]) / len(x)
-        Fs = 0
+        # tdelta = (x[-1] - x[0]) / len(x)
+        # Fs = 0
 
         if sum(x) == 0:
             #Some files have invalid timestamp_low values which means we can't plot based on timestamps.
@@ -86,7 +86,7 @@ class BatchGraph:
             x_label = "Frame No."
         else:
             xlim = max(x)
-            Fs = 1/tdelta
+            # Fs = 1/tdelta
 
         limits = [0, xlim, 1, no_subcarriers]
 
@@ -100,7 +100,7 @@ class BatchGraph:
         #     # for i in range(0, 140):
         #     #     finalEntry[x][i] = 0
             
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
         im = ax.imshow(finalEntry, cmap="jet", extent=limits, aspect="auto")
 
         cbar = ax.figure.colorbar(im, ax=ax)
