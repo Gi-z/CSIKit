@@ -1,6 +1,6 @@
 import os
 
-def print_length_error(self, length, data_length, i, filename):
+def print_length_error(length, data_length, i, filename):
     """
         Prints an error to highlight a difference between the frame's stated data size and the actual size.
         This usually stems from early file termination.
