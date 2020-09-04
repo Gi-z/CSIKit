@@ -1,9 +1,35 @@
 from matlab import db, dbinv
 
+from read_bfee import IWLBeamformReader
+from read_pcap import NEXBeamformReader
+
 import numpy as np
 import os
 
-def get_CSI(trace, metric="amplitude", antenna_stream=None, scaled=False):
+def get_reader(path):
+    #Need to identify which reader is needed.
+    #For now, we'll cheat and use the file extension.
+    _, extension = os.path.splitext(path)
+
+    if extension == ".dat":
+        return IWLBeamformReader(path, scaled=True)
+    elif extension == ".pcap":
+        return NEXBeamformReader(path)
+    else:
+        print("Extension not supported: {}.".format(extension))
+        print("Exiting.")
+        exit(1)
+
+def get_hardware(reader):
+    if type(reader) == IWLBeamformReader:
+        return "Intel IWL5300n"
+    elif type(reader) == NEXBeamformReader:
+        return "Broadcom BCM{}".format(reader.chip.upper())
+
+def get_CSI(trace, metric="amplitude", antenna_stream=None, scaled=True):
+    csi_shape = trace[0]["csi"].shape
+    csi_key = "scaled_csi" if (scaled and len(csi_shape) == 3) else "csi"
+
     csi_shape = trace[0]["csi"].shape
 
     no_frames = len(trace)
@@ -16,7 +42,7 @@ def get_CSI(trace, metric="amplitude", antenna_stream=None, scaled=False):
     csi = np.zeros((no_subcarriers, no_frames))
 
     for x in range(no_frames):
-        scaled_entry = trace[x]["scaled_csi" if scaled else "csi"]
+        scaled_entry = trace[x][csi_key]
         for y in range(no_subcarriers):
             if metric == "amplitude":
                 if antenna_stream is not None:
@@ -34,7 +60,7 @@ def get_CSI(trace, metric="amplitude", antenna_stream=None, scaled=False):
     return (csi, no_frames, no_subcarriers)
 
 def get_timestamps(trace, relative=True):
-    key = "scaled_timestamp" if relative else "timestamp"
+    key = "timestamp" if relative else "timestamp_low"
     return list([x[key] for x in trace])
 
 def get_total_rss(rssi_a, rssi_b, rssi_c, agc):

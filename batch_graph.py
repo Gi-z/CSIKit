@@ -1,9 +1,6 @@
-from csitools import get_CSI
+from csitools import get_CSI, get_reader
 from filters import bandpass, hampel, running_mean
 from matlab import db
-
-from read_bfee import IWLBeamformReader
-from read_pcap import NEXBeamformReader
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,19 +13,7 @@ DEFAULT_PATH = "./data/pi/walk_1597159475.pcap"
 class BatchGraph:
 
     def __init__(self, path=DEFAULT_PATH):
-
-        #Need to identify which reader is needed.
-        #For now, we'll cheat and use the file extension.
-        filename, extension = os.path.splitext(path)
-
-        if extension == ".dat":
-            self.reader = IWLBeamformReader(path, scaled=True)
-        elif extension == ".pcap":
-            self.reader = NEXBeamformReader(path)
-        else:
-            print("Extension not supported: {}.".format(extension))
-            print("Exiting.")
-            exit(1)
+        self.reader = get_reader(path)
 
     def prepostfilter(self):
 
@@ -80,34 +65,11 @@ class BatchGraph:
 
         plt.show()
 
-    # def varianceGraph(self):
-
-    #     scaled_csi = reader.csi_trace
-
-    #     no_frames = len(scaled_csi)
-    #     no_subcarriers = scaled_csi[1]["csi"].shape[0]
-
-    #     y = []
-
-    #     finalEntry = get_CSI(scaled_csi)
-
-    #     for x in range(no_subcarriers):
-    #         hampelData = hampel(finalEntry[x], 10)
-    #         smoothedData = running_mean(hampelData, 25)
-    #         y.append(variance(smoothedData))
-
-    #     plt.xlabel("Subcarrier Index")
-    #     plt.ylabel("Variance")
-
-    #     plt.plot(y)
-    #     plt.show()
-
     def heatmap(self):
-
         reader = self.reader
 
         csi_trace = reader.csi_trace
-        finalEntry, no_frames, no_subcarriers = get_CSI(csi_trace, metric="amplitude", scaled=True)
+        finalEntry, no_frames, no_subcarriers = get_CSI(csi_trace, metric="amplitude")
 
         x_label = "Time (s)"
 
@@ -153,4 +115,4 @@ class BatchGraph:
 
 if __name__ == "__main__":
     bg = BatchGraph()
-    bg.prepostfilter()
+    bg.heatmap()

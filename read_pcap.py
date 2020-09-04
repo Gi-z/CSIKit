@@ -104,15 +104,17 @@ class NEXBeamformReader:
             self.pcap = Pcap(filename)
             self.csi_trace = self.read_frames(self.pcap.frames)
 
-            self.scale_timestamps()
+            self.csi_trace = self.scale_timestamps()
 
     def scale_timestamps(self):
         csi_trace = self.csi_trace
-        sourceTimestamps = [x["timestamp"] for x in csi_trace]
+        sourceTimestamps = [x["timestamp_low"] for x in csi_trace]
         sourceStamp = sourceTimestamps[0]
     
         for i, x in enumerate(csi_trace):
-            x["scaled_timestamp"] = sourceTimestamps[i]-sourceStamp
+            x["timestamp"] = sourceTimestamps[i]-sourceStamp
+        
+        return csi_trace
 
     def read_bfee(self, frame):
 
@@ -140,7 +142,7 @@ class NEXBeamformReader:
             i += 1
 
         return {
-            "timestamp": timestamp,
+            "timestamp_low": timestamp,
             "header": frame.payloadHeader,
             "csi": csi,
         }
