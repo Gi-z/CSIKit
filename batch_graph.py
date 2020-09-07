@@ -7,8 +7,8 @@ import numpy as np
 import os
 import sys
 
-# DEFAULT_PATH = "./data/intel/misc/log.all_csi.6.7.6.dat"
-DEFAULT_PATH = "./data/pi/walk_1597159475.pcap"
+DEFAULT_PATH = "./data/intel/misc/log.all_csi.6.7.6.dat"
+# DEFAULT_PATH = "./data/pi/walk_1597159475.pcap"
 
 class BatchGraph:
 
@@ -51,10 +51,7 @@ class BatchGraph:
         reader = self.reader
 
         scaled_csi = reader.csi_trace
-
-        no_frames = len(scaled_csi)
-        # no_subcarriers = scaled_csi[0]["csi"].shape[0]
-        finalEntry = get_CSI(scaled_csi)
+        finalEntry, no_frames, no_subcarriers = get_CSI(scaled_csi)
 
         for x in finalEntry:
             plt.plot(np.arange(no_frames)/20, x)
@@ -72,10 +69,7 @@ class BatchGraph:
         finalEntry, no_frames, no_subcarriers = get_CSI(csi_trace, metric="amplitude")
 
         x_label = "Time (s)"
-
         x = list([x["timestamp"] for x in csi_trace])
-        # tdelta = (x[-1] - x[0]) / len(x)
-        # Fs = 0
 
         if sum(x) == 0:
             #Some files have invalid timestamp_low values which means we can't plot based on timestamps.
@@ -86,10 +80,10 @@ class BatchGraph:
             x_label = "Frame No."
         else:
             xlim = max(x)
-            # Fs = 1/tdelta
 
         limits = [0, xlim, 1, no_subcarriers]
 
+        #TODO Add options for filtering.
         # for x in range(no_subcarriers):
         #     hampelData = hampel(finalEntry[x], 5, 3)
         #     runningMeanData = running_mean(hampelData, 20)
