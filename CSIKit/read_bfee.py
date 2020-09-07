@@ -1,14 +1,13 @@
-from math import floor
-
-import csitools
-import errors
-
-import scipy.io
-
-import numpy as np
 import os
 import struct
 import sys
+from math import floor
+
+from .csitools import scale_timestamps, scale_csi_entry
+from .errors import print_length_error
+
+import numpy as np
+import scipy.io
 
 SIZE_STRUCT = struct.Struct(">H").unpack
 CODE_STRUCT = struct.Struct("B").unpack
@@ -34,7 +33,7 @@ class IWLBeamformReader:
         elif os.path.exists(filename):
             with open(filename, "rb") as file:
                 self.csi_trace = self.read_bf_file(file)
-            self.csi_trace = csitools.scale_timestamps(self.csi_trace)
+            self.csi_trace = scale_timestamps(self.csi_trace)
         else:
             print("Could not find file: {}".format(filename))
 
@@ -68,7 +67,7 @@ class IWLBeamformReader:
         #Flag invalid payloads so we don't error out trying to parse them into matrices.
         data_length = len(data)
         if length != data_length:
-            return errors.print_length_error(length, data_length, i, self.filename)
+            return print_length_error(length, data_length, i, self.filename)
 
         #If less than 3 Rx antennas are detected, default permutation should be used.
         #Otherwise invalid indices will likely be raised.
@@ -125,7 +124,7 @@ class IWLBeamformReader:
         }
 
         if self.scaled:
-            scaled_csi = csitools.scale_csi_entry(csi_block)
+            scaled_csi = scale_csi_entry(csi_block)
             csi_block["scaled_csi"] = scaled_csi
 
         return csi_block

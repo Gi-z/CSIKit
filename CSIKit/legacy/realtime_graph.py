@@ -1,10 +1,10 @@
-from filters import hampel, running_mean, running_stdev, bandpass
-from read_bfee import BeamformReader
-from matlab import db, variance
-from scipy import fftpack, signal
-
 import matplotlib.pyplot as plt
 import numpy as np
+from filters import hampel, running_mean, running_stdev, bandpass
+from matlab import db, variance
+from read_bfee import BeamformReader
+from scipy import fftpack, signal
+
 
 class RealtimeGraph:
 

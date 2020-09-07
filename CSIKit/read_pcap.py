@@ -1,13 +1,12 @@
-from pathlib import Path
+# import scipy.io
 
-import scipy.io
-
-import numpy as np
 import os
 import struct
 import sys
-
 import time
+
+import numpy as np
+
 start = time.time()
 
 class Frame:

@@ -1,7 +1,7 @@
+import numpy as np
+import pandas as pd
 from scipy import signal
 
-import pandas as pd
-import numpy as np
 
 def bandpass(order, low, high, fs, data):
     fshalf = 0.5*fs

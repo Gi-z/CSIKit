@@ -1,18 +1,16 @@
-from filters import hampel, running_mean, running_stdev, bandpass
-from matlab import db
-from scipy import fftpack, signal, stats
-
-from read_pcap import BeamformReader
-from pathlib import Path
-
-from csitools import getCSI, getTimestamps
-
-import matplotlib.pyplot as plt
-import numpy as np
-
 import math
 import os
 import sys
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+from csitools import getCSI, getTimestamps
+from filters import hampel, running_mean, running_stdev, bandpass
+from matlab import db
+from read_pcap import BeamformReader
+from scipy import fftpack, signal, stats
+
 
 def breathingfilter(scaled_csi):
     xax = getTimestamps(scaled_csi)

@@ -1,11 +1,11 @@
-from read_bfee import BeamformReader
-from realtime_graph import RealtimeGraph
+import sys
+import time
 
 import netlink
 import numpy as np
 import utils
-import sys
-import time
+from read_bfee import BeamformReader
+from realtime_graph import RealtimeGraph
 
 if __name__ == "__main__":
 

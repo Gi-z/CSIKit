@@ -1,36 +1,12 @@
-from matlab import db, dbinv
-
-from read_bfee import IWLBeamformReader
-from read_pcap import NEXBeamformReader
-
-import numpy as np
 import os
 
-def get_reader(path):
-    #Need to identify which reader is needed.
-    #For now, we'll cheat and use the file extension.
-    _, extension = os.path.splitext(path)
+import numpy as np
 
-    if extension == ".dat":
-        return IWLBeamformReader(path, scaled=True)
-    elif extension == ".pcap":
-        return NEXBeamformReader(path)
-    else:
-        print("Extension not supported: {}.".format(extension))
-        print("Exiting.")
-        exit(1)
-
-def get_hardware(reader):
-    if type(reader) == IWLBeamformReader:
-        return "Intel IWL5300n"
-    elif type(reader) == NEXBeamformReader:
-        return "Broadcom BCM{}".format(reader.chip.upper())
+from .matlab import db, dbinv
 
 def get_CSI(trace, metric="amplitude", antenna_stream=None, scaled=True):
     csi_shape = trace[0]["csi"].shape
     csi_key = "scaled_csi" if (scaled and len(csi_shape) == 3) else "csi"
-
-    csi_shape = trace[0]["csi"].shape
 
     no_frames = len(trace)
     no_subcarriers = csi_shape[0]

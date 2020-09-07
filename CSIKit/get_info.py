@@ -1,4 +1,5 @@
-from csitools import get_CSI, get_reader, get_hardware, get_timestamps
+from .csitools import get_CSI, get_timestamps
+from .reader import get_reader, get_hardware
 
 def display_info(path):
     reader = get_reader(path)

@@ -1,11 +1,13 @@
-from csitools import get_CSI, get_reader
-from filters import bandpass, hampel, running_mean
-from matlab import db
+import os
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-import sys
+
+from .csitools import get_CSI
+from .filters import bandpass, hampel, running_mean
+from .matlab import db
+from .reader import get_reader
 
 DEFAULT_PATH = "./data/intel/misc/log.all_csi.6.7.6.dat"
 # DEFAULT_PATH = "./data/pi/walk_1597159475.pcap"
@@ -51,7 +53,7 @@ class BatchGraph:
         reader = self.reader
 
         scaled_csi = reader.csi_trace
-        finalEntry, no_frames, no_subcarriers = get_CSI(scaled_csi)
+        finalEntry, no_frames, _ = get_CSI(scaled_csi)
 
         for x in finalEntry:
             plt.plot(np.arange(no_frames)/20, x)

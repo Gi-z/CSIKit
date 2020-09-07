@@ -1,11 +1,12 @@
-from csitools import get_CSI, get_reader, get_hardware, get_timestamps
-
 import csv
+
+from .csitools import get_CSI, get_timestamps
+from .reader import get_reader
 
 def generate_csv(path, dest):
     reader = get_reader(path)
 
-    unmodified_csi_matrix = reader.csi_trace[0]["csi"]
+    # unmodified_csi_matrix = reader.csi_trace[0]["csi"]
     csi_matrix, no_frames, no_subcarriers = get_CSI(reader.csi_trace)
     print(csi_matrix.shape)
     print(no_frames)

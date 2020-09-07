@@ -1,13 +1,13 @@
-from filters import hampel, running_mean, running_stdev, dynamic_detrend, bandpass
-from read_bfee import BeamformReader
-from matlab import db
-from scipy import fftpack, signal, stats
-
-import scipy.io
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+import scipy.io
+from filters import hampel, running_mean, running_stdev, dynamic_detrend, bandpass
+from matlab import db
+from read_bfee import BeamformReader
+from scipy import fftpack, signal, stats
+
 
 def getCSI(scaled_csi, metric="amplitude"):
     no_frames = len(scaled_csi)
