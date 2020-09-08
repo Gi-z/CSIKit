@@ -10,14 +10,15 @@ Many CSI data files can be found online, however they are typically produced by 
 
 ### CSI Collector
 
-intel: lenovo thinkpad x000
+Intel: Lenovo Thinkpad T420
 
-pi: raspberry pi 4
+Pi: Raspberry Pi 4
 
 ### WiFi access point
 
-Sky router E540 or whatever.
-separate wireless bands, 2.4/5GHz.
+Sky Q Router ER115.
+
+Using separate SSIDs for 2.4GHz and 5GHz.s
 
 # Data
 
@@ -39,7 +40,7 @@ To be completed.
 ### Miscallaneous
 
 #### log.all_csi.6.7.6
-Example CSI data file included with the Linux 802.11n CSI Tool supplementary files. This sample contains 29 frames of CSI for a 1x3 antenna configuration. This file's headers do not include a valid "timestamp_low" for each frame, which means it cannot effectively be plotted against time. This is a good example of how CSI data, while capturing continuous signals, can be difficult to retrieve with a consistent sampling rate on consumer hardware.
+Example CSI data file included with the Linux 802.11n CSI Tool supplementary files. This sample contains 29 frames of CSI for a 1x3 antenna configuration. This file's headers do not include a valid "timestamp_low" for each frame, which means it cannot effectively be plotted against time. This is a good example of how CSI data, while capturing continuous signals, can be difficult to retrieve with a consistent sampling rate on consumer hardware. Unknown hardware configuration (specifics).
 
 #### csi.dat
 Example CSI file captured for a short period, for the demonstration of full functionality (as compared to log.all_csi.6.7.6).
