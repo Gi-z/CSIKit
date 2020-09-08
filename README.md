@@ -78,21 +78,17 @@ csikit --csv log.all_csi.6.7.6.dat
 Intel IWL5300 example:
 
 ```
-from CSIKit import csitools
 from CSIKit import IWLBeamformReader
 
 reader = IWLBeamformReader("log.all_csi.6.7.6.dat")
-csi_matrix = get_CSI(reader, scaled=True/False, antenna_stream=0)
 ```
 
 Raspberry Pi 4 example:
 
 ```
-from CSIKit import csitools
 from CSIKit import NEXBeamformReader
 
 reader = NEXBeamformReader("walk_1597159475.pcap")
-csi_matrix = get_CSI(reader)
 ```
 
 ## Library
@@ -162,6 +158,21 @@ Once a valid file has been loaded, a NEXBeamformReader object will have a `csi_t
 
 ### csitools
 
+This code is largely incomplete and will eventually serve more general purposes.
+
+For now, it is effective for retrieving CSI amplitude values from the first antenna stream.
+
+Example:
+
+```
+from CSIKit import csitools
+from CSIKit import NEXBeamformReader
+
+reader = NEXBeamformReader("walk_1597159475.pcap")
+csi_matrix = get_CSI(reader)
+```
+
+The returned tuple contains a modified matrix which contains CSI amplitudes in dBm, followed by the number of frames and subcarriers contained therein.
 
 ## Supported Hardware
 
@@ -180,8 +191,13 @@ Once a valid file has been loaded, a NEXBeamformReader object will have a `csi_t
     - Once additional hardware support is completed, this will be resolved.
 
 
-### Coming Soon
+## Coming Soon
 
+### Visualisation
+
+Additional graphing and visualisation options. Some of these exist in the `legacy` folder, however these are unrefined and difficult to read.
+
+### Additional Hardware support.
 Additional **[nexmon_csi](https://github.com/seemoo-lab/nexmon_csi)** compatible hardware.
 
 Atheros.
