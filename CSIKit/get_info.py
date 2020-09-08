@@ -18,7 +18,10 @@ def display_info(path):
     timestamps = get_timestamps(reader.csi_trace)
     final_timestamp = timestamps[-1]
 
-    average_sample_rate = no_frames/final_timestamp
+    if final_timestamp == 0:
+        average_sample_rate = 0
+    else:
+        average_sample_rate = no_frames/final_timestamp
 
     print("Hardware: {}".format(hardware_info_string))
     print("Antenna Configuration: {}".format(antenna_config_string))

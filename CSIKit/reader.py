@@ -19,6 +19,6 @@ def get_reader(path):
 
 def get_hardware(reader):
     if type(reader) == IWLBeamformReader:
-        return "Intel IWL5300n"
+        return "Intel IWL5300"
     elif type(reader) == NEXBeamformReader:
         return "Broadcom BCM{}".format(reader.chip.upper())

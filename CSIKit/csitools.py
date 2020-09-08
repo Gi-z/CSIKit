@@ -40,7 +40,7 @@ def get_timestamps(trace, relative=True):
     return list([x[key] for x in trace])
 
 def get_total_rss(rssi_a, rssi_b, rssi_c, agc):
-    # Calculates the Received Signal Strength (RSS) in dBm from
+    # Calculates the Received Signal Strength (RSS) in dBm
     # Careful here: rssis could be zero
         rssi_mag = 0
         if rssi_a != 0:

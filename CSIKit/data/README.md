@@ -2,9 +2,9 @@
 
 ## Introduction
 
-blah blah aims to provide examples of CSI data with specific labelling data to facilitate experimentation
+This repo also aims to provide examples of CSI data with specific labelling data to facilitate experimentation
 
-while many CSI data files can be found online, they are typically produced by variable hardware configurations and this is not always effectively labelled. experimentation typically relies on a understanding of the methods by which the data was produced, so this also aims to cover that gap.
+Many CSI data files can be found online, however they are typically produced by variable hardware configurations and this is not always effectively labelled. experimentation typically relies on a understanding of the methods by which the data was produced, so this also aims to cover that gap.
 
 ## Hardware Configuration
 

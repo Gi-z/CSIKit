@@ -35,4 +35,4 @@ def main():
         display_info(args.file)
 
 if __name__ == "__main__":
-    csikit_main()
+    main()

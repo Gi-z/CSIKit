@@ -1,0 +1,19 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "module": "CSIKit.__main__",
+            "console": "integratedTerminal",
+
+            "args": [
+                ".\\CSIKit\\data\\pi\\walk_1597159475.pcap"
+            ]
+        }
+    ]
+}

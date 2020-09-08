@@ -67,6 +67,8 @@ class Pcap:
     HOFFSET = 16
     NFFT = int(BW*3.2)
 
+    #Need to update this so we can extract bandwidth from the first chanspec reading, maybe?
+
     PCAP_HEADER_DTYPE = np.dtype([
         ("magic_number", np.uint32), 
         ("version_major", np.uint16), 
@@ -104,6 +106,8 @@ class NEXBeamformReader:
             self.csi_trace = self.read_frames(self.pcap.frames)
 
             self.csi_trace = self.scale_timestamps()
+        else:
+            print("Couldn't load file at {}.".format(filename))
 
     def scale_timestamps(self):
         csi_trace = self.csi_trace
