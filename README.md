@@ -19,7 +19,9 @@ Python 3.5+ required.
 - [Example](#Example)
 - [Library](#Library)
 - [Supported Hardware](#Supported-Hardware)
-- [Mistakes](#Mistakes)
+- [Known Issues](#Known-Issues)
+- [Coming Soon](#Coming-Soon)
+- [Mistakes and Tests](#Mistakes-and-Tests)
 - [Reference Links](#Reference-Links)
 - [License](#License)
 
@@ -206,7 +208,7 @@ ESP32.
 
 ## Mistakes and Tests
 
-If anything is wrong, [let me know](mailto:gizmoloon@gmail.com). I want to know why.
+If anything is wrong, [let me know](mailto:g.r.forbes@rgu.ac.uk). I want to know why.
 
 I'm a PhD student working on several sensor data-focussed experiments, a few of which involve using CSI. This means I'm not an RF engineer or particularly experienced this area. I've done and are doing as much as I can to make sure that anything produced with this is accurate. To that end, there are MATLAB .mat files included in the `tests` folder which have been generated using IWLBeamformReader, NEXBeamformReader, and scipy's `savemat` method. There are also MATLAB scripts in the `scripts` folder which can be used to check the validity of the output from this tool. In my experience I have found these tools to produce identical output to the MATLAB scripts offered by the following developers. If this is not the case, let me know.
 
