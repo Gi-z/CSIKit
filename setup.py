@@ -10,7 +10,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="CSIKit",
-    version="0.0.21",
+    version="0.0.22",
     description="Tools for extracting Channel State Information from files produced by a range of WiFi hardware/drivers.",
     long_description=README,
     long_description_content_type="text/markdown",

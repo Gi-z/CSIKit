@@ -150,6 +150,8 @@ Once a valid file has been loaded, a NEXBeamformReader object will have a `csi_t
         - timestamp_low (int): Absolute epoch timestamp.
         - header:
             - magic_bytes: Marker bytes indicating the start of a `nexmon_csi` payload.
+            - RSSI: Signal strength reported at the receiving antenna.
+            - Frame Control: 
             - source_mac: MAC address for the device which sent the packet.
             - sequence_no: 
             - core:
