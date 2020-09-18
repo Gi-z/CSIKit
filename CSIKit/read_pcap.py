@@ -1,4 +1,5 @@
 # import scipy.io
+from .csitools import scale_csi_entry_pi
 
 import os
 import struct
@@ -32,8 +33,10 @@ class Frame:
     def read_payloadHeader(self, payload):
         payloadHeader = {}
 
-        payloadHeader["magic_bytes"] = payload[:4]
-        payloadHeader["source_mac"] = payload[4:10]
+        payloadHeader["magic_bytes"] = payload[:2]
+        payloadHeader["rssi"] = struct.unpack("b", payload[2:3])[0]
+        payloadHeader["frame_control"] = struct.unpack("B", payload[3:4])[0]
+        payloadHeader["source_mac"] = payload[4:10].hex()
         payloadHeader["sequence_no"] = payload[10:12]
 
         coreSpatialBytes = int.from_bytes(payload[12:14], byteorder="little")
@@ -64,6 +67,7 @@ class Frame:
 
 class Pcap:
     BW = 80
+    # BW = 40
     HOFFSET = 16
     NFFT = int(BW*3.2)
 
@@ -144,10 +148,13 @@ class NEXBeamformReader:
             csi[i] = np.complex(x[0], x[1])
             i += 1
 
+        scaled_csi = scale_csi_entry_pi(csi, frame.payloadHeader)
+
         return {
             "timestamp_low": timestamp,
             "header": frame.payloadHeader,
             "csi": csi,
+            "scaled_csi": csi
         }
 
     def read_frames(self, frames):
