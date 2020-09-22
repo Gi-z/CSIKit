@@ -6,7 +6,8 @@ from .matlab import db, dbinv
 
 def get_CSI(trace, metric="amplitude", antenna_stream=None, scaled=True):
     csi_shape = trace[0]["csi"].shape
-    csi_key = "scaled_csi" if (scaled and len(csi_shape) == 3) else "csi"
+    # csi_key = "scaled_csi" if (scaled and len(csi_shape) == 3) else "csi"
+    csi_key = "scaled_csi"
 
     no_frames = len(trace)
     no_subcarriers = csi_shape[0]
@@ -42,18 +43,19 @@ def get_timestamps(trace, relative=True):
 def get_total_rss(rssi_a, rssi_b, rssi_c, agc):
     # Calculates the Received Signal Strength (RSS) in dBm
     # Careful here: rssis could be zero
-        rssi_mag = 0
-        if rssi_a != 0:
-            rssi_mag = rssi_mag + dbinv(rssi_a)
-        if rssi_b != 0:
-            rssi_mag = rssi_mag + dbinv(rssi_b)
-        if rssi_c != 0:
-            rssi_mag = rssi_mag + dbinv(rssi_c)
 
-        #Interpreting RSS magnitude as power for RSS/dBm conversion.
-        #This is consistent with Linux 802.11n CSI Tool's MATLAB implementation.
-        #As seen in get_total_rss.m.
-        return db(rssi_mag, "pow") - 44 - agc
+    rssi_mag = 0
+    if rssi_a != 0:
+        rssi_mag = rssi_mag + dbinv(rssi_a)
+    if rssi_b != 0:
+        rssi_mag = rssi_mag + dbinv(rssi_b)
+    if rssi_c != 0:
+        rssi_mag = rssi_mag + dbinv(rssi_c)
+
+    #Interpreting RSS magnitude as power for RSS/dBm conversion.
+    #This is consistent with Linux 802.11n CSI Tool's MATLAB implementation.
+    #As seen in get_total_rss.m.
+    return db(rssi_mag, "pow") - 44 - agc
 
 def scale_csi_entry(frame):
     """
@@ -118,6 +120,25 @@ def scale_csi_entry(frame):
         ret = ret * np.sqrt(dbinv(4.5))
 
     return ret
+
+def scale_csi_entry_pi(csi, header):
+    #This is not a true SNR ratio as is the case for the Intel scaling.
+    #We do not have agc or noise values so it's just about establishing a scale against RSSI.
+
+    rssi = np.abs(header["rssi"])
+
+    #Calculate the scale factor between normalized CSI and RSSI (mW).
+    csi_sq = np.multiply(csi, np.conj(csi))
+    csi_pwr = np.sum(csi_sq)
+    csi_pwr = np.real(csi_pwr)
+    
+    rssi_pwr_db = db(dbinv(rssi), "pow")
+    rssi_pwr = dbinv(rssi_pwr_db)
+    
+    #Scale CSI -> Signal power : rssi_pwr / (mean of csi_pwr)
+    scale = rssi_pwr / (csi_pwr / 256)
+
+    return csi * np.sqrt(scale)
 
 def scale_timestamps(csi_trace):
     """

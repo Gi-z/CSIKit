@@ -140,9 +140,11 @@ class NEXBeamformReader:
             print("Current supported chipsets: 4339,43455c0")
             exit(1)
 
-        csi = np.zeros((256,), dtype=np.complex)
         sourceData = data[30:]
         csiData = sourceData.reshape(-1, 2)
+
+        csi = np.zeros((256,), dtype=np.complex)
+
         i = 0
         for x in csiData:
             csi[i] = np.complex(x[0], x[1])
@@ -154,7 +156,7 @@ class NEXBeamformReader:
             "timestamp_low": timestamp,
             "header": frame.payloadHeader,
             "csi": csi,
-            "scaled_csi": csi
+            "scaled_csi": scaled_csi
         }
 
     def read_frames(self, frames):
