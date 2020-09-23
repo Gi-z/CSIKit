@@ -173,7 +173,8 @@ from CSIKit import csitools
 from CSIKit import NEXBeamformReader
 
 reader = NEXBeamformReader("walk_1597159475.pcap")
-csi_matrix = get_CSI(reader)
+trace = reader.csi_trace
+csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(trace)
 ```
 
 The returned tuple contains a modified matrix which contains CSI amplitudes in dBm, followed by the number of frames and subcarriers contained therein.
