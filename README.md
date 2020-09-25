@@ -183,7 +183,7 @@ The returned tuple contains a modified matrix which contains CSI amplitudes in d
 
  - Intel IWL5300
 
- - Broadcom BCMs43455c0
+ - Broadcom BCM43455c0
 
 ## Known Issues
 
