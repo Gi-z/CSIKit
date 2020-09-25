@@ -132,8 +132,7 @@ def scale_csi_entry_pi(csi, header):
     csi_pwr = np.sum(csi_sq)
     csi_pwr = np.real(csi_pwr)
     
-    rssi_pwr_db = db(dbinv(rssi), "pow")
-    rssi_pwr = dbinv(rssi_pwr_db)
+    rssi_pwr = dbinv(rssi)
     
     #Scale CSI -> Signal power : rssi_pwr / (mean of csi_pwr)
     scale = rssi_pwr / (csi_pwr / 256)

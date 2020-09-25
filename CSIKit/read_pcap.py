@@ -33,6 +33,8 @@ class Frame:
     def read_payloadHeader(self, payload):
         payloadHeader = {}
 
+        #TODO: Add handling for packets that don't include RSSI.
+
         payloadHeader["magic_bytes"] = payload[:2]
         payloadHeader["rssi"] = struct.unpack("b", payload[2:3])[0]
         payloadHeader["frame_control"] = struct.unpack("B", payload[3:4])[0]
@@ -87,6 +89,7 @@ class Pcap:
         self.data = open(filename, "rb").read()
         self.header = self.readHeader()
         self.frames = []
+        self.skipped_frames = 0
 
         offset = self.PCAP_HEADER_DTYPE.itemsize
         while offset < len(self.data):
@@ -94,7 +97,8 @@ class Pcap:
             offset = nextFrame.offset
 
             if nextFrame.header["orig_len"][0]-(self.HOFFSET-1)*4 != self.NFFT*4:
-                print("Skipped frame with incorrect size.")
+                # print("Skipped frame with incorrect size.")
+                self.skipped_frames += 1
             else:
                 self.frames.append(nextFrame)
 
@@ -107,8 +111,11 @@ class NEXBeamformReader:
         self.chip = chip
         if os.path.exists(filename):
             self.pcap = Pcap(filename)
+            self.skipped_frames = self.pcap.skipped_frames
+
             self.csi_trace = self.read_frames(self.pcap.frames)
 
+            #Aware this isn't really the correct way to do this.
             self.csi_trace = self.scale_timestamps()
         else:
             print("Couldn't load file at {}.".format(filename))
@@ -143,7 +150,7 @@ class NEXBeamformReader:
         sourceData = data[30:]
         csiData = sourceData.reshape(-1, 2)
 
-        csi = np.zeros((256,), dtype=np.complex)
+        csi = np.zeros((csiData.shape[0],), dtype=np.complex)
 
         i = 0
         for x in csiData:
