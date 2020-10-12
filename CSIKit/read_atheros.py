@@ -12,7 +12,8 @@ import scipy.io
 
 SIZE_STRUCT = struct.Struct(">H").unpack
 
-HEADER_STRUCT = struct.Struct(">QHHBBBBBBBBBBBH").unpack
+HEADER_STRUCT_BE = struct.Struct(">QHHBBBBBBBBBBBH").unpack
+HEADER_STRUCT_LE = struct.Struct(">QHHBBBBBBBBBBBH").unpack
 HEADER_FORMAT = collections.namedtuple("packet_header", ["timestamp", "csi_length", "tx_channel", "err_info", "noise_floor", "rate", "bandwidth", "num_tones", "nr", "nc", "rssi", "rssi_1", "rssi_2", "rssi_3", "payload_length"])
 
 TONE_40M = 114
@@ -43,13 +44,14 @@ class ATHBeamformReader:
 
     def get_next_bits(self, buf, current_data, idx, bits_left):
         h_data = buf[idx]
-        idx += 1
-        h_data += (buf[idx] << BITS_PER_BYTE)
-        idx += 1
+        h_data += (buf[idx+1] << BITS_PER_BYTE)
+
         current_data += h_data << bits_left
+
+        idx += 2
         bits_left += 16
 
-        return (current_data, idx, bits_left)
+        return current_data, idx, bits_left
 
     def read_bfee(self, csi_buf, nr, nc, num_tones):
 
@@ -114,14 +116,29 @@ class ATHBeamformReader:
         cur = 0
         expected_count = 0
 
+        first_byte = data[cur:cur+1]
+        print(first_byte)
+
+        if first_byte == b'\xff':
+            struct_type = HEADER_STRUCT_BE
+            cur += 1
+        elif first_byte == b'\x00':
+            struct_type = HEADER_STRUCT_LE
+            cur += 1
+        else:
+            #¯\_(ツ)_/¯
+            print("File contains no endianness header. Assuming big.")
+            struct_type = HEADER_STRUCT_BE
+
         while cur < (length - 4):
             field_length = SIZE_STRUCT(data[cur:cur+2])[0]
-            cur += 2
             
             if (cur + field_length) > length:
                 break
 
-            header_block = HEADER_FORMAT._make(HEADER_STRUCT(data[cur:cur+25]))
+            cur += 2
+
+            header_block = HEADER_FORMAT._make(struct_type(data[cur:cur+25]))
             cur += 25
 
             if header_block.csi_length > 0:
@@ -131,6 +148,7 @@ class ATHBeamformReader:
                 if csi_data is not None:
                     total_csi.append({
                         "header": header_block,
+                        "timestamp": header_block.timestamp,
                         "csi": csi_data
                     })
 
@@ -139,8 +157,6 @@ class ATHBeamformReader:
 
             if header_block.payload_length > 0:
                 cur += header_block.payload_length
-
-            cur += 21
 
             if (cur + 420 > length):
                 break
@@ -152,7 +168,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         path = sys.argv[2]
     else:
-        path = "./data/atheros/Ant_1.dat"
+        path = "./data/atheros/sample_bigEndian.dat"
 
     reader = ATHBeamformReader(path)
     print("Have CSI for {} packets.".format(len(reader.csi_trace)))
