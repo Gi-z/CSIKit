@@ -2,11 +2,16 @@ import numpy as np
 import pandas as pd
 from scipy import signal
 
+def lowpass(csi_vec, cutoff, fs, order):
+    nyq = 0.5*fs
+    normal_cutoff = cutoff/nyq
+    b, a = signal.butter(order, normal_cutoff, btype="low", analog=False)
+    return signal.filtfilt(b, a, csi_vec)
 
-def bandpass(order, low, high, fs, data):
-    fshalf = 0.5*fs
-    b, a = signal.butter(order, [low/fshalf, high/fshalf], "bandpass")
-    return signal.filtfilt(b, a, data)
+def bandpass(csi_vec, low_cut, high_cut, fs, order):
+    nyq = 0.5*fs
+    b, a = signal.butter(order, [low_cut/nyq, high_cut/nyq], btype="band", analog=False)
+    return signal.filtfilt(b, a, csi_vec)
 
 #Original implementation.
 #Runs slightly slower than Pandas implementation.
