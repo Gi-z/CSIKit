@@ -8,6 +8,7 @@ def get_CSI(trace, metric="amplitude", antenna_stream=None, scaled=True):
     csi_shape = trace[0]["csi"].shape
     # csi_key = "scaled_csi" if (scaled and len(csi_shape) == 3) else "csi"
     csi_key = "scaled_csi"
+    # csi_key = "csi"
 
     no_frames = len(trace)
     no_subcarriers = csi_shape[0]

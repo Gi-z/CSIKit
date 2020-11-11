@@ -1,5 +1,6 @@
 import os
 
+# from .read_atheros import ATHBeamformReader
 from .read_bfee import IWLBeamformReader
 from .read_pcap import NEXBeamformReader
 
@@ -10,6 +11,7 @@ def get_reader(path):
 
     if extension == ".dat":
         return IWLBeamformReader(path, scaled=True)
+        # return ATHBeamformReader(path)
     elif extension == ".pcap":
         return NEXBeamformReader(path)
     else:
