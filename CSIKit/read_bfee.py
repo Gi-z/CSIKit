@@ -24,8 +24,8 @@ class IWLBeamformReader:
         The testing options allow for mat files to be generated, whose integrity can be verified with the matlab/intelcompare.m script.
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, scaled=False):
+        self.scaled = scaled
 
 
     def read_bfee(self, header, data, i=0):
@@ -114,9 +114,9 @@ class IWLBeamformReader:
             "perm": perm
         }
 
-        
-        scaled_csi = scale_csi_entry(csi_block)
-        csi_block["scaled_csi"] = scaled_csi
+        if self.scaled:
+            scaled_csi = scale_csi_entry(csi_block)
+            csi_block["scaled_csi"] = scaled_csi
 
         return csi_block
 
