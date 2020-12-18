@@ -24,18 +24,9 @@ class IWLBeamformReader:
         The testing options allow for mat files to be generated, whose integrity can be verified with the matlab/intelcompare.m script.
     """
 
-    def __init__(self, filename="", scaled=False):
-        self.filename = filename
-        self.scaled = scaled
+    # def __init__(self, scaled=False):
+    #     self.scaled = scaled
 
-        if filename == "":
-            print("Realtime IWLBeamformReader initialised.")
-        elif os.path.exists(filename):
-            with open(filename, "rb") as file:
-                self.csi_trace = self.read_bf_file(file)
-            self.csi_trace = scale_timestamps(self.csi_trace)
-        else:
-            print("Could not find file: {}".format(filename))
 
     def read_bfee(self, header, data, i=0):
         """
@@ -123,9 +114,9 @@ class IWLBeamformReader:
             "perm": perm
         }
 
-        if self.scaled:
-            scaled_csi = scale_csi_entry(csi_block)
-            csi_block["scaled_csi"] = scaled_csi
+        
+        scaled_csi = scale_csi_entry(csi_block)
+        csi_block["scaled_csi"] = scaled_csi
 
         return csi_block
 
@@ -157,8 +148,11 @@ class IWLBeamformReader:
             Returns:
                 total_csi (list): All valid CSI blocks contained within the given file.
         """
+        data = None
+        if os.path.exists(file):
+            with open(file, "rb") as file:
+                data = file.read()
 
-        data = file.read()
         length = len(data)
 
         total_csi = []
