@@ -166,7 +166,7 @@ def scale_timestamps(csi_trace):
 
 
 
-def _to_json(csi_trace):
+def to_json(csi_trace):
     """
         This function converts a csi_trace into the json format. It works for single entry or the hole trace.
 
