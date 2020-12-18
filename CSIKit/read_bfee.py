@@ -35,7 +35,7 @@ class IWLBeamformReader:
         self.scaled = scaled
 
 
-    def read_bfee(self, header, data, i=0):
+    def __read_bfee(self, header, data, i=0):
         """
             This function parses a CSI payload using its preconstructed header and returns a complete block object containing header information and a CSI matrix.
 
@@ -129,7 +129,7 @@ class IWLBeamformReader:
 
     def read_bf_entry(self, data):
         """
-            This function parses a CSI payload not associated with a file (for example: those extracted via netlink).
+            This function parses a realtime CSI payload not associated with a file (for example: those extracted via netlink).
 
             Parameters:
                 data (bytes): The total bytes returned by the kernel for a CSI frame.
@@ -141,7 +141,7 @@ class IWLBeamformReader:
         csi_header = struct.unpack("<LHHBBBBBbBBHH", data[4:25])
         all_data = [x[0] for x in struct.Struct(">B").iter_unpack(data[25:])]
 
-        csi_block = self.read_bfee(csi_header, all_data)
+        csi_block = self.__read_bfee(csi_header, all_data)
 
         return csi_block
 
@@ -178,7 +178,7 @@ class IWLBeamformReader:
                 header_block = HEADER_STRUCT(all_block[:20])
                 data_block = all_block[20:]
 
-                csi_data = self.read_bfee(header_block, data_block, expected_count)
+                csi_data = self.__read_bfee(header_block, data_block, expected_count)
                 if csi_data:
                     total_csi.append(csi_data)
             else:
