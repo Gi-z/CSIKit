@@ -24,8 +24,8 @@ class IWLBeamformReader:
         The testing options allow for mat files to be generated, whose integrity can be verified with the matlab/intelcompare.m script.
     """
 
-    # def __init__(self, scaled=False):
-    #     self.scaled = scaled
+    def __init__(self):
+        pass
 
 
     def read_bfee(self, header, data, i=0):
