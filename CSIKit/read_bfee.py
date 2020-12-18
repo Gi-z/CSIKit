@@ -25,6 +25,13 @@ class IWLBeamformReader:
     """
 
     def __init__(self, scaled=False):
+        """
+            Constructor of IWLBeamformReader class
+
+        Parameters:
+            scaled (bool): enable autoscale csi matrix into  csi_block["scaled_csi"]
+            
+        """
         self.scaled = scaled
 
 
