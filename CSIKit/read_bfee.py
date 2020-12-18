@@ -198,13 +198,15 @@ if __name__ == "__main__":
 
         for test in tests:
             path = "{}\\{}".format(base_path, test)
-            reader = IWLBeamformReader(path, scaled=True)
-            scipy.io.savemat("tests\\{}.mat".format(test[:-4]), {"csi": reader.csi_trace})
+            reader = IWLBeamformReader( scaled=True)
+            csi_trace = reader.read_bf_file(path)
+            scipy.io.savemat("tests\\{}.mat".format(test[:-4]), {"csi": csi_trace})
     else:
         if len(sys.argv) > 2:
             path = sys.argv[2]
         else:
             path = "./data/intel/misc/log.all_csi.6.7.6.dat"
 
-        reader = IWLBeamformReader(path)
-        print("Have CSI for {} packets.".format(len(reader.csi_trace)))
+        reader = IWLBeamformReader()
+        csi_trace = reader.read_bf_file(path)
+        print("Have CSI for {} packets.".format(len(csi_trace)))
