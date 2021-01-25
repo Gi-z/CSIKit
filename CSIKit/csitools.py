@@ -1,13 +1,11 @@
-import os
-
 import numpy as np
 
 from .matlab import db, dbinv
 
 def get_CSI(trace, metric="amplitude", antenna_stream=None, scaled=True):
-    csi_shape = trace[0]["csi"].shape
-    # csi_key = "scaled_csi" if (scaled and len(csi_shape) == 3) else "csi"
-    csi_key = "scaled_csi"
+    
+    csi_key = "scaled_csi" if "scaled_csi" in trace[0] else "csi"
+    csi_shape = trace[0][csi_key].shape
 
     no_frames = len(trace)
     no_subcarriers = csi_shape[0]

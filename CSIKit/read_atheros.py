@@ -16,8 +16,6 @@ HEADER_STRUCT_BE = struct.Struct(">QHHBBBBBBBBBBBH").unpack
 HEADER_STRUCT_LE = struct.Struct(">QHHBBBBBBBBBBBH").unpack
 HEADER_FORMAT = collections.namedtuple("packet_header", ["timestamp", "csi_length", "tx_channel", "err_info", "noise_floor", "rate", "bandwidth", "num_tones", "nr", "nc", "rssi", "rssi_1", "rssi_2", "rssi_3", "payload_length"])
 
-TONE_40M = 114
-BITS_PER_BYTE = 8
 BITS_PER_SYMBOL = 10
 BITS_PER_COMPLEX_SYMBOL = 2 * BITS_PER_SYMBOL
 
@@ -36,15 +34,17 @@ class ATHBeamformReader:
         else:
             print("Could not find file: {}".format(filename))
 
-    def signbit_convert(self, data, maxbit):
+    @staticmethod
+    def signbit_convert(data, maxbit):
         if (data & (1 << (maxbit - 1))):
             data -= (1 << maxbit)
 
         return data
 
-    def get_next_bits(self, buf, current_data, idx, bits_left):
+    @staticmethod
+    def get_next_bits(buf, current_data, idx, bits_left):
         h_data = buf[idx]
-        h_data += (buf[idx+1] << BITS_PER_BYTE)
+        h_data += (buf[idx+1] << 8)
 
         current_data += h_data << bits_left
 
@@ -53,7 +53,8 @@ class ATHBeamformReader:
 
         return current_data, idx, bits_left
 
-    def read_bfee(self, csi_buf, nr, nc, num_tones):
+    @staticmethod
+    def read_bfee(csi_buf, nr, nc, num_tones, scaled=False):
 
         csi = np.empty((num_tones, nc, nr), dtype=np.complex)
 
@@ -71,20 +72,20 @@ class ATHBeamformReader:
             for nc_idx in range(nc):
                 for nr_idx in range(nr):
                     if ((bits_left - BITS_PER_SYMBOL) < 0):
-                        current_data, idx, bits_left = self.get_next_bits(csi_buf, current_data, idx, bits_left)
+                        current_data, idx, bits_left = ATHBeamformReader.get_next_bits(csi_buf, current_data, idx, bits_left)
                     
                     imag = current_data & bitmask
-                    imag = self.signbit_convert(imag, BITS_PER_SYMBOL)
+                    imag = ATHBeamformReader.signbit_convert(imag, BITS_PER_SYMBOL)
                     imag += 1
 
                     bits_left -= BITS_PER_SYMBOL
                     current_data = current_data >> BITS_PER_SYMBOL
 
                     if ((bits_left - BITS_PER_SYMBOL) < 0):
-                        current_data, idx, bits_left = self.get_next_bits(csi_buf, current_data, idx, bits_left)
+                        current_data, idx, bits_left = ATHBeamformReader.get_next_bits(csi_buf, current_data, idx, bits_left)
 
                     real = current_data & bitmask
-                    real = self.signbit_convert(real, BITS_PER_SYMBOL)
+                    real = ATHBeamformReader.signbit_convert(real, BITS_PER_SYMBOL)
                     real += 1
 
                     bits_left -= BITS_PER_SYMBOL
@@ -92,7 +93,7 @@ class ATHBeamformReader:
 
                     csi[k, nc_idx, nr_idx] = np.complex(real, imag)
 
-        # if self.scaled:
+        # if scaled:
         #     scaled_csi = scale_csi_entry(csi_block)
         #     csi_block["scaled_csi"] = scaled_csi
 
@@ -106,45 +107,44 @@ class ATHBeamformReader:
                 file (filereader): File reader object returned from open().
 
             Returns:
-                total_csi (list): All valid CSI blocks contained within the given file.
+                total_csi (list): All valid CSI blocks, and their associated headers, contained within the given file.
         """
 
         data = file.read()
         length = len(data)
 
         total_csi = []
-        cur = 0
+        cursor = 0
         expected_count = 0
 
-        first_byte = data[cur:cur+1]
-        print(first_byte)
+        first_byte = data[cursor:cursor+1]
 
         if first_byte == b'\xff':
             struct_type = HEADER_STRUCT_BE
-            cur += 1
+            cursor += 1
         elif first_byte == b'\x00':
             struct_type = HEADER_STRUCT_LE
-            cur += 1
+            cursor += 1
         else:
             #¯\_(ツ)_/¯
             print("File contains no endianness header. Assuming big.")
             struct_type = HEADER_STRUCT_BE
 
-        while cur < (length - 4):
-            field_length = SIZE_STRUCT(data[cur:cur+2])[0]
+        while cursor < (length - 4):
+            field_length = SIZE_STRUCT(data[cursor:cursor+2])[0]
             
-            if (cur + field_length) > length:
+            if (cursor + field_length) > length:
                 break
 
-            cur += 2
+            cursor += 2
 
-            header_block = HEADER_FORMAT._make(struct_type(data[cur:cur+25]))
-            cur += 25
+            header_block = HEADER_FORMAT._make(struct_type(data[cursor:cursor+25]))
+            cursor += 25
 
             if header_block.csi_length > 0:
-                data_block = data[cur:cur+header_block.csi_length]
+                data_block = data[cursor:cursor+header_block.csi_length]
 
-                csi_data = self.read_bfee(data_block, header_block.nr, header_block.nc, header_block.num_tones)
+                csi_data = ATHBeamformReader.read_bfee(data_block, header_block.nr, header_block.nc, header_block.num_tones)
                 if csi_data is not None:
                     total_csi.append({
                         "header": header_block,
@@ -153,12 +153,12 @@ class ATHBeamformReader:
                     })
 
                 expected_count += 1
-                cur += header_block.csi_length
+                cursor += header_block.csi_length
 
             if header_block.payload_length > 0:
-                cur += header_block.payload_length
+                cursor += header_block.payload_length
 
-            if (cur + 420 > length):
+            if (cursor + 420 > length):
                 break
 
         return total_csi
