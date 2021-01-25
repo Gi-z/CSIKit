@@ -72,7 +72,6 @@ class BatchGraph:
 
         x_label = "Time (s)"
         x = list([x["timestamp"] for x in csi_trace])
-        # x = [0]
 
         if sum(x) == 0:
             #Some files have invalid timestamp_low values which means we can't plot based on timestamps.

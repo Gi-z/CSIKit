@@ -1,9 +1,9 @@
 # import scipy.io
+from CSIKit.read_atheros import ATHBeamformReader
 from .csitools import scale_csi_entry_pi
 
 import os
 import struct
-import sys
 import time
 
 import numpy as np
@@ -22,15 +22,16 @@ class Frame:
         self.data = data
         self.offset = offset
 
-        self.header = self.read_header(data)
-        self.payload = self.read_payload(data)
+        self.header = self.read_header()
+        self.payload = self.read_payload()
             
-    def read_header(self, data):
+    def read_header(self):
         header = np.frombuffer(self.data[self.offset:self.offset+self.FRAME_HEADER_DTYPE.itemsize], dtype=self.FRAME_HEADER_DTYPE)
         self.offset += self.FRAME_HEADER_DTYPE.itemsize
         return header
     
-    def read_payloadHeader(self, payload):
+    @staticmethod
+    def read_payloadHeader(payload):
         payloadHeader = {}
 
         #TODO: Add handling for packets that don't include RSSI.
@@ -50,19 +51,19 @@ class Frame:
 
         return payloadHeader
         
-    def read_payload(self, data):
+    def read_payload(self):
         incl_len = self.header["incl_len"][0]
         if incl_len <= 0:
             return False
 
         if (incl_len % 4) == 0:
             ints_size = int(incl_len / 4)
-            payload = np.array(struct.unpack(ints_size*"I", data[self.offset:self.offset+incl_len]), dtype=np.uint32)
+            payload = np.array(struct.unpack(ints_size*"I", self.data[self.offset:self.offset+incl_len]), dtype=np.uint32)
         else:
             ints_size = incl_len
-            payload = np.array(struct.unpack(ints_size*"B", data[self.offset:self.offset+incl_len]), dtype=np.uint8)
+            payload = np.array(struct.unpack(ints_size*"B", self.data[self.offset:self.offset+incl_len]), dtype=np.uint8)
 
-        self.payloadHeader = self.read_payloadHeader(data[self.offset+42:self.offset+62])
+        self.payloadHeader = NEXBeamformReader.read_payloadHeader(self.data[self.offset+42:self.offset+62])
         self.offset += incl_len
 
         return payload
@@ -107,28 +108,30 @@ class Pcap:
 
 class NEXBeamformReader:
     def __init__(self, filename="", chip="43455c0"):
-        self.filename = filename
+
         self.chip = chip
+        self.filename = filename
+
         if os.path.exists(filename):
             self.pcap = Pcap(filename)
             self.skipped_frames = self.pcap.skipped_frames
 
-            self.csi_trace = self.read_frames(self.pcap.frames)
+            csi_trace = self.read_frames(self.pcap.frames)
+            self.scaled_timestamps = NEXBeamformReader.scale_timestamps(csi_trace)
 
-            #Aware this isn't really the correct way to do this.
-            self.csi_trace = self.scale_timestamps()
+            return csi_trace
         else:
-            print("Couldn't load file at {}.".format(filename))
+            raise Exception("File not found: {}".format(filename))
 
-    def scale_timestamps(self):
-        csi_trace = self.csi_trace
+    def scale_timestamps(csi_trace):
         sourceTimestamps = [x["timestamp_low"] for x in csi_trace]
         sourceStamp = sourceTimestamps[0]
+        scaledTimestamps = []
     
-        for i, x in enumerate(csi_trace):
-            x["timestamp"] = sourceTimestamps[i]-sourceStamp
+        for i in range(len(sourceTimestamps)):
+            scaledTimestamps[i] = sourceTimestamps[i]-sourceStamp
         
-        return csi_trace
+        return scaledTimestamps
 
     def read_bfee(self, frame):
 
