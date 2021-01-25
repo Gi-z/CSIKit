@@ -13,17 +13,25 @@ Python 3.5+ required.
   <img src="./img/example.png" alt="CSIKit Command Line Example">
 </p>
 
-- [Description](#Description)
-- [Installation](#Installation)
-- [Options](#Options)
-- [Example](#Example)
-- [Library](#Library)
-- [Supported Hardware](#Supported-Hardware)
-- [Known Issues](#Known-Issues)
-- [Coming Soon](#Coming-Soon)
-- [Mistakes and Tests](#Mistakes-and-Tests)
-- [Reference Links](#Reference-Links)
-- [License](#License)
+- [CSIKit ![PyPI version](https://badge.fury.io/py/CSIKit)](#csikit-)
+  - [Description](#description)
+  - [Installation](#installation)
+  - [Options](#options)
+  - [Example](#example)
+    - [CSIKit CLI](#csikit-cli)
+    - [CSIKit library](#csikit-library)
+  - [Library](#library)
+    - [IWLBeamformReader](#iwlbeamformreader)
+    - [NEXBeamformReader](#nexbeamformreader)
+    - [csitools](#csitools)
+  - [Supported Hardware](#supported-hardware)
+  - [Known Issues](#known-issues)
+  - [Coming Soon](#coming-soon)
+    - [Visualisation](#visualisation)
+    - [Additional Hardware support.](#additional-hardware-support)
+  - [Mistakes and Tests](#mistakes-and-tests)
+  - [Reference Links](#reference-links)
+  - [License](#license)
 
 ## Description
 
@@ -82,7 +90,8 @@ Intel IWL5300 example:
 ```
 from CSIKit import IWLBeamformReader
 
-reader = IWLBeamformReader("log.all_csi.6.7.6.dat")
+reader = IWLBeamformReader()
+csi_trace = reader.read_bfee("log.all_csi.6.7.6.dat")
 ```
 
 Raspberry Pi 4 example:

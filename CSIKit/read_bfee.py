@@ -24,20 +24,18 @@ class IWLBeamformReader:
         The testing options allow for mat files to be generated, whose integrity can be verified with the matlab/intelcompare.m script.
     """
 
-    def __init__(self, filename="", scaled=False):
-        self.filename = filename
+    def __init__(self, scaled=False):
+        """
+            Constructor of IWLBeamformReader class
+
+        Parameters:
+            scaled (bool): enable autoscale csi matrix into  csi_block["scaled_csi"]
+            
+        """
         self.scaled = scaled
 
-        if filename == "":
-            print("Realtime IWLBeamformReader initialised.")
-        elif os.path.exists(filename):
-            with open(filename, "rb") as file:
-                self.csi_trace = self.read_bf_file(file)
-            self.csi_trace = scale_timestamps(self.csi_trace)
-        else:
-            print("Could not find file: {}".format(filename))
 
-    def read_bfee(self, header, data, i=0):
+    def __read_bfee(self, header, data, i=0):
         """
             This function parses a CSI payload using its preconstructed header and returns a complete block object containing header information and a CSI matrix.
 
@@ -131,7 +129,7 @@ class IWLBeamformReader:
 
     def read_bf_entry(self, data):
         """
-            This function parses a CSI payload not associated with a file (for example: those extracted via netlink).
+            This function parses a realtime CSI payload not associated with a file (for example: those extracted via netlink).
 
             Parameters:
                 data (bytes): The total bytes returned by the kernel for a CSI frame.
@@ -143,7 +141,7 @@ class IWLBeamformReader:
         csi_header = struct.unpack("<LHHBBBBBbBBHH", data[4:25])
         all_data = [x[0] for x in struct.Struct(">B").iter_unpack(data[25:])]
 
-        csi_block = self.read_bfee(csi_header, all_data)
+        csi_block = self.__read_bfee(csi_header, all_data)
 
         return csi_block
 
@@ -157,8 +155,11 @@ class IWLBeamformReader:
             Returns:
                 total_csi (list): All valid CSI blocks contained within the given file.
         """
+        data = None
+        if os.path.exists(file):
+            with open(file, "rb") as file:
+                data = file.read()
 
-        data = file.read()
         length = len(data)
 
         total_csi = []
@@ -177,7 +178,7 @@ class IWLBeamformReader:
                 header_block = HEADER_STRUCT(all_block[:20])
                 data_block = all_block[20:]
 
-                csi_data = self.read_bfee(header_block, data_block, expected_count)
+                csi_data = self.__read_bfee(header_block, data_block, expected_count)
                 if csi_data:
                     total_csi.append(csi_data)
             else:
@@ -197,13 +198,15 @@ if __name__ == "__main__":
 
         for test in tests:
             path = "{}\\{}".format(base_path, test)
-            reader = IWLBeamformReader(path, scaled=True)
-            scipy.io.savemat("tests\\{}.mat".format(test[:-4]), {"csi": reader.csi_trace})
+            reader = IWLBeamformReader( scaled=True)
+            csi_trace = reader.read_bf_file(path)
+            scipy.io.savemat("tests\\{}.mat".format(test[:-4]), {"csi": csi_trace})
     else:
         if len(sys.argv) > 2:
             path = sys.argv[2]
         else:
             path = "./data/intel/misc/log.all_csi.6.7.6.dat"
 
-        reader = IWLBeamformReader(path)
-        print("Have CSI for {} packets.".format(len(reader.csi_trace)))
+        reader = IWLBeamformReader()
+        csi_trace = reader.read_bf_file(path)
+        print("Have CSI for {} packets.".format(len(csi_trace)))
