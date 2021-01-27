@@ -1,13 +1,9 @@
-import os
-import sys
-
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .csitools import get_CSI
-from .filters import bandpass, hampel, running_mean
-from .matlab import db
-from .reader import get_reader
+from ..util.csitools import get_CSI
+from ..util.filters import bandpass, hampel, running_mean
+from ..reader import reader_selector
 
 DEFAULT_PATH = "./data/intel/misc/log.all_csi.6.7.6.dat"
 # DEFAULT_PATH = "./data/pi/walk_1597159475.pcap"
@@ -15,13 +11,12 @@ DEFAULT_PATH = "./data/intel/misc/log.all_csi.6.7.6.dat"
 class BatchGraph:
 
     def __init__(self, path=DEFAULT_PATH):
-        self.reader = get_reader(path)
+        reader = reader_selector.get_reader(path)
+        self.csi_data = reader.read_file(path)
 
     def prepostfilter(self):
 
-        reader = self.reader
-
-        csi_trace = reader.csi_trace
+        csi_trace = self.csi_data.frames
         finalEntry, no_frames, _ = get_CSI(csi_trace)
 
         finalEntry = finalEntry[15]
@@ -33,7 +28,7 @@ class BatchGraph:
         y2 = hampelData
         y3 = smoothedData
 
-        x = list([x["timestamp"] for x in csi_trace])
+        x = list([x.timestamp for x in csi_trace])
 
         if sum(x) == 0:
             x = np.arange(0, no_frames, 1)
@@ -50,10 +45,8 @@ class BatchGraph:
 
     def plotAllSubcarriers(self):
 
-        reader = self.reader
-
-        scaled_csi = reader.csi_trace
-        finalEntry, no_frames, _ = get_CSI(scaled_csi)
+        csi_trace = self.csi_data.frames
+        finalEntry, no_frames, _ = get_CSI(csi_trace)
 
         for x in finalEntry:
             plt.plot(np.arange(no_frames)/20, x)
@@ -65,13 +58,12 @@ class BatchGraph:
         plt.show()
 
     def heatmap(self):
-        reader = self.reader
 
-        csi_trace = reader.csi_trace
-        finalEntry, no_frames, no_subcarriers = get_CSI(csi_trace, metric="amplitude")
+        csi_trace = self.csi_data.frames
+        finalEntry, no_frames, no_subcarriers = get_CSI(csi_trace)
 
         x_label = "Time (s)"
-        x = list([x["timestamp"] for x in csi_trace])
+        x = list([x.timestamp for x in csi_trace])
 
         if sum(x) == 0:
             #Some files have invalid timestamp_low values which means we can't plot based on timestamps.
@@ -106,7 +98,7 @@ class BatchGraph:
         plt.xlabel(x_label)
         plt.ylabel("Subcarrier Index")
 
-        plt.title(reader.filename.split("/")[-1])
+        plt.title(self.csi_data.filename)
 
         plt.show()
 

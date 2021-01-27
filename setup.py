@@ -22,7 +22,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3.5",
     ],
-    packages=["CSIKit"],
+    packages=["CSIKit", "CSIKit.tools", "CSIKit.reader", "CSIKit.reader.readers", "CSIKit.util", "CSIKit.csi"],
     include_package_data=True,
     install_requires=["numpy", "matplotlib", "scikit-learn", "pandas"],
     entry_points={

@@ -1,13 +1,14 @@
 import csv
 
-from .csitools import get_CSI, get_timestamps
-from .reader import get_reader
+from ..util.csitools import get_CSI
+from ..reader import reader_selector
 
 def generate_csv(path, dest):
-    reader = get_reader(path)
+    reader = reader_selector.get_reader(path)
+    csi_data = reader.read_file(path)
+    csi_frames = csi_data.frames
 
-    # unmodified_csi_matrix = reader.csi_trace[0]["csi"]
-    csi_matrix, no_frames, no_subcarriers = get_CSI(reader.csi_trace)
+    csi_matrix, no_frames, no_subcarriers = get_CSI(csi_frames)
     print(csi_matrix.shape)
     print(no_frames)
 

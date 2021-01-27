@@ -1,8 +1,8 @@
-from .csitools import get_CSI, get_timestamps
-from .reader import get_reader, get_hardware
+from ..util.csitools import get_CSI, get_timestamps
+from ..reader import reader_selector
 
 def display_info(path):
-    reader = get_reader(path)
+    reader = reader_selector.get_reader(path)
     hardware_info_string = get_hardware(reader)
 
     unmodified_csi_matrix = reader.csi_trace[0]["csi"]

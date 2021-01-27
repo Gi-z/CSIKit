@@ -1,12 +1,13 @@
-# import scipy.io
-from CSIKit.read_atheros import ATHBeamformReader
-from .csitools import scale_csi_entry_pi
-
 import os
 import struct
 import time
 
 import numpy as np
+
+from ...csi import CSIData, frames
+from ..reader import Reader
+
+from ...util.matlab import dbinv
 
 start = time.time()
 
@@ -63,7 +64,7 @@ class Frame:
             ints_size = incl_len
             payload = np.array(struct.unpack(ints_size*"B", self.data[self.offset:self.offset+incl_len]), dtype=np.uint8)
 
-        self.payloadHeader = NEXBeamformReader.read_payloadHeader(self.data[self.offset+42:self.offset+62])
+        self.payloadHeader = Frame.read_payloadHeader(self.data[self.offset+42:self.offset+62])
         self.offset += incl_len
 
         return payload
@@ -106,40 +107,48 @@ class Pcap:
     def readHeader(self):
         return np.frombuffer(self.data[:self.PCAP_HEADER_DTYPE.itemsize], dtype=self.PCAP_HEADER_DTYPE)
 
-class NEXBeamformReader:
-    def __init__(self, filename="", chip="43455c0"):
+class NEXBeamformReader(Reader):
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def can_read(path):
+        if os.path.exists(path):
+            _, extension = os.path.splitext(path)
+            if extension == ".pcap":
+                return True
+            else:
+                return False
+        else:
+            raise Exception("File not found: {}".format(path))
+
+    def read_file(self, path, scaled=False, chip="43455c0"):
 
         self.chip = chip
-        self.filename = filename
-
-        if os.path.exists(filename):
-            self.pcap = Pcap(filename)
-            self.skipped_frames = self.pcap.skipped_frames
-
-            csi_trace = self.read_frames(self.pcap.frames)
-            self.scaled_timestamps = NEXBeamformReader.scale_timestamps(csi_trace)
-
-            return csi_trace
-        else:
-            raise Exception("File not found: {}".format(filename))
-
-    def scale_timestamps(csi_trace):
-        sourceTimestamps = [x["timestamp_low"] for x in csi_trace]
-        sourceStamp = sourceTimestamps[0]
-        scaledTimestamps = []
-    
-        for i in range(len(sourceTimestamps)):
-            scaledTimestamps[i] = sourceTimestamps[i]-sourceStamp
         
-        return scaledTimestamps
+        self.filename = os.path.basename(path)
+        if not os.path.exists(path):
+            raise Exception("File not found: {}".format(path))
 
-    def read_bfee(self, frame):
+        self.pcap = Pcap(path)
+
+        ret_data = CSIData(self.filename)
+        ret_data.skipped_frames = self.pcap.skipped_frames
+        ret_data.expected_frames = len(self.pcap.frames)+self.pcap.skipped_frames
+
+        data_frames = self.read_frames(self.pcap.frames)
+        for frame in data_frames:
+            ret_data.push_frame(frame)
+
+        return ret_data
+
+    def read_bfee(self, pcap_frame):
 
         #ts_usec contains microseconds as an offset to the main seconds timestamp.
-        usecs = frame.header["ts_usec"][0]/1e+6
-        timestamp = frame.header["ts_sec"][0]+usecs
+        usecs = pcap_frame.header["ts_usec"][0]/1e+6
+        timestamp = pcap_frame.header["ts_sec"][0]+usecs
 
-        data = frame.payload
+        data = pcap_frame.payload
 
         if self.chip in ["4339", "43455c0"]:
             data.dtype = np.int16
@@ -160,31 +169,34 @@ class NEXBeamformReader:
             csi[i] = np.complex(x[0], x[1])
             i += 1
 
-        scaled_csi = scale_csi_entry_pi(csi, frame.payloadHeader)
+        # scaled_csi = scale_csi_entry_pi(csi, frame.payloadHeader)
 
-        return {
-            "timestamp_low": timestamp,
-            "header": frame.payloadHeader,
-            "csi": csi,
-            "scaled_csi": scaled_csi
-        }
+        #Manually adding timestamp to the payloadHeader.
+        #TODO: Merge differently.
+
+        pcap_frame.payloadHeader["timestamp"] = timestamp
+
+        return frames.NEXCSIFrame(pcap_frame.payloadHeader, csi)
 
     def read_frames(self, frames):
         #Split the file into individual frames.
         #Send payloads to read_bfee so they can be extracted.
         return [self.read_bfee(x) for x in frames]
 
-if __name__ == "__main__":
-    path = ".\\data\\pi\\walk_1597159475.pcap"
+    def scale_csi_entry_pi(csi, header):
+        #This is not a true SNR ratio as is the case for the Intel scaling.
+        #We do not have agc or noise values so it's just about establishing a scale against RSSI.
 
-    reader = NEXBeamformReader(path, "43455c0")
+        rssi = np.abs(header["rssi"])
 
-    # Output for testing.
-    # csi = np.zeros((len(reader.csi_trace), 256), dtype="complex")
-    # for i, x in enumerate(reader.csi_trace):
-    #     csi[i] = x["csi"]
-    # scipy.io.savemat("test.mat", {"csi": csi})
+        #Calculate the scale factor between normalized CSI and RSSI (mW).
+        csi_sq = np.multiply(csi, np.conj(csi))
+        csi_pwr = np.sum(csi_sq)
+        csi_pwr = np.real(csi_pwr)
+        
+        rssi_pwr = dbinv(rssi)
+        
+        #Scale CSI -> Signal power : rssi_pwr / (mean of csi_pwr)
+        scale = rssi_pwr / (csi_pwr / 256)
 
-    print("Have CSI for {} packets.".format(len(reader.csi_trace)))
-    end = time.time()
-    print(end-start)
+        return csi * np.sqrt(scale)
