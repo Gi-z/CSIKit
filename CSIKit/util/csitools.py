@@ -1,4 +1,4 @@
-from .matlab import db, dbinv
+from CSIKit.util.matlab import db, dbinv
 
 import numpy as np
 

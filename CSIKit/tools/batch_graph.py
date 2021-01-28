@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..util.csitools import get_CSI
-from ..util.filters import bandpass, hampel, running_mean
-from ..reader import reader_selector
+from CSIKit.util.csitools import get_CSI
+from CSIKit.util.filters import bandpass, hampel, running_mean
+from CSIKit.reader import get_reader
 
 DEFAULT_PATH = "./data/intel/misc/log.all_csi.6.7.6.dat"
 # DEFAULT_PATH = "./data/pi/walk_1597159475.pcap"
@@ -11,7 +11,7 @@ DEFAULT_PATH = "./data/intel/misc/log.all_csi.6.7.6.dat"
 class BatchGraph:
 
     def __init__(self, path=DEFAULT_PATH):
-        reader = reader_selector.get_reader(path)
+        reader = get_reader(path)
         self.csi_data = reader.read_file(path)
 
     def prepostfilter(self):
@@ -63,7 +63,12 @@ class BatchGraph:
         finalEntry, no_frames, no_subcarriers = get_CSI(csi_trace)
 
         x_label = "Time (s)"
-        x = list([x.timestamp for x in csi_trace])
+        try:
+            x = list([x.timestamp for x in csi_trace])
+        except AttributeError as e:
+            #No timestamp in frame. Likely an IWL entry.
+            #Will be moving timestamps to CSIData to account for this.
+            x = [0]
 
         if sum(x) == 0:
             #Some files have invalid timestamp_low values which means we can't plot based on timestamps.

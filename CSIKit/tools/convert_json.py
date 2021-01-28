@@ -1,7 +1,7 @@
-from CSIKit import csi
 import json
 
-from ..reader import reader_selector
+from CSIKit.util.csitools import get_CSI
+from CSIKit.reader import get_reader
 
 def generate_json(path):
     """
@@ -20,7 +20,7 @@ def generate_json(path):
         else:
             print("Prop has no __dict__ {}: \n {}".format(type(prop), prop))
 
-    reader = reader_selector.get_reader(path)
+    reader = get_reader(path)
     csi_data = reader.read_file(path)
     csi_frames = csi_data.frames
 

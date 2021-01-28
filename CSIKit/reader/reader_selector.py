@@ -1,4 +1,4 @@
-from .readers import *
+from CSIKit.reader import ATHBeamformReader, IWLBeamformReader, NEXBeamformReader
 
 READERS = [ATHBeamformReader, IWLBeamformReader, NEXBeamformReader]
 

@@ -1,12 +1,11 @@
 import collections
 import os
 import struct
-import sys
 from math import floor
 
-from ...csi import CSIData, frames
-
-from ..reader import Reader
+from CSIKit.csi import CSIData
+from CSIKit.csi.frames import ATHCSIFrame
+from CSIKit.reader import Reader
 
 import numpy as np
 
@@ -97,10 +96,6 @@ class ATHBeamformReader(Reader):
 
                     csi[k, nc_idx, nr_idx] = np.complex(real, imag)
 
-        # if scaled:
-        #     scaled_csi = scale_csi_entry(csi_block)
-        #     csi_block["scaled_csi"] = scaled_csi
-
         return csi
 
     def read_file(self, path, scaled=False):
@@ -110,6 +105,9 @@ class ATHBeamformReader(Reader):
             Returns:
                 total_csi (list): All valid CSI blocks, and their associated headers, contained within the given file.
         """
+
+        if scaled:
+            print("Scaling not yet supported in Atheros format.")
 
         self.filename = os.path.basename(path)
         if not os.path.exists(path):
@@ -153,8 +151,9 @@ class ATHBeamformReader(Reader):
 
                 csi_matrix = ATHBeamformReader.read_bfee(data_block, header_block.nr, header_block.nc, header_block.num_tones)
                 if csi_matrix is not None:
-                    frame = frames.ATHCSIFrame(header_block, csi_matrix)
+                    frame = ATHCSIFrame(header_block, csi_matrix)
                     ret_data.push_frame(frame)
+                    ret_data.timestamps.append(header_block.timestamp)
 
                 expected_count += 1
                 cursor += header_block.csi_length

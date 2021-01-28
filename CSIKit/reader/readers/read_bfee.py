@@ -1,15 +1,17 @@
 import os
 import struct
+from time import time
 
 import numpy as np
 
 from math import floor
 
-from ...csi import CSIData, frames
-from ..reader import Reader
+from CSIKit.csi import CSIData
+from CSIKit.csi.frames import IWLCSIFrame
+from CSIKit.reader import Reader
 
-from ...util.errors import print_length_error
-from ...util.matlab import db, dbinv
+from CSIKit.util.errors import print_length_error
+from CSIKit.util.matlab import db, dbinv
 
 SIZE_STRUCT = struct.Struct(">H").unpack
 CODE_STRUCT = struct.Struct("B").unpack
@@ -45,7 +47,7 @@ class IWLBeamformReader(Reader):
             raise Exception("File not found: {}".format(path))
 
     @staticmethod
-    def read_bfee(header, data, perm, i=0, filename="", scaled=False):
+    def read_bfee(header, data, perm, scaled, i=0, filename=""):
         """
             This function parses a CSI payload using its preconstructed header and returns a complete block object containing header information and a CSI matrix.
 
@@ -97,14 +99,14 @@ class IWLBeamformReader(Reader):
 
                     index += 16
 
-        # if scaled:
-        #     scaled_csi = scale_csi_entry(csi_block)
-        #     csi_block["scaled_csi"] = scaled_csi
-
-        return csi
+        if scaled:
+            scaled_csi = IWLBeamformReader.scale_csi_entry(csi, header)
+            return scaled_csi
+        else:
+            return csi
 
     @staticmethod
-    def read_bf_entry(data):
+    def read_bf_entry(data, scaled=False):
         """
             This function parses a realtime CSI payload not associated with a file (for example: those extracted via netlink).
 
@@ -129,7 +131,7 @@ class IWLBeamformReader(Reader):
             perm[1] = ((antenna_sel >> 2) & 0x3)
             perm[2] = ((antenna_sel >> 4) & 0x3)
 
-        csi_block = IWLBeamformReader.read_bfee(csi_header, all_data, perm)
+        csi_block = IWLBeamformReader.read_bfee(csi_header, all_data, perm, scaled)
 
         return csi_block
 
@@ -144,7 +146,6 @@ class IWLBeamformReader(Reader):
                 total_csi (list): All valid CSI blocks contained within the given file.
         """
         self.filename = os.path.basename(path)
-        self.scaled = scaled
 
         ret_data = CSIData(self.filename)
 
@@ -156,6 +157,8 @@ class IWLBeamformReader(Reader):
         length = len(data)
 
         cursor = 0
+
+        initial_timestamp = 0
 
         while (length - cursor) > 100:
             size = SIZE_STRUCT(data[cursor:cursor+2])[0]
@@ -185,10 +188,18 @@ class IWLBeamformReader(Reader):
                     perm[1] = ((antenna_sel >> 2) & 0x3)
                     perm[2] = ((antenna_sel >> 4) & 0x3)
 
-                csi_matrix = IWLBeamformReader.read_bfee(header_block, data_block, perm, ret_data.expected_frames, self.scaled)
+                csi_matrix = IWLBeamformReader.read_bfee(header_block, data_block, perm, scaled, ret_data.expected_frames)
                 if csi_matrix is not None:
-                    frame = frames.IWLCSIFrame(header_block, csi_matrix)
+                    frame = IWLCSIFrame(header_block, csi_matrix)
                     ret_data.push_frame(frame)
+
+                    timestamp_low = header_block[0]*10e-7
+
+                    if initial_timestamp == 0:
+                        initial_timestamp = timestamp_low
+
+                    ret_data.timestamps.append(timestamp_low - initial_timestamp)
+
             else:
                 print("Invalid code for beamforming measurement at {}.".format(hex(cursor)))
 
@@ -197,6 +208,7 @@ class IWLBeamformReader(Reader):
 
         return ret_data
 
+    @staticmethod
     def get_total_rss(rssi_a, rssi_b, rssi_c, agc):
         # Calculates the Received Signal Strength (RSS) in dBm
         # Careful here: rssis could be zero
@@ -214,7 +226,8 @@ class IWLBeamformReader(Reader):
         #As seen in get_total_rss.m.
         return db(rssi_mag, "pow") - 44 - agc
 
-    def scale_csi_entry(frame):
+    @staticmethod
+    def scale_csi_entry(csi, header):
         """
             This function performs scaling on the retrieved CSI data to account for automatic gain control and other factors.
             Code within this section is largely based on the Linux 802.11n CSI Tool's MATLAB implementation (get_scaled_csi.m).
@@ -223,24 +236,22 @@ class IWLBeamformReader(Reader):
                 frame {dict} -- CSI frame object for which CSI is to be scaled.
         """
 
-        csi = frame["csi"]
+        n_rx = header[3]
+        n_tx = header[4]
 
-        n_rx = frame["n_rx"]
-        n_tx = frame["n_tx"]
+        rssi_a = header[5]
+        rssi_b = header[6]
+        rssi_c = header[7]
 
-        rssi_a = frame["rssi_a"]
-        rssi_b = frame["rssi_b"]
-        rssi_c = frame["rssi_c"]
-
-        agc = frame["agc"]
-        noise = frame["noise"]
-
+        noise = header[8]
+        agc = header[9]
+        
         #Calculate the scale factor between normalized CSI and RSSI (mW).
         csi_sq = np.multiply(csi, np.conj(csi))
         csi_pwr = np.sum(csi_sq)
         csi_pwr = np.real(csi_pwr)
 
-        rssi_pwr_db = get_total_rss(rssi_a, rssi_b, rssi_c, agc)
+        rssi_pwr_db = IWLBeamformReader.get_total_rss(rssi_a, rssi_b, rssi_c, agc)
         rssi_pwr = dbinv(rssi_pwr_db)
         #Scale CSI -> Signal power : rssi_pwr / (mean of csi_pwr)
         scale = rssi_pwr / (csi_pwr / 30)

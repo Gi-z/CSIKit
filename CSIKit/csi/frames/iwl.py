@@ -1,4 +1,4 @@
-from ..csiframe import CSIFrame
+from CSIKit.csi import CSIFrame
 
 class IWLCSIFrame(CSIFrame):
 

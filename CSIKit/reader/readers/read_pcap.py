@@ -4,10 +4,11 @@ import time
 
 import numpy as np
 
-from ...csi import CSIData, frames
-from ..reader import Reader
+from CSIKit.csi import CSIData
+from CSIKit.csi.frames import NEXCSIFrame
+from CSIKit.reader import Reader
 
-from ...util.matlab import dbinv
+from CSIKit.util.matlab import dbinv
 
 start = time.time()
 
@@ -124,6 +125,8 @@ class NEXBeamformReader(Reader):
 
     def read_file(self, path, scaled=False, chip="43455c0"):
 
+        #TODO: Automatic chip detection.
+
         self.chip = chip
         
         self.filename = os.path.basename(path)
@@ -136,13 +139,14 @@ class NEXBeamformReader(Reader):
         ret_data.skipped_frames = self.pcap.skipped_frames
         ret_data.expected_frames = len(self.pcap.frames)+self.pcap.skipped_frames
 
-        data_frames = self.read_frames(self.pcap.frames)
+        data_frames = self.read_frames(self.pcap.frames, scaled)
         for frame in data_frames:
             ret_data.push_frame(frame)
+            ret_data.timestamps.append(frame.timestamp)
 
         return ret_data
 
-    def read_bfee(self, pcap_frame):
+    def read_bfee(self, pcap_frame, scaled):
 
         #ts_usec contains microseconds as an offset to the main seconds timestamp.
         usecs = pcap_frame.header["ts_usec"][0]/1e+6
@@ -169,21 +173,23 @@ class NEXBeamformReader(Reader):
             csi[i] = np.complex(x[0], x[1])
             i += 1
 
-        # scaled_csi = scale_csi_entry_pi(csi, frame.payloadHeader)
+        if scaled:
+            csi = NEXBeamformReader.scale_csi_frame(csi, pcap_frame.payloadHeader)
 
         #Manually adding timestamp to the payloadHeader.
         #TODO: Merge differently.
 
         pcap_frame.payloadHeader["timestamp"] = timestamp
 
-        return frames.NEXCSIFrame(pcap_frame.payloadHeader, csi)
+        return NEXCSIFrame(pcap_frame.payloadHeader, csi)
 
-    def read_frames(self, frames):
+    def read_frames(self, frames, scaled):
         #Split the file into individual frames.
         #Send payloads to read_bfee so they can be extracted.
-        return [self.read_bfee(x) for x in frames]
+        return [self.read_bfee(x, scaled) for x in frames]
 
-    def scale_csi_entry_pi(csi, header):
+    @staticmethod
+    def scale_csi_frame(csi, header):
         #This is not a true SNR ratio as is the case for the Intel scaling.
         #We do not have agc or noise values so it's just about establishing a scale against RSSI.
 

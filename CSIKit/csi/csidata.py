@@ -1,9 +1,11 @@
+from CSIKit.util.csitools import get_CSI
 
 class CSIData:
 
     def __init__(self, filename=""):
         
         self.frames = []
+        self.timestamps = []
 
         self.expected_frames = 0
         self.skipped_frames = 0
@@ -14,32 +16,69 @@ class CSIData:
         self.frames.append(frame)
 
     def get_metadata(self):
-        pass
-        # reader = get_reader(path)
-        # hardware_info_string = get_hardware(reader)
+        # chipset = get_hardware(reader)
 
-        # unmodified_csi_matrix = reader.csi_trace[0]["csi"]
-        # _, no_frames, no_subcarriers = get_CSI(reader.csi_trace)
+        unmodified_csi_matrix = self.frames[0].csi_matrix
+        _, no_frames, no_subcarriers = get_CSI(self.frames)
 
-        # if len(unmodified_csi_matrix.shape) <= 2:
-        #     rx_count, tx_count = (1, 1)
-        # elif len(unmodified_csi_matrix.shape) == 3:
-        #     rx_count, tx_count = unmodified_csi_matrix.shape[1:]
+        rx_count = (0, 0)
+        tx_count = (0, 0)
 
-        # antenna_config_string = "{} Rx, {} Tx".format(rx_count, tx_count)
+        if len(unmodified_csi_matrix.shape) <= 2:
+            rx_count, tx_count = (1, 1)
+        elif len(unmodified_csi_matrix.shape) == 3:
+            rx_count, tx_count = unmodified_csi_matrix.shape[1:]
 
-        # timestamps = get_timestamps(reader.csi_trace)
-        # final_timestamp = timestamps[-1]
+        antenna_config_string = "{} Rx, {} Tx".format(rx_count, tx_count)
 
-        # if final_timestamp == 0:
-        #     average_sample_rate = 0
-        # else:
-        #     average_sample_rate = no_frames/final_timestamp
+        timestamps = self.timestamps
+        final_timestamp = timestamps[-1]
 
-        # print("Hardware: {}".format(hardware_info_string))
-        # print("Antenna Configuration: {}".format(antenna_config_string))
-        # print("Frame Count: {}".format(no_frames))
-        # print("Subcarrier Count: {}".format(no_subcarriers))
-        # print("Length: {0:.2f}s".format(final_timestamp))
-        # print("Average Sample Rate: {0:.2f}Hz".format(average_sample_rate))
-        # print("CSI Shape: {}".format((no_frames, *unmodified_csi_matrix.shape)))
+        #Check if timestamp is relative or epoch.
+
+        time_length = 0
+        if len(str(final_timestamp)) > 9:
+            #Likely an epoch timestamp.
+            #Get diff between first and last.
+            time_length = final_timestamp - timestamps[0]
+        else:
+            time_length = final_timestamp
+
+        if final_timestamp == 0:
+            average_sample_rate = 0
+        else:
+            average_sample_rate = no_frames/time_length
+
+        data = {
+            "chipset": "PLACEHOLDER",
+            "antenna_config": antenna_config_string,
+            "frames": no_frames,
+            "subcarriers": no_subcarriers,
+            "time_length": time_length,
+            "average_sample_rate": average_sample_rate,
+            "csi_shape": unmodified_csi_matrix.shape
+        }    
+
+        return CSIMetadata(data)
+
+    # @staticmethod
+    # def get_hardware(reader):
+    #     if type(reader) == ATHBeamformReader:
+    #         return "Atheros (Unknown Supported Chipset)"
+    #     elif type(reader) == IWLBeamformReader:
+    #         return "Intel IWL5300"
+    #     elif type(reader) == NEXBeamformReader:
+    #         #TODO: Add specific chip reading for BCM chips.
+    #         return "Broadcom (Unknown Supported Chipset)"
+
+class CSIMetadata:
+
+    __slots__ = ["chipset", "antenna_config", "frames", "subcarriers", "time_length", "average_sample_rate", "csi_shape"]
+    def __init__(self, data):
+        self.chipset = data["chipset"]
+        self.antenna_config = data["antenna_config"]
+        self.frames = data["frames"]
+        self.subcarriers = data["subcarriers"]
+        self.time_length = data["time_length"]
+        self.average_sample_rate = data["average_sample_rate"]
+        self.csi_shape = data["csi_shape"]

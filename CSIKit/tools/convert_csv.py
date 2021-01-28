@@ -1,10 +1,10 @@
 import csv
 
-from ..util.csitools import get_CSI
-from ..reader import reader_selector
+from CSIKit.util.csitools import get_CSI
+from CSIKit.reader import get_reader
 
 def generate_csv(path, dest):
-    reader = reader_selector.get_reader(path)
+    reader = get_reader(path)
     csi_data = reader.read_file(path)
     csi_frames = csi_data.frames
 
