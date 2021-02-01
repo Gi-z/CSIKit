@@ -6,6 +6,7 @@ class ATHCSIFrame(CSIFrame):
     def __init__(self, header_data, csi_matrix):
         self.timestamp = header_data.timestamp
         self.csi_length = header_data.csi_length
+        self.tx_channel = header_data.tx_channel
         self.err_info = header_data.err_info
         self.noise_floor = header_data.noise_floor
         self.rate = header_data.rate

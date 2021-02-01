@@ -13,7 +13,7 @@ def bandpass(csi_vec, low_cut, high_cut, fs, order):
     b, a = signal.butter(order, [low_cut/nyq, high_cut/nyq], btype="band", analog=False)
     return signal.filtfilt(b, a, csi_vec)
 
-#Original implementation.
+#Original implementation from whyrlpool.
 #Runs slightly slower than Pandas implementation.
 def hampel(csi, k=3, nsigma=3):
     index = 0
@@ -37,14 +37,6 @@ def hampel(csi, k=3, nsigma=3):
         index += 1
 
     return csi
-
-# def running_mean(x, N):
-#     #This example was taken from stackoverflow, mostly to avoid additional imports.
-#     #The previous implementation I was using (via pandas) is commented out below.
-#     #https://stackoverflow.com/questions/13728392/moving-average-or-running-mean
-
-#     cumsum = np.cumsum(np.insert(x, 0, 0))
-#     return (cumsum[N:] - cumsum[:-N]) / float(N)
 
 def running_mean(x, N):
     return pd.Series(x).rolling(window=N, min_periods=1, center=True).mean().to_numpy()

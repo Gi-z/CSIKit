@@ -1,14 +1,14 @@
-from CSIKit.util.matlab import db, dbinv
+from CSIKit.util.matlab import db
 
 import numpy as np
 
-def get_CSI(trace, metric="amplitude", antenna_stream=None, scaled=True):
+def get_CSI(csi_data, metric="amplitude", antenna_stream=None, scaled=True):
     
-    # csi_key = "scaled_csi" if "scaled_csi" in trace[0] else "csi"
-    # csi_key = "csi_matrix"
-    csi_shape = trace[0].csi_matrix.shape
+    frames = csi_data.frames
 
-    no_frames = len(trace)
+    csi_shape = frames[0].csi_matrix.shape
+
+    no_frames = len(frames)
     no_subcarriers = csi_shape[0]
 
     if len(csi_shape) == 3:
@@ -18,7 +18,7 @@ def get_CSI(trace, metric="amplitude", antenna_stream=None, scaled=True):
     csi = np.zeros((no_subcarriers, no_frames))
 
     for x in range(no_frames):
-        entry = trace[x].csi_matrix
+        entry = frames[x].csi_matrix
         for y in range(no_subcarriers):
             if metric == "amplitude":
                 if antenna_stream is not None:
@@ -35,6 +35,6 @@ def get_CSI(trace, metric="amplitude", antenna_stream=None, scaled=True):
 
     return (csi, no_frames, no_subcarriers)
 
-def get_timestamps(trace, relative=True):
-    key = "timestamp" if relative else "timestamp_low"
-    return list([x[key] for x in trace])
+# def get_timestamps(trace, relative=True):
+#     key = "timestamp" if relative else "timestamp_low"
+#     return list([x[key] for x in trace])
