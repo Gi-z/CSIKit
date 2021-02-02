@@ -1,9 +1,10 @@
 import argparse
 
-from CSIKit.tools import BatchGraph
-from CSIKit.tools import generate_csv
-from CSIKit.tools import generate_json
-from CSIKit.tools import display_info
+from CSIKit.tools.batch_graph import BatchGraph
+from CSIKit.tools.convert_csv import generate_csv
+from CSIKit.tools.convert_json import generate_json
+from CSIKit.tools.get_info import display_info
+from CSIKit.tools.run_test import run_iwl_test, run_nex_test
 
 def main():
     parser = argparse.ArgumentParser(description="CSIKit: Parse and interpret CSI data.")
@@ -18,6 +19,10 @@ def main():
 
     # parser.add_argument("--json", "-j", action="store_true", default=False, help="Process CSI data into JSON format.")
     # parser.add_argument("--json_dest", dest="json_dest", default="output.json", help="Choose a destination for the output JSON file. (Default: output.json)")
+
+    parser.add_argument("--test", action="store_true", default=False, help="Run performance test.")
+    parser.add_argument("--test_dir", dest="test_dir", default="", help="Select test dataset directory.")
+
 
     parser.add_argument("file", type=str, help="Path to CSI file.")
 
@@ -35,12 +40,16 @@ def main():
             print("Graph type '{}' not supported.".format(args.graph_type))
     elif args.csv:
         generate_csv(args.file, args.csv_dest)
+    elif args.test:
+        # run_iwl_test(args.test_dir)
+        run_nex_test(args.test_dir)
     # elif args.json:
     #     json_str = generate_json(args.file)
     #     with open(args.json_dest, "w+") as file:
     #         file.write(json_str)
     elif args.info:
         display_info(args.file)
+    
 
 if __name__ == "__main__":
     main()

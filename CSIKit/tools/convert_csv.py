@@ -6,9 +6,8 @@ from CSIKit.reader import get_reader
 def generate_csv(path, dest):
     reader = get_reader(path)
     csi_data = reader.read_file(path)
-    csi_frames = csi_data.frames
 
-    csi_matrix, no_frames, no_subcarriers = get_CSI(csi_frames)
+    csi_matrix, no_frames, no_subcarriers = get_CSI(csi_data)
     print(csi_matrix.shape)
     print(no_frames)
 

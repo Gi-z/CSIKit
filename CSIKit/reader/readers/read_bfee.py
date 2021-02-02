@@ -68,7 +68,8 @@ class IWLBeamformReader(Reader):
         #Flag invalid payloads so we don't error out trying to parse them into matrices.
         actual_length = len(data)
         if expected_length != actual_length:
-            return print_length_error(expected_length, actual_length, i, filename)
+            # return print_length_error(expected_length, actual_length, i, filename)
+            return None
 
         csi = np.empty((30, n_rx, n_tx), dtype=np.complex)
 

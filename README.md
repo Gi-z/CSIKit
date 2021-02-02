@@ -224,7 +224,7 @@ This format is based on the modified version of [nexmon_csi](https://github.com/
 
 ## Mistakes and Tests
 
-If anything is wrong, [let me know](mailto:g.r.forbes@rgu.ac.uk). I want to know why.
+If anything is wrong, [let me know](mailto:g.r.forbes@rgu.ac.uk). I want to know why, and fix it!
 
 I'm a PhD student working on several sensor data-focussed experiments, a few of which involve using CSI. I'm am by no means an RF engineer or particularly experienced this area. I have done and are doing as much as I can to make sure that anything produced with this is accurate. To that end, there are MATLAB .mat files included in the `tests` folder which have been generated using IWLBeamformReader, NEXBeamformReader, and scipy's `savemat` method. There are also MATLAB scripts in the `scripts` folder which can be used to check the validity of the output from this tool. In my experience I have found these tools to produce identical output to the MATLAB scripts offered by the following developers. If this is not the case, let me know.
 

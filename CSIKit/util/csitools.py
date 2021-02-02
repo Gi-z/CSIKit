@@ -2,7 +2,7 @@ from CSIKit.util.matlab import db
 
 import numpy as np
 
-def get_CSI(csi_data, metric="amplitude", antenna_stream=None, scaled=True):
+def get_CSI(csi_data, metric="amplitude", antenna_stream=None):
     
     frames = csi_data.frames
 
@@ -30,11 +30,12 @@ def get_CSI(csi_data, metric="amplitude", antenna_stream=None, scaled=True):
                     #Not 100% sure this generates correct Phase Difference.
                     csi[y][x] = np.angle(entry[y][1][0])-np.angle(entry[y][0][0])
                 else:
-                    #Unable to calculate phase difference on single antenna configurations.
+                    print("Unable to calculate phase difference on single antenna configurations.")
                     return False
+            elif metric == "phase":
+                if antenna_stream is not None:
+                    csi[y][x] = np.angle(entry[y][antenna_stream][antenna_stream])
+                else:
+                    csi[y][x] = np.angle(entry[y])
 
     return (csi, no_frames, no_subcarriers)
-
-# def get_timestamps(trace, relative=True):
-#     key = "timestamp" if relative else "timestamp_low"
-#     return list([x[key] for x in trace])

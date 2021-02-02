@@ -16,4 +16,4 @@ def print_length_error(length, data_length, i, filename):
         print("\tLast packet was likely cut off by an improper termination.")
         print("\tWhen killing log_to_file, use SIGTERM and ensure writes have been flushed, and files closed.")
 
-    return False
+    return None
