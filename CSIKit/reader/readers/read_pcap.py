@@ -71,10 +71,15 @@ class Frame:
         return payload
 
 class Pcap:
-    BW = 80
-    # BW = 40
+    BW_80 = 80
+    BW_40 = 40
+    BW_20 = 20
+
     HOFFSET = 16
-    NFFT = int(BW*3.2)
+
+    NFFT_80 = int(BW_80*3.2)
+    NFFT_40 = int(BW_40*3.2)
+    NFFT_20 = int(BW_20*3.2)
 
     #Need to update this so we can extract bandwidth from the first chanspec reading, maybe?
 
@@ -99,9 +104,9 @@ class Pcap:
             nextFrame = Frame(self.data, offset)
             offset = nextFrame.offset
 
-            if nextFrame.header["orig_len"][0]-(self.HOFFSET-1)*4 != self.NFFT*4:
-                # print("Skipped frame with incorrect size.")
-                self.skipped_frames += 1
+            if nextFrame.header["orig_len"][0]-(self.HOFFSET-1)*4 not in [self.NFFT_80*4, self.NFFT_40*4, self.NFFT_20*4]:
+                print("Skipped frame with incorrect size.")
+                # self.skipped_frames += 1
             else:
                 self.frames.append(nextFrame)
 
