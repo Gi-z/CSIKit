@@ -24,7 +24,7 @@ setup(
     ],
     packages=["CSIKit", "CSIKit.tools"],
     include_package_data=True,
-    install_requires=["numpy", "matplotlib", "scikit-learn"],
+    install_requires=["Cython", "numpy", "matplotlib", "scikit-learn"],
     entry_points={
         "console_scripts": [
             "CSIKit=CSIKit.__main__:main",
