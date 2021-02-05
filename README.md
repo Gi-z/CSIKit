@@ -10,7 +10,7 @@ Python 3.5+ required.
 - **Library** and **Tools** for parsing CSI for your own Python applications.
 
 <p align="center">
-  <img src="./img/example.png" alt="CSIKit Command Line Example">
+  <img src="./img/example_new.png" alt="CSIKit Command Line Example">
 </p>
 
 - [Description](#description)

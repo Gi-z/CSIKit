@@ -10,7 +10,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="CSIKit",
-    version="1.0.0",
+    version="1.0.3",
     description="Tools for extracting Channel State Information from files produced by a range of WiFi hardware/drivers.",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -24,7 +24,7 @@ setup(
     ],
     packages=["CSIKit", "CSIKit.tools"],
     include_package_data=True,
-    install_requires=["numpy", "matplotlib", "scikit-learn"],
+    install_requires=["numpy", "matplotlib", "scikit-learn", "pandas"],
     entry_points={
         "console_scripts": [
             "CSIKit=CSIKit.__main__:main",
