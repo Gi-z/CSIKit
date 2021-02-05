@@ -1,5 +1,5 @@
 import numpy as np
-import pandas as pd
+# import pandas as pd
 from scipy import signal
 
 def lowpass(csi_vec, cutoff, fs, order):
@@ -38,14 +38,14 @@ def hampel(csi, k=3, nsigma=3):
 
     return csi
 
-def running_mean(x, N):
-    return pd.Series(x).rolling(window=N, min_periods=1, center=True).mean().to_numpy()
+# def running_mean(x, N):
+#     return pd.Series(x).rolling(window=N, min_periods=1, center=True).mean().to_numpy()
 
-def running_stdev(x, N):
-    return pd.Series(x).rolling(window=N, min_periods=1, center=True).std().to_numpy()
+# def running_stdev(x, N):
+#     return pd.Series(x).rolling(window=N, min_periods=1, center=True).std().to_numpy()
 
-def running_variance(x, N):
-    return pd.Series(x).rolling(window=N, min_periods=1, center=True).var().to_numpy()
+# def running_variance(x, N):
+#     return pd.Series(x).rolling(window=N, min_periods=1, center=True).var().to_numpy()
 
 # def mad(x, axis=None):
 #     return np.mean(np.absolute(x - np.mean(x, axis)), axis)
