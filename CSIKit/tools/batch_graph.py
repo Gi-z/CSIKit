@@ -17,7 +17,7 @@ class BatchGraph:
     def prepostfilter(self):
 
         csi_trace = self.csi_data.frames
-        finalEntry, no_frames, _ = get_CSI(csi_trace)
+        finalEntry, no_frames, _ = get_CSI(self.csi_data)
 
         finalEntry = finalEntry[15]
 
@@ -45,8 +45,7 @@ class BatchGraph:
 
     def plotAllSubcarriers(self):
 
-        csi_trace = self.csi_data.frames
-        finalEntry, no_frames, _ = get_CSI(csi_trace)
+        finalEntry, no_frames, _ = get_CSI(self.csi_data)
 
         for x in finalEntry:
             plt.plot(np.arange(no_frames)/20, x)
@@ -60,11 +59,12 @@ class BatchGraph:
     def heatmap(self):
 
         csi_trace = self.csi_data.frames
-        finalEntry, no_frames, no_subcarriers = get_CSI(csi_trace)
+        finalEntry, no_frames, no_subcarriers = get_CSI(self.csi_data)
 
         x_label = "Time (s)"
         try:
             x = list([x.timestamp for x in csi_trace])
+            x = [timestamp-x[0] for timestamp in x]
         except AttributeError as e:
             #No timestamp in frame. Likely an IWL entry.
             #Will be moving timestamps to CSIData to account for this.

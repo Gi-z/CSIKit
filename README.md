@@ -95,7 +95,7 @@ csi_data = my_reader.read_file("path/to/log.all_csi.6.7.6.dat")
 
 ## Library
 
-There are 3 major components which CSIKit exposes for use in other Python applications. As other sections of code become more refined, this will likely grow over time.
+CSIKit exposes key components for use in other Python applications: `Reader` and `csitools`. As other sections of code become more refined, this will likely grow over time.
 
 Note: This documentation is initial and brief. More will follow shortly.
 
@@ -120,7 +120,7 @@ csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="ampli
 
 The returned tuple contains a modified matrix which contains CSI amplitudes in dBm, followed by the number of frames and subcarriers represented therein.
 
-Once we have CSI amplitude data, we can also apply filters for preprocessing.
+Once we have CSI amplitude data, we can also apply filters for preprocessing (as seen in many publications making use of CSI).
 
 ```python
 from CSIKit.filters import bandpass, hampel, running_mean

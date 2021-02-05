@@ -22,7 +22,7 @@ def generate_json(path):
 
     reader = get_reader(path)
     csi_data = reader.read_file(path)
-    csi_frames = csi_data.frames
+    csi, _, _ = get_CSI(csi_data)
 
-    json_str = json.dumps(csi_frames, default=default, indent=True)
+    json_str = json.dumps(csi, default=default, indent=True)
     return json_str

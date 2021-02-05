@@ -148,7 +148,8 @@ class IWLBeamformReader(Reader):
         """
         self.filename = os.path.basename(path)
 
-        ret_data = CSIData(self.filename)
+        ret_data = CSIData(self.filename, "Intel IWL5300")
+        ret_data.bandwidth = 20
 
         if not os.path.exists(path):
             raise Exception("File not found: {}".format(path))

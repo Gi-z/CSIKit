@@ -8,8 +8,10 @@ def generate_csv(path, dest):
     csi_data = reader.read_file(path)
 
     csi_matrix, no_frames, no_subcarriers = get_CSI(csi_data)
-    print(csi_matrix.shape)
-    print(no_frames)
+    print("CSI Shape: {}".format(csi_matrix.shape))
+    print("Number of Frames: {}".format(no_frames))
+    print("Generating CSI Amplitude...")
+    print("CSV dimensions: {} Rows, {} Columns".format(no_subcarriers, no_frames))
 
     with open(dest, "w", newline="") as csv_file:
         writer = csv.writer(csv_file, delimiter="\t")
@@ -19,3 +21,5 @@ def generate_csv(path, dest):
             row = [i for i in subcarrier]
 
             writer.writerow(row)
+
+    print("File written to: {}".format(dest))

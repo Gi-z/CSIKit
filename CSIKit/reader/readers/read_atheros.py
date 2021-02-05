@@ -116,11 +116,14 @@ class ATHBeamformReader(Reader):
         data = open(path, "rb").read()
         length = len(data)
 
-        ret_data = CSIData(self.filename)
+        ret_data = CSIData(self.filename, "Atheros 802.11n-compatible")
+        ret_data.bandwidth = 20
 
         total_csi = []
         cursor = 0
         expected_count = 0
+
+        initial_timestamp = 0
 
         first_byte = data[cursor:cursor+1]
 
@@ -153,7 +156,13 @@ class ATHBeamformReader(Reader):
                 if csi_matrix is not None:
                     frame = ATHCSIFrame(header_block, csi_matrix)
                     ret_data.push_frame(frame)
-                    ret_data.timestamps.append(header_block.timestamp)
+                    
+                    timestamp_low = header_block.timestamp*1e-6
+
+                    if initial_timestamp == 0:
+                        initial_timestamp = timestamp_low
+
+                    ret_data.timestamps.append(timestamp_low - initial_timestamp)
 
                 expected_count += 1
                 cursor += header_block.csi_length

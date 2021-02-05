@@ -81,7 +81,11 @@ class Pcap:
     NFFT_40 = int(BW_40*3.2)
     NFFT_20 = int(BW_20*3.2)
 
-    #Need to update this so we can extract bandwidth from the first chanspec reading, maybe?
+    BW_SIZES = {
+        NFFT_80*4: 80,
+        NFFT_40*4: 40,
+        NFFT_20*4: 20
+    }
 
     PCAP_HEADER_DTYPE = np.dtype([
         ("magic_number", np.uint32), 
@@ -98,16 +102,26 @@ class Pcap:
         self.header = self.readHeader()
         self.frames = []
         self.skipped_frames = 0
+        self.bandwidth = 0
 
         offset = self.PCAP_HEADER_DTYPE.itemsize
         while offset < len(self.data):
             nextFrame = Frame(self.data, offset)
             offset = nextFrame.offset
 
-            if nextFrame.header["orig_len"][0]-(self.HOFFSET-1)*4 not in [self.NFFT_80*4, self.NFFT_40*4, self.NFFT_20*4]:
-                print("Skipped frame with incorrect size.")
-                # self.skipped_frames += 1
+            givenSize = nextFrame.header["orig_len"][0]-(self.HOFFSET-1)*4
+
+            if givenSize not in self.BW_SIZES:
+                # print("Skipped frame with incorrect size.")
+                self.skipped_frames += 1
             else:
+                bandwidth = self.BW_SIZES[givenSize]
+                if self.bandwidth == 0:
+                    self.bandwidth = bandwidth
+                elif self.bandwidth != bandwidth:
+                    # print("Change in observed bandwidth during capture.")
+                    pass
+
                 self.frames.append(nextFrame)
 
     def readHeader(self):
@@ -140,7 +154,8 @@ class NEXBeamformReader(Reader):
 
         self.pcap = Pcap(path)
 
-        ret_data = CSIData(self.filename)
+        ret_data = CSIData(self.filename, "Broadcom BCM{}".format(chip))
+        ret_data.bandwidth = self.pcap.bandwidth
         ret_data.skipped_frames = self.pcap.skipped_frames
         ret_data.expected_frames = len(self.pcap.frames)+self.pcap.skipped_frames
 

@@ -7,6 +7,7 @@ def display_info(path):
     metadata = csi_data.get_metadata()
 
     print("Hardware: {}".format(metadata.chipset))
+    print("Bandwidth: {}MHz".format(metadata.bandwidth))
     print("Antenna Configuration: {}".format(metadata.antenna_config))
     print("Frame Count: {}".format(metadata.frames))
     print("Subcarrier Count: {}".format(metadata.subcarriers))
