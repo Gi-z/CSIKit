@@ -5,7 +5,7 @@ from CSIKit.tools.batch_graph import BatchGraph
 from CSIKit.tools.convert_csv import generate_csv
 from CSIKit.tools.convert_json import generate_json
 from CSIKit.tools.get_info import display_info
-from CSIKit.tools.run_test import run_iwl_test, run_nex_test
+# from CSIKit.tools.run_test import run_iwl_test, run_nex_test
 
 def main():
     parser = argparse.ArgumentParser(description="CSIKit: Parse and interpret CSI data.")
@@ -50,14 +50,14 @@ def main():
             file.write(json_str)
     elif args.npz:
         generate_npz(args.file, args.npz_dest)
-    elif args.test:
-        if args.test_type:
-            if args.test_type.lower() == "intel":
-                run_iwl_test(args.test_dir)
-            elif args.test_type.lower() == "nexmon":
-                run_nex_test(args.test_dir)
-        else:
-            run_iwl_test(args.test_dir)
+    # elif args.test:
+    #     if args.test_type:
+    #         if args.test_type.lower() == "intel":
+    #             run_iwl_test(args.test_dir)
+    #         elif args.test_type.lower() == "nexmon":
+    #             run_nex_test(args.test_dir)
+    #     else:
+    #         run_iwl_test(args.test_dir)
     elif args.info:
         display_info(args.file)
     
