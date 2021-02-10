@@ -15,6 +15,9 @@ class CSIData:
         self.filename = filename
         self.chipset = chipset
 
+    def set_chipset(self, chipset):
+        self.chipset = chipset
+
     def push_frame(self, frame):
         self.frames.append(frame)
 
