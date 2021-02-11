@@ -6,7 +6,7 @@ Python 3.5+ required.
 
 - **CSI parsing** from Atheros, Intel and Broadcom (nexmon) formats.
 - **Processing** and **Visualisation** using numpy and matplotlib.
-- **CSV generator** for dataset serialisation.
+- **CSV/JSON generators** for dataset serialisation.
 - **Library** and **Tools** for parsing CSI for your own Python applications.
 
 <p align="center">
