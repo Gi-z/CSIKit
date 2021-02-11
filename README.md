@@ -13,24 +13,26 @@ Python 3.5+ required.
   <img src="./img/example_new.png" alt="CSIKit Command Line Example"/>
 </p>
 
-- [Description](#description)
-- [Installation](#installation)
-- [Example](#example)
-  - [Command Line Interface](#csikit-cli)
-  - [CSIKit library](#csikit-library)
-- [Library](#library)
-  - [Using CSI Matrices](#csitools)
-  - [ATHCSIFrame](#athcsiframe)
-  - [IWLCSIFrame](#iwlcsiframe)
-  - [NEXCSIFrame](#nexcsiframe)
-- [Supported Hardware](#supported-hardware)
-- [Known Issues](#known-issues)
-- [Coming Soon](#coming-soon)
-  - [Visualisation](#visualisation)
-  - [Additional Hardware support](#additional-hardware-support)
-- [Mistakes and Tests](#mistakes-and-tests)
-- [Reference Links](#reference-links)
-- [License](#license)
+- [CSIKit ![PyPI version](https://badge.fury.io/py/CSIKit)](#csikit-)
+  - [Description](#description)
+  - [Installation](#installation)
+  - [Example](#example)
+    - [Command Line](#command-line)
+    - [CSIKit library](#csikit-library)
+  - [Library](#library)
+  - [Using CSI Matrices](#using-csi-matrices)
+    - [ATHCSIFrame](#athcsiframe)
+    - [IWLCSIFrame](#iwlcsiframe)
+    - [NEXCSIFrame](#nexcsiframe)
+  - [Supported Hardware](#supported-hardware)
+  - [Known Issues](#known-issues)
+  - [Coming Soon](#coming-soon)
+    - [Additional Hardware support](#additional-hardware-support)
+    - [Realtime Retrieval](#realtime-retrieval)
+    - [Visualisation](#visualisation)
+  - [Mistakes and Tests](#mistakes-and-tests)
+  - [Reference Links](#reference-links)
+  - [License](#license)
 
 ## Description
 
@@ -177,6 +179,9 @@ Reference based on the [Atheros CSI Tool User Guide](https://wands.sg/research/w
 - antenna_sel: Bitmask indicating the permutation setting.
 - length: Reported length of a CSI payload.
 - rate: Bitmask indicating the rate at which this frame was sent.
+#### Hint :
+IWLCSIFrame visualization can be count at ./docs
+
 
 ### NEXCSIFrame
 
