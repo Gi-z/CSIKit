@@ -9,6 +9,8 @@ Python 3.5+ required.
 - **CSV/JSON generators** for dataset serialisation.
 - **Library** and **Tools** for parsing CSI for your own Python applications.
 
+Don't have your own CSI data? Check out [CSI-Data](https://github.com/Gi-z/CSI-Data) for a collection of public CSI datasets.
+
 <p align="center">
   <img src="./img/example_new.png" alt="CSIKit Command Line Example"/>
 </p>
