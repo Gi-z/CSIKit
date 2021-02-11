@@ -22,11 +22,10 @@ class PlotableCSI():
     """
 
     def __init__(self, metric, graph):
-        self._axes = None
         self._values_per_measurement: Dict[str, List] = {}
         self._curr_measurement = None
         self.metric = metric()
-        self.graph = graph()
+        self.graph = graph(self.metric)
 
     def add_measurement(self, measurement_name: str):
         """ Mark the moment, if the next plots are of a different measurement"""
@@ -41,11 +40,7 @@ class PlotableCSI():
         self._curr_measurement.append(self.metric.notice(entry))
 
     def show(self):
-        self.axes = plt.subplot()
-        axes = self.axes
-        self.graph.show(axes, self._values_per_measurement)
-        axes.set_ylabel(f"{self.metric.get_name()}[{self.metric.get_unit()}]")
-        axes.set_xlabel('measurement')
+        self.graph.show( self._values_per_measurement)
 
 
 class SzenarioPlotter():
@@ -149,7 +144,7 @@ class SzenarioPlotter():
         """
         def mat_show(plot_impl: PlotableCSI):
             if len(title) > 0:
-                plot_impl.axes.set_title(title)
+                {ax.set_title(title) for ax in plot_impl.graph.axes}
             plt.show()
 
         self._plot(mat_show)
@@ -183,7 +178,5 @@ class SzenarioPlotter():
                 f"__measurements should be type dict but it is {type(self.__measurements)}")
 
         for plot_impl in self.__plot_implementations:
-            plt.figure(figsize=(5, 5))
             plot_impl.show()
-
             callback(plot_impl)
