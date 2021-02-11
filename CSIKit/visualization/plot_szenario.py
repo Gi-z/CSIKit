@@ -183,7 +183,7 @@ class SzenarioPlotter():
                 f"__measurements should be type dict but it is {type(self.__measurements)}")
 
         for plot_impl in self.__plot_implementations:
-            plt.figure(figsize=(15, 5))
+            plt.figure(figsize=(5, 5))
             plot_impl.show()
 
             callback(plot_impl)

@@ -206,3 +206,24 @@ class PlotCandleTuple_Phase(PlotCandleTuple):
     def show(cls, axes, values_per_measurement, plot_wick=False):  # set wick false
         super().show(axes, values_per_measurement, plot_wick=plot_wick)
         axes._axes.set_ylim((0, pi))
+
+
+class ColorMap(Graph):
+    @classmethod
+    def show(cls, axes, values_per_measurement):
+        
+        for measur_name in values_per_measurement:
+            axes = plt.subplot()
+            measur_data = values_per_measurement[measur_name]
+            
+            amplitude_per_sub = []
+            for csi_matrix in  measur_data: # plot first 30 csi entrys
+                amplitudes = [abs(sub[0]) for sub in csi_matrix]
+                amplitude_per_sub.append(amplitudes)
+            print(np.shape(amplitude_per_sub))
+            amplitude_per_sub = np.matrix(np.array(amplitude_per_sub))
+            print(np.shape(amplitude_per_sub))
+            axes.pcolormesh(amplitude_per_sub, cmap=plt.cm.gist_rainbow_r, rasterized=True)
+            #plt.show()
+            #axes = plt.subplot()
+

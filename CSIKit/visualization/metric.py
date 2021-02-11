@@ -284,3 +284,10 @@ class Amplitude_per_Antenna(TupleMetric):
     def get_unit(self):
         return "dB"
 
+class CSI_Matrix(Metric):
+    def notice(self, entry:CsiEntry):
+        return entry.csi_matrix
+    def get_name(self):
+        return "Amplitude"
+    def get_unit(self):
+        return "dBm"
