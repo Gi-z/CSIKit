@@ -310,7 +310,7 @@ class CSI_Matrix_Amplitude(Metric):
             amplitudes.append(ampli)
         return amplitudes
 
-class CSI_Matrix_Phase_Rx_0(Metric):
+class CSI_Matrix_Phase_Diff_0_1(Metric):
     def notice(self, entry:CsiEntry):
         return self._extract_phase(entry)
     def get_name(self):
