@@ -3,7 +3,7 @@ import json
 from CSIKit.util.csitools import get_CSI
 from CSIKit.reader import get_reader
 
-def generate_json(path):
+def generate_json(path: str) -> str:
     """
         This function converts a csi_trace into the json format. It works for single entry or the whole trace.
 

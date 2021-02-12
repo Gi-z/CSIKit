@@ -1,7 +1,7 @@
 
 from CSIKit.reader import get_reader
 
-def display_info(path):
+def display_info(path: str):
     reader = get_reader(path)
     csi_data = reader.read_file(path)
     metadata = csi_data.get_metadata()
