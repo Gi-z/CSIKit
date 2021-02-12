@@ -234,7 +234,6 @@ class NEXBeamformReader(Reader):
 
         #Manually adding timestamp to the payloadHeader.
         #TODO: Merge differently.
-
         pcap_frame.payloadHeader["timestamp"] = timestamp
 
         return NEXCSIFrame(pcap_frame.payloadHeader, csi)
