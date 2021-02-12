@@ -1,13 +1,15 @@
 # CSIKit [![PyPI version](https://badge.fury.io/py/CSIKit.svg)](https://badge.fury.io/py/CSIKit)
 
-Tools for extracting Channel State Information from format produced by a range of WiFi hardware/drivers, written in Python with numpy.
+Tools for extracting Channel State Information from formats produced by a range of WiFi hardware/drivers, written in Python with numpy.
 
 Python 3.5+ required.
 
 - **CSI parsing** from Atheros, Intel and Broadcom (nexmon) formats.
 - **Processing** and **Visualisation** using numpy and matplotlib.
-- **CSV generator** for dataset serialisation.
+- **CSV/JSON generators** for dataset serialisation.
 - **Library** and **Tools** for parsing CSI for your own Python applications.
+
+Don't have your own CSI data? Check out [CSI-Data](https://github.com/Gi-z/CSI-Data) for a collection of public CSI datasets.
 
 <p align="center">
   <img src="./img/example_new.png" alt="CSIKit Command Line Example"/>
