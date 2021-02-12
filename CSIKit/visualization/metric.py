@@ -291,6 +291,7 @@ class CSI_Matrix(Metric):
         return "Amplitude"
     def get_unit(self):
         return "dBm"
+
 class CSI_Matrix_Amplitude(Metric):
     def notice(self, entry:CsiEntry):
         return self._extract_amplitude(entry)
@@ -300,9 +301,16 @@ class CSI_Matrix_Amplitude(Metric):
         return "dBm"
     @classmethod
     def _extract_amplitude(cls, entry):
-        return [abs(sub[0]) for sub in entry.csi_matrix]
+        amplitudes = []
+        for sub in entry.csi_matrix:
+            ampli = 0
+            for rx in range(len(sub)):
+                comp = sub[rx]
+                ampli+=abs(comp)
+            amplitudes.append(ampli)
+        return amplitudes
 
-class CSI_Matrix_Phase(Metric):
+class CSI_Matrix_Phase_Rx_0(Metric):
     def notice(self, entry:CsiEntry):
         return self._extract_phase(entry)
     def get_name(self):
@@ -311,5 +319,5 @@ class CSI_Matrix_Phase(Metric):
         return "radians"
     @classmethod
     def _extract_phase(cls, entry):
-        return [phase(sub[0]) for sub in entry.csi_matrix]
-                
+        modo = lambda com1,com2: ((phase(com1)-phase(com2))+pi)%(pi)
+        return [(modo(sub[0],sub[1])) for sub in entry.csi_matrix]
