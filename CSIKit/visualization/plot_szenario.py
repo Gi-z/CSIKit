@@ -24,11 +24,12 @@ class PlotableCSI():
     def __init__(self, metric, graph):
         self._values_per_measurement: Dict[str, List] = {}
         self._curr_measurement = None
+        self._figure = None
         self.metric = metric()
         self.graph = graph(self.metric)
 
     def add_measurement(self, measurement_name: str):
-        """ Mark the moment, if the next plots are of a different measurement"""
+        """ Mark the moment, if the next noticed data are of a different measurement"""
         self._curr_measurement = []
         self._values_per_measurement[measurement_name] = self._curr_measurement
 
@@ -38,14 +39,31 @@ class PlotableCSI():
             raise Exception(
                 "No measurement started yet. call self.add_measurement")
         self._curr_measurement.append(self.metric.notice(entry))
-
+    def _plot(self):
+        self._figure = plt.figure()
+        axes_list = self.graph.plot( self._values_per_measurement)
+        print(type(axes_list))
+        print(axes_list)
+        #{self._figure.add_subplot(ax) for ax in axes_list}
+        
     def show(self):
-        self.graph.show( self._values_per_measurement)
+        self._plot()
+        self._figure.show()
+
+    def save(self, folder, prefix=""):
+        self._plot()
+        prefix = f"{prefix}-"
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        file_name = f"{self.metric.__class__.__name__}_{self.graph.__class__.__name__}"
+        with PdfPages(f"./{folder}/{prefix}{file_name}.pdf") as pdf:
+            pdf.savefig(self._figure, bbox_inches='tight')
+        
 
 
 class SzenarioPlotter():
     """
-    Plots different metrics of one szenario with multible measurements
+    Plots different metrics of one szenario with multiple measurements
     """
 
     def __init__(self, szenario_name: str,
@@ -142,28 +160,20 @@ class SzenarioPlotter():
         """
         shows the results of the plt of the different metrics
         """
-        def mat_show(plot_impl: PlotableCSI):
-            if len(title) > 0:
-                {ax.set_title(title) for ax in plot_impl.graph.axes}
-            plt.show()
+        self._is_szenario_vaild()
+        {plotable.show() for  plotable in self.__plot_implementations}
 
-        self._plot(mat_show)
+
+
 
     def save(self,folder="./images"):
         """
         saves pdf of the plot at this szenarios
         It maight be happend that if you use this within ipynb of yupiter it show also.
         """
-        def save_pdf(plot_impl: PlotableCSI):
-            if not os.path.exists(folder):
-                os.makedirs(folder)
-            file_name = f"{plot_impl.metric.__class__.__name__}_{plot_impl.graph.__class__.__name__}"
-            with PdfPages(f"./{folder}/{self.szenario_name}-{file_name}.pdf") as pdf:
-                pdf.savefig(bbox_inches='tight')
-
-        self._plot(save_pdf)
-
-    def _plot(self, callback):
+        self._is_szenario_vaild()
+        {plotable.save(folder, prefix=self.szenario_name) for  plotable in self.__plot_implementations}
+    def _is_szenario_vaild(self):
         """
         plots into a matplotlib axes
         """
@@ -177,6 +187,5 @@ class SzenarioPlotter():
             raise Exception(
                 f"__measurements should be type dict but it is {type(self.__measurements)}")
 
-        for plot_impl in self.__plot_implementations:
-            plot_impl.show()
-            callback(plot_impl)
+        return True
+        

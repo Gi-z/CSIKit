@@ -15,22 +15,34 @@ from CSIKit.visualization.metric import Metric
 class Graph:
     def __init__(self, metric:Metric):
         self.metric = metric
-        self.axes = []
+        self._axes = []
         super().__init__()
     
-    def show(self, values_per_measurement):
+    def plot(self, values_per_measurement):
         """
-        abstract function to plot the visualization. 
+        function to plot the visualization into the axes.
+        return axes[] 
+        """
+        self._axes = []
+        self._plot_axes(values_per_measurement)
+        if not isinstance(self._axes,list):
+            raise Exception("return value is not list")
+        return self._axes
+        
+    def _plot_axes(self,values_per_measurement):
+        """
+        Abstract function.
         This function has to fill self.axes
+        It should call self._create_new_ax
         """
-        raise Exception("Not implemented function show")
+        raise Exception("Not implemented function plot")
     
-    def _create_new_axe(self):
+    def _create_new_ax(self):
         """
         return new axes and appends it to self.axes
         """
         ax = plt.subplot()
-        self.axes.append(ax)
+        self._axes.append(ax)
         return ax
 
 class TupleGraph:
@@ -39,9 +51,10 @@ class TupleGraph:
 
 class PlotBox(Graph):
  
-    def show(self, values_per_measurement):
+    def _plot_axes(self, values_per_measurement):
         
-        axes = self._create_new_axe()
+        axes = self._create_new_ax()
+
         data = list(values_per_measurement.values())
         labels = list(values_per_measurement.keys())
 
@@ -113,20 +126,20 @@ class PlotCandle(Graph):
             confidenz_errors[name] = confidenz
         return confidenz_errors
 
-    def show(self, values_per_measurement, plot_wick=True):
-        axes = self._create_new_axe()
+    def _plot_axes(self, values_per_measurement, plot_wick=True):
+        axes = self._create_new_ax()
         if all(isinstance(k, int) for k in values_per_measurement.keys()):  # if name is metric
             width = max(list(values_per_measurement.keys())) / \
                 (2*len(list(values_per_measurement.keys())))
             #width = 4
             # for name in self._values_per_measurement: # for each measurement
             self._plot_candle(axes, values_per_measurement,
-                             width, plot_wick=plot_wick)
+                             width=width, plot_wick=plot_wick)
 
         else:  # else plot by name
             width = 0.4
             self._plot_candle(axes, values_per_measurement,
-                             width, plot_wick=plot_wick)
+                             width=width, plot_wick=plot_wick)
             ind = np.arange(len(values_per_measurement))
             # plot unique text at the center of each candle
             axes.set_xticks(ind)
@@ -134,6 +147,8 @@ class PlotCandle(Graph):
                 tuple(values_per_measurement.keys()), rotation=45, ha="right")
         axes.set_ylabel(f"{self.metric.get_name()}[{self.metric.get_unit()}]")
         axes.set_xlabel('measurement')
+
+
     @classmethod
     def _plot_candle(cls, axes, values_per_measurement, width=4, color="#008000", x_offset=0, plot_wick=True):
         averages = cls._calc_average(values_per_measurement)
@@ -179,9 +194,8 @@ class PlotCandleTuple(TupleGraph, PlotCandle):
         self._values_per_measurement: Dict[str, Tuple] = {}
     COLORS = ['#008000', 'red',  'blue']
 
-    def show(self, values_per_measurement, plot_wick=True):
-
-        axes = self._create_new_axe()
+    def _plot_axes(self, values_per_measurement, plot_wick=True):
+        axes = self._create_new_ax()
         axes.set_autoscalex_on(True)
         # gets the size of the contained tuple
         tuple_size = len(list(values_per_measurement.values())[0][0])
@@ -226,18 +240,17 @@ class PlotCandleTuple(TupleGraph, PlotCandle):
 
 class PlotCandleTuple_Phase(PlotCandleTuple):
 
-    def show(self,  values_per_measurement, plot_wick=False):  # set wick false
-        super().show( values_per_measurement, plot_wick=plot_wick)
-        {ax._axes.set_ylim((0, pi)) for ax in self.axes}
-        #axes._axes.set_ylim((0, pi))
+    def _plot_axes(self,  values_per_measurement, plot_wick=False):  # set wick false
+        super()._plot_axes( values_per_measurement, plot_wick=plot_wick)
+        {ax._axes.set_ylim((0, pi)) for ax in self._axes}
 
 
 class PlotColorMap(Graph):
 
-    def show(self,  values_per_measurement):
+    def _plot_axes(self,  values_per_measurement):
 
         for measur_name in values_per_measurement:
-            axes = self._create_new_axe()
+            axes = self._create_new_ax()
             measur_data = values_per_measurement[measur_name]
             
             # extract amplitudes
