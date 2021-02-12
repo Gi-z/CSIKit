@@ -251,13 +251,8 @@ class PlotColorMap(Graph):
 
         for measur_name in values_per_measurement:
             axes = self._create_new_ax()
-            measur_data = values_per_measurement[measur_name]
+            amplitude_per_sub = values_per_measurement[measur_name]
             
-            # extract amplitudes
-            amplitude_per_sub = []
-            for csi_matrix in  measur_data: # plot first 30 csi entrys
-                amplitudes = [abs(sub[0]) for sub in csi_matrix]
-                amplitude_per_sub.append(amplitudes)
             amplitude_per_sub = np.matrix(np.array(amplitude_per_sub))
 
             # plot
