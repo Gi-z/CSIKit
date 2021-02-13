@@ -204,9 +204,33 @@ class Amplitude_Sum(Metric):
                 amplitude += sum([abs(comp) for comp in sub[rx]])
         amplitude = amplitude /(30*entry.n_rx) # average amplitude per subcarrier per antenna
         return amplitude
+class Phase_Diff(Metric):
+    def notice(self, entry):
+        diffs = self._calc_phasediff(entry)
+        return diffs
+    @classmethod
+    def _calc_phasediff(cls, entry: CsiEntry):
+        """ Calculates the phasediffs A->B, B->C
+        """
+        if entry.n_rx !=3:
+            raise Exception("csi entry has wrong count of nrx. Maybe you want to filter Nrx !=3")
 
+        diffs = [[],[]] # diffs per antenna
+        #TODO what happends if tx > 1
+        for sub_carrier in entry.csi_matrix:
 
-class Phase_Diff_Stability(TupleMetric):
+            for rx in range(entry.n_rx):
+                if rx is 0: # skip first antenna to not compare A->A
+                    continue
+                last_phase = phase(sub_carrier[rx-1])
+                cur_phase = phase(sub_carrier[rx])
+                diff = last_phase-cur_phase
+                diffs[rx-1].append((diff+pi)%(pi/2))
+                #diffs[rx-1].append(((diff+pi)% (2*pi))-pi)
+                #modulo definition range of -pi -> pi
+                #diffs[rx-1].append(((diff+pi)% (2*pi))-pi)
+        return(diffs)
+class Phase_Diff_Stability(Phase_Diff):
 
     def notice(self, entry):
         diffs = self._calc_phasediff(entry)
@@ -218,28 +242,7 @@ class Phase_Diff_Stability(TupleMetric):
         return "Phase std err"
     def get_unit(self):
         return "dB"
-    @classmethod
-    def _calc_phasediff(cls, entry: CsiEntry):
-            """ Calculates the phasediffs A->B, B->C
-            """
-            if entry.n_rx !=3:
-                raise Exception("csi entry has wrong count of nrx. Maybe you want to filter Nrx !=3")
 
-            diffs = [[],[]] # diffs per antenna
-            #TODO what happends if tx > 1
-            for sub_carrier in entry.csi_matrix:
-
-                for rx in range(entry.n_rx):
-                    if rx is 0: # skip first antenna to not compare A->A
-                        continue
-                    last_phase = phase(sub_carrier[rx-1])
-                    cur_phase = phase(sub_carrier[rx])
-                    diff = last_phase-cur_phase
-                    diffs[rx-1].append((diff+pi)%(pi/2))
-                    #diffs[rx-1].append(((diff+pi)% (2*pi))-pi)
-                    #modulo definition range of -pi -> pi
-                    #diffs[rx-1].append(((diff+pi)% (2*pi))-pi)
-            return(diffs)
 
 
     @classmethod
@@ -319,5 +322,5 @@ class CSI_Matrix_Phase_Diff_0_1(Metric):
         return "radians"
     @classmethod
     def _extract_phase(cls, entry):
-        modo = lambda com1,com2: ((phase(com1)-phase(com2))+pi)%(pi)
+        modo = lambda com1,com2: ((phase(com1)-phase(com2)))%(pi/2)
         return [(modo(sub[0],sub[1])) for sub in entry.csi_matrix]
