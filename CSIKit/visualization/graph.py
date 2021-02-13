@@ -8,6 +8,8 @@ import numpy as np
 
 
 from CSIKit.visualization.metric import Metric
+from matplotlib.colors import BoundaryNorm
+from matplotlib.ticker import MaxNLocator
 
 
 
@@ -246,18 +248,58 @@ class PlotCandleTuple_Phase(PlotCandleTuple):
 
 
 class PlotColorMap(Graph):
-
+    def __init__(self, metric):
+        super().__init__(metric)
+        self.vmin=None
+        self.vmax=None
+        self.cmap = plt.cm.plasma
+        self.color_legend = True
     def _plot_axes(self,  values_per_measurement):
 
         for measur_name in values_per_measurement:
             axes = self._create_new_ax()
             amplitude_per_sub = values_per_measurement[measur_name]
-            
             amplitude_per_sub = np.matrix(np.array(amplitude_per_sub))
-
-            # plot
-            axes.pcolormesh(amplitude_per_sub, cmap=plt.cm.gist_rainbow_r, rasterized=True)
+             # plot
+            cmap= self.cmap
+            if not self.vmin is None and not self.vmax is None:
+                pcmap = axes.pcolormesh(amplitude_per_sub, cmap=cmap,  vmin=self.vmin, vmax=self.vmax,rasterized=True)
+            else:
+                pcmap = axes.pcolormesh(amplitude_per_sub, cmap=cmap, rasterized=True)
+            if self.color_legend:
+                plt.colorbar(pcmap, ax=axes)
             axes.set_xlabel(f"subcarrier")
             axes.set_ylabel('measurement')
             plt.show()
     
+class PlotColorMap_Phase(PlotColorMap):
+    def __init__(self, metric):
+        super().__init__(metric)
+        self.vmax = pi/2
+        self.vmin = 0
+        self.cmap = plt.cm.gist_ncar
+class PlotColorMap_Amplitude(PlotColorMap):
+    def __init__(self, metric):
+        super().__init__(metric)
+        self.vmax = 150
+        self.vmin = 0
+        self.cmap = plt.cm.gist_ncar
+        self.color_legend = False
+
+class PlotPhaseDiff(Graph):
+    def _plot_axes(self,  values_per_measurement):
+
+        COLORS = ['red', '#008000', 'blue']
+        for measur_name in values_per_measurement:
+            axes = self._create_new_ax()
+            diffs_entry = values_per_measurement[measur_name]
+            for diffs in diffs_entry[:100]:
+                for pair_index in range(len(diffs)):
+                    axes.plot(range(len(diffs[pair_index])), diffs[pair_index]
+                            , color=COLORS[pair_index])
+            
+            #axes.title('Phase diff', fontsize=16)
+            axes.set_xlabel('Subcarrier index')
+            axes.set_ylabel('phase')
+            axes.set_ylim(0,2*pi)
+            plt.show()
