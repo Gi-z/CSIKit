@@ -13,7 +13,7 @@ from CSIKit.util.matlab import dbinv
 
 start = time.time()
 
-class Frame:
+class PcapFrame:
     FRAME_HEADER_DTYPE = np.dtype([
         ("ts_sec", np.uint32), 
         ("ts_usec", np.uint32), 
@@ -60,8 +60,8 @@ class Frame:
         payloadHeader["channel_spec"] = payload[14:16]
        
         chipIdentifier = payload[16:18].hex()
-        if chipIdentifier in Frame.CHIPS:
-            payloadHeader["chip"] = Frame.CHIPS[chipIdentifier]
+        if chipIdentifier in PcapFrame.CHIPS:
+            payloadHeader["chip"] = PcapFrame.CHIPS[chipIdentifier]
         else:
             payloadHeader["chip"] = "UNKNOWN"
 
@@ -79,7 +79,7 @@ class Frame:
             ints_size = incl_len
             payload = np.array(struct.unpack(ints_size*"B", self.data[self.offset:self.offset+incl_len]), dtype=np.uint8)
 
-        self.payloadHeader = Frame.read_payloadHeader(self.data[self.offset+42:self.offset+62])
+        self.payloadHeader = PcapFrame.read_payloadHeader(self.data[self.offset+42:self.offset+62])
         self.offset += incl_len
 
         return payload
@@ -124,7 +124,7 @@ class Pcap:
 
         offset = self.PCAP_HEADER_DTYPE.itemsize
         while offset < len(self.data):
-            nextFrame = Frame(self.data, offset)
+            nextFrame = PcapFrame(self.data, offset)
             offset = nextFrame.offset
 
             givenSize = nextFrame.header["orig_len"][0]-(self.HOFFSET-1)*4
@@ -192,7 +192,7 @@ class NEXBeamformReader(Reader):
 
         return ret_data
 
-    def read_bfee(self, pcap_frame: Frame, scaled: bool, bandwidth: int) -> NEXCSIFrame:
+    def read_bfee(self, pcap_frame: PcapFrame, scaled: bool, bandwidth: int) -> NEXCSIFrame:
 
         #ts_usec contains microseconds as an offset to the main seconds timestamp.
         usecs = pcap_frame.header["ts_usec"][0]/1e+6
