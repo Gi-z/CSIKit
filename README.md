@@ -182,7 +182,7 @@ Reference based on the [Atheros CSI Tool User Guide](https://wands.sg/research/w
 
 ### NEXCSIFrame
 
-This format is based on the modified version of [nexmon_csi](https://github.com/seemoo-lab/nexmon_csi/pull/46) for BCM43455c0 with support for RSSI and Frame Control. If using the regular version of `nexmon_csi`, these fields will not contain this data.
+This format is based on the modified version of [nexmon_csi](https://github.com/nexmonster/nexmon_csi/tree/pi-5.4.51) (credit [mzakharo](https://github.com/seemoo-lab/nexmon_csi/pull/46)) for BCM43455c0 with support for RSSI and Frame Control. If using the [regular](https://github.com/seemoo-lab/nexmon_csi/) version of `nexmon_csi`, these fields will not contain this data.
 
 - rssi: Observed RSSI (signal strength in dB) on the receiving antenna.
 - frame_control: [Frame Control](https://en.wikipedia.org/wiki/802.11_Frame_Types#Frame_Control) bitmask.
