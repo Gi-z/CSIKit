@@ -125,7 +125,7 @@ The returned tuple contains a modified matrix which contains CSI amplitudes in d
 Once we have CSI amplitude data, we can also apply filters for preprocessing (as seen in many publications making use of CSI).
 
 ```python
-from CSIKit.filters import bandpass, hampel, running_mean
+from CSIKit.filters import lowpass, hampel, running_mean
 from CSIKit.reader import get_reader
 from CSIKit.util import csitools
 
@@ -140,7 +140,7 @@ csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="ampli
 #  - a running mean filter for smoothing (window size = 10)
 
 for x in no_subcarriers:
-  csi_matrix[x] = bandpass(csi_matrix[x], 10, 100, 5)
+  csi_matrix[x] = lowpass(csi_matrix[x], 10, 100, 5)
   csi_matrix[x] = hampel(csi_matrix[x], 10, 3)
   csi_matrix[x] = running_mean(csi_matrix[x], 10)
 ```
