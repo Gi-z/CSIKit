@@ -135,8 +135,8 @@ csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="ampli
 
 #This example assumes CSI data is sampled at ~100Hz.
 #In this example, we apply (sequentially):
-#  - a lowpass filter to remove frequencies below 10Hz (order = 5)
-#  - a hampel filter to remove high frequency noise (window size = 10, significance = 3)
+#  - a lowpass filter to isolate frequencies below 10Hz (order = 5)
+#  - a hampel filter to reduce high frequency noise (window size = 10, significance = 3)
 #  - a running mean filter for smoothing (window size = 10)
 
 for x in no_subcarriers:
