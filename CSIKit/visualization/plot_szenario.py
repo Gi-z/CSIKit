@@ -22,6 +22,17 @@ class PlotableCSI():
     """
 
     def __init__(self, metric, graph):
+        # If metric and graph does not match : raise
+        if  issubclass(metric, TupleMetric) ^ issubclass(graph,TupleGraph):
+            raise Exception(
+                f"""
+                    boath should have the same output, but only on is Tuple 
+                    Metric:{metric.__name__} 
+                    Graph:{graph.__name__}
+                    isTuple: {issubclass(metric, TupleMetric)} ^ {issubclass(graph,TupleGraph)}
+                """)
+
+
         self._values_per_measurement: Dict[str, List] = {}
         self._curr_measurement = None
         self._figure = None

@@ -64,6 +64,9 @@ class Metric:
         """
         raise Exception("not implemented function notice")
 class TupleMetric:
+    """
+    notice should return a tuple
+    """
     pass
 
 
@@ -250,7 +253,7 @@ class Phase_Diff(Metric):
                 #modulo definition range of -pi -> pi
                 #diffs[rx-1].append(((diff+pi)% (2*pi))-pi)
         return(diffs)
-class Phase_Diff_Std_err(Phase_Diff):
+class Phase_Diff_Std_err(TupleMetric, Phase_Diff):
 
     def notice(self, entry):
         diffs = self._calc_phasediff(entry)
@@ -260,21 +263,21 @@ class Phase_Diff_Std_err(Phase_Diff):
         return "Phase std err"
     def get_unit(self):
         return "dB"
-class RSSI_per_Antenna(Metric):
+class RSSI_per_Antenna(TupleMetric):
     def notice(self, entry: CsiEntry):
         return tuple([entry.rssi_a, entry.rssi_b, entry.rssi_c])
     def get_name(self):
         return "RSSI pro Antenne"
     def get_unit(self):
         return "dB"
-class RSS_per_Antenna(RSS,TupleMetric):
+class RSS_per_Antenna(TupleMetric):
 
     def notice(self, entry: CsiEntry):
         agc = entry.agc
         return (
-                self._to_dBm(entry.rssi_a, agc),
-                self._to_dBm(entry.rssi_b, agc),
-                self._to_dBm(entry.rssi_c, agc)) 
+                RSS._to_dBm(entry.rssi_a, agc),
+                RSS._to_dBm(entry.rssi_b, agc),
+                RSS._to_dBm(entry.rssi_c, agc)) 
     def get_name(self):
         return "RSS pro Antenne"
     def get_unit(self):
