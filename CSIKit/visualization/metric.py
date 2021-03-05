@@ -15,7 +15,7 @@ from CSIKit.csi import IWLCSIFrame as CsiEntry
                      +------------+-+
                               ^
      +--------------------+   |   +---------------------+
-+--->+ RSSI               +---+---+ TupleMetric         |
++--->+ RSS               +---+---+ TupleMetric         |
 |    +--------------------+   |   +---------------------+
 |                             |     ^
 |    +--------------------+   |     |
@@ -24,7 +24,7 @@ from CSIKit.csi import IWLCSIFrame as CsiEntry
 |                             |     |   +----------------------+
 |    +--------------------+   |     |
 |    | Noise              +---+     |   +----------------------+
-|    +--------------------+   |     +---+RSSI_PerAntenna       |
+|    +--------------------+   |     +---+RSS_PerAntenna       |
 |    +--------------------+   |         +----------------------+
 |    | Datarate           +---+
 |    +--------------------+   |
@@ -62,13 +62,13 @@ class TupleMetric:
 
 
 
-class RSSI(Metric):
+class RSS(Metric):
     def __init__(self):
         super().__init__()
     def notice(self, entry:CsiEntry):
         return self._get_total_rss(entry)
     def get_name(self):
-        return "RSSI"
+        return "RSS"
     def get_unit(self):
         return "dBm"
     @classmethod
@@ -92,8 +92,8 @@ class RSSI(Metric):
         if rssi_c != 0:
             rssi_mag = rssi_mag + np.power(10.0, rssi_c/10)
 
-        ret = cls._to_dBm(10*np.log10(rssi_mag), agc)
-        return ret
+        rss = cls._to_dBm(10*np.log10(rssi_mag), agc)
+        return rss
 
 class AGC(Metric):
     def notice(self, entry:CsiEntry):
@@ -178,7 +178,7 @@ class Datarate(Metric):
         #if rate & (1 << (13 - 1)): 
 
 
-class SNR(RSSI,Metric):
+class SNR(RSS,Metric):
     def notice(self, entry:CsiEntry):
         return self._get_total_rss(entry) - entry.noise
     def get_name(self):
@@ -230,35 +230,18 @@ class Phase_Diff(Metric):
                 #modulo definition range of -pi -> pi
                 #diffs[rx-1].append(((diff+pi)% (2*pi))-pi)
         return(diffs)
-class Phase_Diff_Stability(Phase_Diff):
+class Phase_Diff_Std_err(Phase_Diff):
 
     def notice(self, entry):
         diffs = self._calc_phasediff(entry)
         std_errs =[statistics.stdev(diff) for diff in diffs]
         return tuple(std_errs)
-        # std_errors = self._calc_std_err(diffs)
-        # return std_errors
     def get_name(self):
         return "Phase std err"
     def get_unit(self):
         return "dB"
 
-
-
-    @classmethod
-    def _calc_std_err(cls, phase_diffs: List):
-        std_errs=[]
-        for diff in phase_diffs:
-            #average = statistics.mean(diff)
-            std_err = statistics.stdev(diff)
-            std_errs.append(std_err)
-
-       
-        return tuple(std_errs)
-
-
-
-class RSSI_PerAntenna(RSSI,TupleMetric):
+class RSS_PerAntenna(RSS,TupleMetric):
 
     def notice(self, entry: CsiEntry):
         agc = entry.agc
@@ -267,7 +250,7 @@ class RSSI_PerAntenna(RSSI,TupleMetric):
                 self._to_dBm(entry.rssi_b, agc),
                 self._to_dBm(entry.rssi_c, agc)) 
     def get_name(self):
-        return "RSSI pro Antenne"
+        return "RSS pro Antenne"
     def get_unit(self):
         return "dBm"
     
@@ -313,7 +296,10 @@ class CSI_Matrix_Amplitude(Metric):
             amplitudes.append(ampli)
         return amplitudes
 
-class CSI_Matrix_Phase_Diff_0_1(Metric):
+class CSI_Matrix_Phase_Diff_1_2(Metric):
+    """
+    this Metric saves the Phasediff of antenna 1 and 2
+    """
     def notice(self, entry:CsiEntry):
         return self._extract_phase(entry)
     def get_name(self):
