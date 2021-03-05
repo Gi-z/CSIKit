@@ -8,7 +8,7 @@ import numpy as np
 
 
 from CSIKit.visualization.metric import Metric
-from matplotlib.colors import BoundaryNorm
+from matplotlib.colors import BoundaryNorm, LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 
 
@@ -272,19 +272,26 @@ class PlotColorMap(Graph):
             axes.set_ylabel('measurement')
             plt.show()
     
+
 class PlotColorMap_Phase(PlotColorMap):
     def __init__(self, metric):
+
         super().__init__(metric)
+        colors = ["#008000", "white", "#008000"]
+        cmap_custom = LinearSegmentedColormap.from_list("mycmap", colors)
+        
+        self.cmap = cmap_custom
         self.vmax = pi/2
         self.vmin = 0
-        self.cmap = plt.cm.gist_ncar
+        self.color_legend = True
+
 class PlotColorMap_Amplitude(PlotColorMap):
     def __init__(self, metric):
         super().__init__(metric)
         self.vmax = 150
         self.vmin = 0
         self.cmap = plt.cm.gist_ncar
-        self.color_legend = False
+        self.color_legend = True
 
 class PlotPhaseDiff(Graph):
     def _plot_axes(self,  values_per_measurement):
