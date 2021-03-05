@@ -11,8 +11,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 
 from CSIKit.csi import IWLCSIFrame as CsiEntry
-from CSIKit.visualization.graph import Graph, TupleGraph
-from CSIKit.visualization.metric import Metric, TupleMetric
+from CSIKit.visualization.graph import Graph, TupleGraph, PlotColorMap
+from CSIKit.visualization.metric import Metric, TupleMetric, MatrixMetric
 from CSIKit.reader.readers.read_bfee import IWLBeamformReader
 
 
@@ -31,7 +31,14 @@ class PlotableCSI():
                     Graph:{graph.__name__}
                     isTuple: {issubclass(metric, TupleMetric)} ^ {issubclass(graph,TupleGraph)}
                 """)
-
+        if  issubclass(metric, MatrixMetric) ^ issubclass(graph,PlotColorMap):
+            raise Exception(
+                f"""
+                    boath should have the same output, but only on is Graph 
+                    Metric:{metric.__name__} 
+                    Graph:{graph.__name__}
+                    isTuple: {issubclass(metric, MatrixMetric)} ^ {issubclass(graph,PlotColorMap)}
+                """)
 
         self._values_per_measurement: Dict[str, List] = {}
         self._curr_measurement = None

@@ -299,15 +299,11 @@ class Amplitude_per_Antenna(TupleMetric):
     def get_unit(self):
         return "dB"
 
-class CSI_Matrix(Metric):
-    def notice(self, entry:CsiEntry):
-        return entry.csi_matrix
-    def get_name(self):
-        return "Amplitude"
-    def get_unit(self):
-        return "dBm"
-
-class CSI_Matrix_Amplitude(Metric):
+class MatrixMetric(Metric):
+    """
+    fits to the colormap tpe. should return Matrix
+    """
+class CSI_Matrix_Amplitude(MatrixMetric):
     def notice(self, entry:CsiEntry):
         return self._extract_amplitude(entry)
     def get_name(self):
@@ -325,7 +321,7 @@ class CSI_Matrix_Amplitude(Metric):
             amplitudes.append(ampli)
         return amplitudes
 
-class CSI_Matrix_Phase_Diff_1_2(Metric):
+class CSI_Matrix_Phase_Diff_1_2(MatrixMetric):
     """
     this Metric saves the Phasediff of antenna 1 and 2
     """
