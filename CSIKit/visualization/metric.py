@@ -20,7 +20,7 @@ from CSIKit.csi import IWLCSIFrame as CsiEntry
 |                             |     ^
 |    +--------------------+   |     |
 |    | AGC                +---+     |   +----------------------+
-|    +--------------------+   |     <---+Phase_Diff_Stability  |
+|    +--------------------+   |     <---+Phase_Diff_Std_err    |
 |                             |     |   +----------------------+
 |    +--------------------+   |     |
 |    | Noise              +---+     |   +----------------------+
@@ -65,7 +65,7 @@ class RSSI(Metric):
     def __init__(self):
         super().__init__()
     def notice(self, entry:CsiEntry):
-        return entry.rss
+        return self._get_total_rssi(entry)
     def get_name(self):
         return "RSS"
     def get_unit(self):
@@ -254,8 +254,14 @@ class Phase_Diff_Std_err(Phase_Diff):
         return "Phase std err"
     def get_unit(self):
         return "dB"
-
-class RSS_PerAntenna(RSS,TupleMetric):
+class RSSI_per_Antenna(Metric):
+    def notice(self, entry: CsiEntry):
+        return tuple([entry.rssi_a, entry.rssi_b, entry.rssi_c])
+    def get_name(self):
+        return "RSSI pro Antenne"
+    def get_unit(self):
+        return "dB"
+class RSS_per_Antenna(RSS,TupleMetric):
 
     def notice(self, entry: CsiEntry):
         agc = entry.agc

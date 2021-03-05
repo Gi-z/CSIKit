@@ -42,8 +42,6 @@ class PlotableCSI():
     def _plot(self):
         self._figure = plt.figure()
         axes_list = self.graph.plot( self._values_per_measurement)
-        print(type(axes_list))
-        print(axes_list)
         #{self._figure.add_subplot(ax) for ax in axes_list}
         
     def show(self):
