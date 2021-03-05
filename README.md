@@ -1,13 +1,15 @@
-# CSIKit [![PyPI version](https://badge.fury.io/py/CSIKit.svg)](https://badge.fury.io/py/CSIKit)
+# CSIKit [![PyPi version](https://pypip.in/v/CSIKit/badge.png)](https://crate.io/packages/CSIKit/) [![Downloads](https://pepy.tech/badge/csikit/month)](https://pepy.tech/project/csikit)
 
-Tools for extracting Channel State Information from format produced by a range of WiFi hardware/drivers, written in Python with numpy.
+Tools for extracting Channel State Information from formats produced by a range of WiFi hardware/drivers, written in Python with numpy.
 
 Python 3.5+ required.
 
 - **CSI parsing** from Atheros, Intel and Broadcom (nexmon) formats.
 - **Processing** and **Visualisation** using numpy and matplotlib.
-- **CSV generator** for dataset serialisation.
+- **CSV/JSON generators** for dataset serialisation.
 - **Library** and **Tools** for parsing CSI for your own Python applications.
+
+Don't have your own CSI data? Check out [CSI-Data](https://github.com/Gi-z/CSI-Data) for a collection of public CSI datasets.
 
 <p align="center">
   <img src="./img/example_new.png" alt="CSIKit Command Line Example"/>
@@ -125,7 +127,7 @@ The returned tuple contains a modified matrix which contains CSI amplitudes in d
 Once we have CSI amplitude data, we can also apply filters for preprocessing (as seen in many publications making use of CSI).
 
 ```python
-from CSIKit.filters import bandpass, hampel, running_mean
+from CSIKit.filters import lowpass, hampel, running_mean
 from CSIKit.reader import get_reader
 from CSIKit.util import csitools
 
@@ -135,12 +137,12 @@ csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="ampli
 
 #This example assumes CSI data is sampled at ~100Hz.
 #In this example, we apply (sequentially):
-#  - a lowpass filter to remove frequencies below 10Hz (order = 5)
-#  - a hampel filter to remove high frequency noise (window size = 10, significance = 3)
+#  - a lowpass filter to isolate frequencies below 10Hz (order = 5)
+#  - a hampel filter to reduce high frequency noise (window size = 10, significance = 3)
 #  - a running mean filter for smoothing (window size = 10)
 
 for x in no_subcarriers:
-  csi_matrix[x] = bandpass(csi_matrix[x], 10, 100, 5)
+  csi_matrix[x] = lowpass(csi_matrix[x], 10, 100, 5)
   csi_matrix[x] = hampel(csi_matrix[x], 10, 3)
   csi_matrix[x] = running_mean(csi_matrix[x], 10)
 ```
@@ -185,7 +187,7 @@ IWLCSIFrame visualization can be count at ./docs
 
 ### NEXCSIFrame
 
-This format is based on the modified version of [nexmon_csi](https://github.com/seemoo-lab/nexmon_csi/pull/46) for BCM43455c0 with support for RSSI and Frame Control. If using the regular version of `nexmon_csi`, these fields will not contain this data.
+This format is based on the modified version of [nexmon_csi](https://github.com/nexmonster/nexmon_csi/tree/pi-5.4.51) (credit [mzakharo](https://github.com/seemoo-lab/nexmon_csi/pull/46)) for BCM43455c0 with support for RSSI and Frame Control. If using the [regular](https://github.com/seemoo-lab/nexmon_csi/) version of `nexmon_csi`, these fields will not contain this data.
 
 - rssi: Observed RSSI (signal strength in dB) on the receiving antenna.
 - frame_control: [Frame Control](https://en.wikipedia.org/wiki/802.11_Frame_Types#Frame_Control) bitmask.

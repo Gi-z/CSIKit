@@ -3,7 +3,7 @@ import csv
 from CSIKit.util.csitools import get_CSI
 from CSIKit.reader import get_reader
 
-def generate_csv(path, dest):
+def generate_csv(path: str, dest: str):
     reader = get_reader(path)
     csi_data = reader.read_file(path)
 

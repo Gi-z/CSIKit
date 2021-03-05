@@ -1,8 +1,10 @@
 from CSIKit.util.matlab import db
 
+from typing import Tuple
+
 import numpy as np
 
-def get_CSI(csi_data, metric="amplitude", antenna_stream=None):
+def get_CSI(csi_data: 'CSIData', metric: str="amplitude", antenna_stream: int=None) -> Tuple[np.array, int, int]:
     
     frames = csi_data.frames
 

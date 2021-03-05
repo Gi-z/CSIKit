@@ -1,10 +1,10 @@
 import numpy as np
 np.seterr(divide="ignore")
 
-def dbinv(x):
+def dbinv(x: float) -> float:
     return np.power(10, x/10)
 
-def db(x, metric="voltage"):
+def db(x: float, metric: str="voltage") -> float:
     if metric == "voltage":
         return 20 * np.log10(x)
     elif metric == "pow":

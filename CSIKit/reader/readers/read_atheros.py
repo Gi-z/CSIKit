@@ -6,6 +6,7 @@ from math import floor
 from CSIKit.csi import CSIData
 from CSIKit.csi.frames import ATHCSIFrame
 from CSIKit.reader import Reader
+from CSIKit.util import byteops
 
 import numpy as np
 
@@ -24,7 +25,7 @@ class ATHBeamformReader(Reader):
         pass
 
     @staticmethod
-    def can_read(path):
+    def can_read(path: str) -> bool: 
         if os.path.exists(path):
             with open(path, "rb") as file:
                 first_byte = file.read(1)
@@ -38,26 +39,7 @@ class ATHBeamformReader(Reader):
             raise Exception("File not found: {}".format(path))
 
     @staticmethod
-    def signbit_convert(data, maxbit):
-        if (data & (1 << (maxbit - 1))):
-            data -= (1 << maxbit)
-
-        return data
-
-    @staticmethod
-    def get_next_bits(buf, current_data, idx, bits_left):
-        h_data = buf[idx]
-        h_data += (buf[idx+1] << 8)
-
-        current_data += h_data << bits_left
-
-        idx += 2
-        bits_left += 16
-
-        return current_data, idx, bits_left
-
-    @staticmethod
-    def read_bfee(csi_buf, nr, nc, num_tones, scaled=False):
+    def read_bfee(csi_buf: bytes, nr: int, nc: int, num_tones: int, scaled: bool=False) -> np.array:
 
         csi = np.empty((num_tones, nc, nr), dtype=np.complex)
 
@@ -78,7 +60,7 @@ class ATHBeamformReader(Reader):
                         current_data, idx, bits_left = ATHBeamformReader.get_next_bits(csi_buf, current_data, idx, bits_left)
                     
                     imag = current_data & bitmask
-                    imag = ATHBeamformReader.signbit_convert(imag, BITS_PER_SYMBOL)
+                    imag = byteops.signbit_convert(imag, BITS_PER_SYMBOL)
                     imag += 1
 
                     bits_left -= BITS_PER_SYMBOL
@@ -88,7 +70,7 @@ class ATHBeamformReader(Reader):
                         current_data, idx, bits_left = ATHBeamformReader.get_next_bits(csi_buf, current_data, idx, bits_left)
 
                     real = current_data & bitmask
-                    real = ATHBeamformReader.signbit_convert(real, BITS_PER_SYMBOL)
+                    real = byteops.signbit_convert(real, BITS_PER_SYMBOL)
                     real += 1
 
                     bits_left -= BITS_PER_SYMBOL
@@ -98,13 +80,7 @@ class ATHBeamformReader(Reader):
 
         return csi
 
-    def read_file(self, path, scaled=False):
-        """
-            This function parses .dat files containing CSI frame data.
-
-            Returns:
-                total_csi (list): All valid CSI blocks, and their associated headers, contained within the given file.
-        """
+    def read_file(self, path: str, scaled: bool=False) -> CSIData:
 
         if scaled:
             print("Scaling not yet supported in Atheros format.")
@@ -119,7 +95,6 @@ class ATHBeamformReader(Reader):
         ret_data = CSIData(self.filename, "Atheros 802.11n-compatible")
         ret_data.bandwidth = 20
 
-        total_csi = []
         cursor = 0
         expected_count = 0
 

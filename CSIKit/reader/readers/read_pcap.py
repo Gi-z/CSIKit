@@ -8,11 +8,12 @@ from CSIKit.csi import CSIData
 from CSIKit.csi.frames import NEXCSIFrame
 from CSIKit.reader import Reader
 
+from CSIKit.util import byteops
 from CSIKit.util.matlab import dbinv
 
 start = time.time()
 
-class Frame:
+class PcapFrame:
     FRAME_HEADER_DTYPE = np.dtype([
         ("ts_sec", np.uint32), 
         ("ts_usec", np.uint32), 
@@ -24,10 +25,10 @@ class Frame:
         "": "4339",
         "6500": "43455c0",
         "adde": "4358",
-        "": "4366c0"
+        "34e8": "4366c0"
     }
 
-    def __init__(self, data, offset):
+    def __init__(self, data: bytes, offset: int):
         self.data = data
         self.offset = offset
 
@@ -40,7 +41,7 @@ class Frame:
         return header
     
     @staticmethod
-    def read_payloadHeader(payload):
+    def read_payloadHeader(payload: bytes) -> dict:
         payloadHeader = {}
 
         #Stupid question, why is the header 18 bytes?
@@ -59,12 +60,14 @@ class Frame:
         payloadHeader["channel_spec"] = payload[14:16]
        
         chipIdentifier = payload[16:18].hex()
-        if chipIdentifier in Frame.CHIPS:
-            payloadHeader["chip"] = Frame.CHIPS[chipIdentifier]
+        if chipIdentifier in PcapFrame.CHIPS:
+            payloadHeader["chip"] = PcapFrame.CHIPS[chipIdentifier]
+        else:
+            payloadHeader["chip"] = "UNKNOWN"
 
         return payloadHeader
         
-    def read_payload(self):
+    def read_payload(self) -> np.array:
         incl_len = self.header["incl_len"][0]
         if incl_len <= 0:
             return False
@@ -76,7 +79,7 @@ class Frame:
             ints_size = incl_len
             payload = np.array(struct.unpack(ints_size*"B", self.data[self.offset:self.offset+incl_len]), dtype=np.uint8)
 
-        self.payloadHeader = Frame.read_payloadHeader(self.data[self.offset+42:self.offset+62])
+        self.payloadHeader = PcapFrame.read_payloadHeader(self.data[self.offset+42:self.offset+62])
         self.offset += incl_len
 
         return payload
@@ -93,6 +96,10 @@ class Pcap:
     NFFT_20 = int(BW_20*3.2)
 
     BW_SIZES = {
+        #Adding an exception here for an additional file I found.
+        #Need to figure out what's causing this 26 byte discrepancy.
+        1050: 80,
+
         NFFT_80*4: 80,
         NFFT_40*4: 40,
         NFFT_20*4: 20
@@ -108,7 +115,7 @@ class Pcap:
         ("network", np.uint32)
     ])
 
-    def __init__(self, filename):
+    def __init__(self, filename: str):
         self.data = open(filename, "rb").read()
         self.header = self.readHeader()
         self.frames = []
@@ -117,7 +124,7 @@ class Pcap:
 
         offset = self.PCAP_HEADER_DTYPE.itemsize
         while offset < len(self.data):
-            nextFrame = Frame(self.data, offset)
+            nextFrame = PcapFrame(self.data, offset)
             offset = nextFrame.offset
 
             givenSize = nextFrame.header["orig_len"][0]-(self.HOFFSET-1)*4
@@ -135,7 +142,7 @@ class Pcap:
 
                 self.frames.append(nextFrame)
 
-    def readHeader(self):
+    def readHeader(self) -> np.array:
         return np.frombuffer(self.data[:self.PCAP_HEADER_DTYPE.itemsize], dtype=self.PCAP_HEADER_DTYPE)
 
 class NEXBeamformReader(Reader):
@@ -143,7 +150,7 @@ class NEXBeamformReader(Reader):
         pass
 
     @staticmethod
-    def can_read(path):
+    def can_read(path: str) -> bool:
         if os.path.exists(path):
             _, extension = os.path.splitext(path)
             if extension == ".pcap":
@@ -152,105 +159,18 @@ class NEXBeamformReader(Reader):
                 return False
         else:
             raise Exception("File not found: {}".format(path))
-
+            
     @staticmethod
-    def unpack_float_acphy(nbits: int, autoscale: int, shft: int, fmt: int, nman: int, nexp: int, nfft: int, H: np.array) -> np.array:
-        k_tof_unpack_sgn_mask = (1<<31)
-
-        e_p, maxbit, e, i, e_zero, sgn = 0, 0, 0, 0, 0, 0
-        n_out, e_shift = 0, 0
-
-        He = [0] * nfft
-
-        vi, vq, = 0, 0
-        x, iq_mask, e_mask, sgnr_mask, sgni_mask = 0, 0, 0, 0, 0
-
-        iq_mask = (1 << (nman - 1)) - 1
-        e_mask = (1 << nexp) - 1
-        e_p = (1 << (nexp - 1))
-        sgnr_mask = (1 << (nexp + 2*nman - 1))
-        sgni_mask = (sgnr_mask >> nman)
-        e_zero = -nman
-
-        out = np.zeros((nfft*2, 1), dtype=np.int32)
-        n_out = (nfft << 1)
-        e_shift = 1
-        maxbit = -e_p
-
-        for i in range(len(H)):
-            vi = ((H[i] >> (nexp + nman)) & iq_mask)
-            vq = ((H[i] >> nexp) & iq_mask)
-            e = (H[i] & e_mask)
-        
-            if e >= e_p:
-                e -= (e_p << 1)
-            
-            He[i] = e
-
-            x = vi | vq
-            
-            if autoscale and x:
-                m = 0xffff0000
-                b = 0xffff
-                s = 16
-
-                while s > 0:
-                    if x & m:
-                        e += s
-                        x >>= s
-                    
-                    s >>= 1
-                    m = (m >> s) & b
-                    b >>= s
-            
-                if e > maxbit:
-                    maxbit = e
-                
-            if H[i] & sgnr_mask:
-                vi |= k_tof_unpack_sgn_mask
-            
-            if H[i] & sgni_mask:
-                vq |= k_tof_unpack_sgn_mask
-
-            out[i<<1] = vi
-            out[(i<<1)+1] = vq
-
-        shft = nbits - maxbit
-        for i in range(n_out):
-            e = He[(i >> e_shift)] + shft
-            vi = out[i]
-
-            sgn = 1
-
-            if vi & k_tof_unpack_sgn_mask:
-                sgn = -1
-
-                vi &= ~k_tof_unpack_sgn_mask
-            
-            if e < e_zero:
-                vi = 0
-            elif e < 0:
-                e = -e
-                vi = (vi >> e)
-            else:
-                vi = (vi << e)
-
-            out[i] = sgn * vi
-
-        return out
-            
-
-    @staticmethod
-    def unpack_float(format: int, nfft: int, nfftx1: np.array):
+    def unpack_float(format: int, nfft: int, nfftx1: np.array) -> np.array:
         if format == 0:
-            return NEXBeamformReader.unpack_float_acphy(10, 1, 0, 1, 9, 5, nfft, nfftx1)
+            return byteops.unpack_float_acphy(10, 1, 0, 1, 9, 5, nfft, nfftx1)
         elif format == 1:
-            return NEXBeamformReader.unpack_float_acphy(10, 1, 0, 1, 12, 6, nfft, nfftx1)
+            return byteops.unpack_float_acphy(10, 1, 0, 1, 12, 6, nfft, nfftx1)
 
-    def read_file(self, path, scaled=False):
+    def read_file(self, path: str, scaled: bool=False) -> CSIData:
 
-        #TODO: Automatic chip detection.
-        
+        self.chip = " UNKNOWN"
+
         self.filename = os.path.basename(path)
         if not os.path.exists(path):
             raise Exception("File not found: {}".format(path))
@@ -264,14 +184,15 @@ class NEXBeamformReader(Reader):
 
         data_frames = self.read_frames(self.pcap.frames, scaled, ret_data.bandwidth)
         for frame in data_frames:
-            ret_data.push_frame(frame)
-            ret_data.timestamps.append(frame.timestamp)
+            if frame is not None:
+                ret_data.push_frame(frame)
+                ret_data.timestamps.append(frame.timestamp)
 
         ret_data.set_chipset("Broadcom BCM{}".format(self.chip))
 
         return ret_data
 
-    def read_bfee(self, pcap_frame, scaled, bandwidth):
+    def read_bfee(self, pcap_frame: PcapFrame, scaled: bool, bandwidth: int) -> NEXCSIFrame:
 
         #ts_usec contains microseconds as an offset to the main seconds timestamp.
         usecs = pcap_frame.header["ts_usec"][0]/1e+6
@@ -279,21 +200,25 @@ class NEXBeamformReader(Reader):
 
         data = pcap_frame.payload
 
-        self.chip = pcap_frame.payloadHeader["chip"]
+        chipType = pcap_frame.payloadHeader["chip"]
 
-        if self.chip in ["4339", "43455c0"]:
+        if chipType in ["4339", "43455c0"]:
             data.dtype = np.int16
             data = data[30:]
-        elif self.chip == "4358":
+        elif chipType == "4358":
             data = data[15:15+int(bandwidth*3.2)]
             data = self.unpack_float(0, int(bandwidth*3.2), data)
-        elif self.chip == "4366c0":
+        elif chipType == "4366c0":
             data = data[15:15+int(bandwidth*3.2)]
             data = self.unpack_float(1, int(bandwidth*3.2), data)
         else:
-            print("Invalid chip: " + self.chip)
-            print("Current supported chipsets: 4339,43455c0,4358,4366c0")
-            exit(1)
+            # print("Invalid chip: " + chipType)
+            # print("Current supported chipsets: 4339,43455c0,4358,4366c0")
+            # exit(1)
+            return None
+
+        if chipType != "UNKNOWN":
+            self.chip = chipType
 
         csiData = data.reshape(-1, 2)
 
@@ -309,18 +234,17 @@ class NEXBeamformReader(Reader):
 
         #Manually adding timestamp to the payloadHeader.
         #TODO: Merge differently.
-
         pcap_frame.payloadHeader["timestamp"] = timestamp
 
         return NEXCSIFrame(pcap_frame.payloadHeader, csi)
 
-    def read_frames(self, frames, scaled, bandwidth):
+    def read_frames(self, frames: list, scaled: bool, bandwidth: int) -> list:
         #Split the file into individual frames.
         #Send payloads to read_bfee so they can be extracted.
         return [self.read_bfee(x, scaled, bandwidth) for x in frames]
 
     @staticmethod
-    def scale_csi_frame(csi, header):
+    def scale_csi_frame(csi: np.array, header: dict) -> np.array:
         #This is not a true SNR ratio as is the case for the Intel scaling.
         #We do not have agc or noise values so it's just about establishing a scale against RSSI.
 
@@ -330,10 +254,11 @@ class NEXBeamformReader(Reader):
         csi_sq = np.multiply(csi, np.conj(csi))
         csi_pwr = np.sum(csi_sq)
         csi_pwr = np.real(csi_pwr)
+        csi_pwr_mean = np.mean(csi_pwr)
         
         rssi_pwr = dbinv(rssi)
         
         #Scale CSI -> Signal power : rssi_pwr / (mean of csi_pwr)
-        scale = rssi_pwr / (csi_pwr / 256)
+        scale = rssi_pwr / csi_pwr_mean
 
         return csi * np.sqrt(scale)

@@ -2,20 +2,20 @@ import numpy as np
 import pandas as pd
 from scipy import signal
 
-def lowpass(csi_vec, cutoff, fs, order):
+def lowpass(csi_vec: np.array, cutoff: float, fs: float, order: int) -> np.array:
     nyq = 0.5*fs
     normal_cutoff = cutoff/nyq
     b, a = signal.butter(order, normal_cutoff, btype="low", analog=False)
     return signal.filtfilt(b, a, csi_vec)
 
-def bandpass(csi_vec, low_cut, high_cut, fs, order):
+def bandpass(csi_vec: np.array, low_cut: float, high_cut: float, fs: float, order: int) -> np.array:
     nyq = 0.5*fs
     b, a = signal.butter(order, [low_cut/nyq, high_cut/nyq], btype="band", analog=False)
     return signal.filtfilt(b, a, csi_vec)
 
 #Original implementation from whyrlpool.
 #Runs slightly slower than Pandas implementation.
-def hampel(csi, k=3, nsigma=3):
+def hampel(csi: np.array, k: int=3, nsigma: int=3) -> np.array:
     index = 0
     csi = csi.copy()
     for x in csi:
@@ -38,13 +38,13 @@ def hampel(csi, k=3, nsigma=3):
 
     return csi
 
-def running_mean(x, N):
+def running_mean(x: np.array, N: int) -> np.array:
     return pd.Series(x).rolling(window=N, min_periods=1, center=True).mean().to_numpy()
 
-def running_stdev(x, N):
+def running_stdev(x: np.array, N: int) -> np.array:
     return pd.Series(x).rolling(window=N, min_periods=1, center=True).std().to_numpy()
 
-def running_variance(x, N):
+def running_variance(x: np.array, N: int) -> np.array:
     return pd.Series(x).rolling(window=N, min_periods=1, center=True).var().to_numpy()
 
 # def mad(x, axis=None):
