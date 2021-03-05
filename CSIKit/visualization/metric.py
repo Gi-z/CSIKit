@@ -61,16 +61,39 @@ class TupleMetric:
     pass
 
 
+class RSSI(Metric):
+    def __init__(self):
+        super().__init__()
+    def notice(self, entry:CsiEntry):
+        return entry.rss
+    def get_name(self):
+        return "RSS"
+    def get_unit(self):
+        return "dBm"
+    @classmethod
+    def _get_total_rssi(cls, entry):
+        rssi_a = entry.rssi_a
+        rssi_b = entry.rssi_b
+        rssi_c = entry.rssi_c
+        rssi_mag = 0
+        if rssi_a != 0:
+            rssi_mag = rssi_mag + np.power(10.0, rssi_a/10)
 
-class RSS(Metric):
+        if rssi_b != 0:
+            rssi_mag = rssi_mag + np.power(10.0, rssi_b/10)
+
+        if rssi_c != 0:
+            rssi_mag = rssi_mag + np.power(10.0, rssi_c/10)
+        return rssi_mag
+class RSS(RSSI):
     def __init__(self):
         super().__init__()
     def notice(self, entry:CsiEntry):
         return self._get_total_rss(entry)
     def get_name(self):
-        return "RSS"
+        return "RSSI"
     def get_unit(self):
-        return "dBm"
+        return "dB"
     @classmethod
     def _to_dBm(cls, rssi, agc):
         return rssi - 44 - agc
@@ -82,16 +105,7 @@ class RSS(Metric):
         rssi_a = csiEntry.rssi_a
         rssi_b = csiEntry.rssi_b
         rssi_c = csiEntry.rssi_c
-        rssi_mag = 0
-        if rssi_a != 0:
-            rssi_mag = rssi_mag + np.power(10.0, rssi_a/10)
-
-        if rssi_b != 0:
-            rssi_mag = rssi_mag + np.power(10.0, rssi_b/10)
-
-        if rssi_c != 0:
-            rssi_mag = rssi_mag + np.power(10.0, rssi_c/10)
-
+        rssi_mag = RSS._get_total_rssi(csiEntry)
         rss = cls._to_dBm(10*np.log10(rssi_mag), agc)
         return rss
 
@@ -113,13 +127,13 @@ class Noise(Metric):
 
 class Datarate(Metric):
     def notice(self, entry:CsiEntry):
-        return self.get_datarate(entry)
+        return self._calc_datarate(entry)
     def get_name(self):
         return "Datarate"
     def get_unit(self):
         return "MBit"
     @classmethod
-    def get_datarate(cls, entry:CsiEntry):
+    def _calc_datarate(cls, entry:CsiEntry):
         """ calcs and sets self.daterate coded from self.rate. 
             coding is spezified herehttps://github.com/dhalperi/linux-80211n-csitool/blob/csitool-3.13/drivers/net/wireless/iwlwifi/dvm/commands.h#L245-L334
         """
