@@ -30,12 +30,12 @@ from CSIKit.csi import IWLCSIFrame as CsiEntry
 |                             |     |   +----------------------+
 |    +--------------------+   |     |
 |    | Noise              +---+     |   +----------------------+
-|    +--------------------+   |     +---+RSS_PerAntenna       |
+|    +--------------------+   |     +---+RSS_per_Antenna       |
+|    +--------------------+   |     |   +----------------------+
+|    | Datarate           +---+     |
+|    +--------------------+   |     |   +----------------------+
+|                             |     +---+RSSI_per_Antenna      |
 |    +--------------------+   |         +----------------------+
-|    | Datarate           +---+
-|    +--------------------+   |
-|                             |
-|    +--------------------+   |
 +----+ SNR                +---+
      +--------------------+   |
      +--------------------+   |
@@ -94,7 +94,14 @@ class RSSI(Metric):
         if rssi_c != 0:
             rssi_mag = rssi_mag + np.power(10.0, rssi_c/10)
         return rssi_mag
-class RSS(RSSI):
+class RSSI_per_Antenna(TupleMetric):
+    def notice(self, entry: CsiEntry):
+        return tuple([entry.rssi_a, entry.rssi_b, entry.rssi_c])
+    def get_name(self):
+        return "RSSI pro Antenne"
+    def get_unit(self):
+        return "dB"
+class RSS(Metric):
     def __init__(self):
         super().__init__()
     def notice(self, entry:CsiEntry):
@@ -114,10 +121,22 @@ class RSS(RSSI):
         rssi_a = csiEntry.rssi_a
         rssi_b = csiEntry.rssi_b
         rssi_c = csiEntry.rssi_c
-        rssi_mag = RSS._get_total_rssi(csiEntry)
+        rssi_mag = RSSI._get_total_rssi(csiEntry)
         rss = cls._to_dBm(10*np.log10(rssi_mag), agc)
         return rss
+class RSS_per_Antenna(TupleMetric):
 
+    def notice(self, entry: CsiEntry):
+        agc = entry.agc
+        return (
+                RSS._to_dBm(entry.rssi_a, agc),
+                RSS._to_dBm(entry.rssi_b, agc),
+                RSS._to_dBm(entry.rssi_c, agc)) 
+    def get_name(self):
+        return "RSS pro Antenne"
+    def get_unit(self):
+        return "dBm"
+    
 class AGC(Metric):
     def notice(self, entry:CsiEntry):
         return entry.agc
@@ -227,7 +246,7 @@ class Amplitude_Sum(Metric):
                 amplitude += sum([abs(comp) for comp in sub[rx]])
         amplitude = amplitude /(30*entry.n_rx) # average amplitude per subcarrier per antenna
         return amplitude
-class Phase_Diff(Metric):
+class _Phase_Diff(Metric):
     def notice(self, entry):
         diffs = self._calc_phasediff(entry)
         return diffs
@@ -248,12 +267,9 @@ class Phase_Diff(Metric):
                 last_phase = phase(sub_carrier[rx-1])
                 cur_phase = phase(sub_carrier[rx])
                 diff = last_phase-cur_phase
-                diffs[rx-1].append((diff+pi)%(pi/2))
-                #diffs[rx-1].append(((diff+pi)% (2*pi))-pi)
-                #modulo definition range of -pi -> pi
-                #diffs[rx-1].append(((diff+pi)% (2*pi))-pi)
+                diffs[rx-1].append((diff+pi)%(pi/2)) # pi/2 is for intel5300
         return(diffs)
-class Phase_Diff_Std_err(TupleMetric, Phase_Diff):
+class Phase_Diff_Std_err(TupleMetric, _Phase_Diff):
 
     def notice(self, entry):
         diffs = self._calc_phasediff(entry)
@@ -263,26 +279,8 @@ class Phase_Diff_Std_err(TupleMetric, Phase_Diff):
         return "Phase std err"
     def get_unit(self):
         return "dB"
-class RSSI_per_Antenna(TupleMetric):
-    def notice(self, entry: CsiEntry):
-        return tuple([entry.rssi_a, entry.rssi_b, entry.rssi_c])
-    def get_name(self):
-        return "RSSI pro Antenne"
-    def get_unit(self):
-        return "dB"
-class RSS_per_Antenna(TupleMetric):
 
-    def notice(self, entry: CsiEntry):
-        agc = entry.agc
-        return (
-                RSS._to_dBm(entry.rssi_a, agc),
-                RSS._to_dBm(entry.rssi_b, agc),
-                RSS._to_dBm(entry.rssi_c, agc)) 
-    def get_name(self):
-        return "RSS pro Antenne"
-    def get_unit(self):
-        return "dBm"
-    
+
 
 class Amplitude_per_Antenna(TupleMetric):
     def notice(self, entry: CsiEntry):
