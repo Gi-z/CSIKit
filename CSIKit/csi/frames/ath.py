@@ -1,9 +1,13 @@
 from CSIKit.csi import CSIFrame
 
+from collections import namedtuple
+
+import numpy as np
+
 class ATHCSIFrame(CSIFrame):
 
     __slots__ = ["timestamp", "csi_length", "tx_channel", "err_info", "noise_floor", "rate", "bandwidth", "num_tones", "nr", "nc", "rssi", "rssi_1", "rssi_2", "rssi_3", "payload_length", "csi_matrix"]
-    def __init__(self, header_data, csi_matrix):
+    def __init__(self, header_data: namedtuple, csi_matrix: np.array):
         self.timestamp = header_data.timestamp
         self.csi_length = header_data.csi_length
         self.tx_channel = header_data.tx_channel

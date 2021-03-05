@@ -10,7 +10,7 @@ DEFAULT_PATH = "./data/intel/misc/log.all_csi.6.7.6.dat"
 
 class BatchGraph:
 
-    def __init__(self, path=DEFAULT_PATH):
+    def __init__(self, path: str=DEFAULT_PATH):
         reader = get_reader(path)
         self.csi_data = reader.read_file(path)
 

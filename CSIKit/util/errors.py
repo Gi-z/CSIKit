@@ -1,6 +1,6 @@
 import os
 
-def print_length_error(length, data_length, i, filename):
+def print_length_error(length: int, data_length: int, i: int, filename: str):
     """
         Prints an error to highlight a difference between the frame's stated data size and the actual size.
         This usually stems from early file termination.
@@ -15,5 +15,3 @@ def print_length_error(length, data_length, i, filename):
     if data_length < length:
         print("\tLast packet was likely cut off by an improper termination.")
         print("\tWhen killing log_to_file, use SIGTERM and ensure writes have been flushed, and files closed.")
-
-    return None

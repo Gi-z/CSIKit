@@ -1,9 +1,11 @@
 from CSIKit.csi import CSIFrame
 
+import numpy as np
+
 class NEXCSIFrame(CSIFrame):
 
     __slots__ = ["timestamp", "rssi", "frame_control", "source_mac", "sequence_no", "core", "spatial_stream", "channel_spec", "chip", "csi_matrix"]
-    def __init__(self, header_block, csi_matrix):
+    def __init__(self, header_block: dict, csi_matrix: np.array):
         self.timestamp = header_block["timestamp"]
         self.rssi = header_block["rssi"]
         self.frame_control = header_block["frame_control"]

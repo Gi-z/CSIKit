@@ -3,7 +3,7 @@ import numpy as np
 from CSIKit.util.csitools import get_CSI
 from CSIKit.reader import get_reader
 
-def generate_npz(path, dest):
+def generate_npz(path: str, dest: str):
     reader = get_reader(path)
     csi_data = reader.read_file(path)
 

@@ -1,10 +1,4 @@
-from CSIKit.tools.convert_npz import generate_npz
 import argparse
-
-from CSIKit.tools.batch_graph import BatchGraph
-from CSIKit.tools.convert_csv import generate_csv
-from CSIKit.tools.convert_json import generate_json
-from CSIKit.tools.get_info import display_info
 # from CSIKit.tools.run_test import run_iwl_test, run_nex_test
 
 def main():
@@ -33,6 +27,8 @@ def main():
     args = parser.parse_args()
 
     if args.graph:
+        from CSIKit.tools.batch_graph import BatchGraph
+
         bg = BatchGraph(args.file)
         if args.graph_type == "heatmap":
             bg.heatmap()
@@ -43,12 +39,18 @@ def main():
         else:
             print("Graph type '{}' not supported.".format(args.graph_type))
     elif args.csv:
+        from CSIKit.tools.convert_csv import generate_csv
+
         generate_csv(args.file, args.csv_dest)
     elif args.json:
+        from CSIKit.tools.convert_json import generate_json
+
         json_str = generate_json(args.file)
         with open(args.json_dest, "w+") as file:
             file.write(json_str)
     elif args.npz:
+        from CSIKit.tools.convert_npz import generate_npz
+        
         generate_npz(args.file, args.npz_dest)
     # elif args.test:
     #     if args.test_type:
@@ -59,6 +61,8 @@ def main():
     #     else:
     #         run_iwl_test(args.test_dir)
     elif args.info:
+        from CSIKit.tools.get_info import display_info
+
         display_info(args.file)
     
 

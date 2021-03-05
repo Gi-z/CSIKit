@@ -1,8 +1,10 @@
+from CSIKit.csi import CSIFrame
+from CSIKit.csi import CSIMetadata
 from CSIKit.util.csitools import get_CSI
 
 class CSIData:
 
-    def __init__(self, filename="", chipset=""):
+    def __init__(self, filename: str="", chipset: str=""):
         
         self.frames = []
         self.timestamps = []
@@ -15,13 +17,13 @@ class CSIData:
         self.filename = filename
         self.chipset = chipset
 
-    def set_chipset(self, chipset):
+    def set_chipset(self, chipset: str):
         self.chipset = chipset
 
-    def push_frame(self, frame):
+    def push_frame(self, frame: CSIFrame):
         self.frames.append(frame)
 
-    def get_metadata(self):
+    def get_metadata(self) -> CSIMetadata:
         chipset = self.chipset
 
         bandwidth = self.bandwidth
@@ -69,16 +71,3 @@ class CSIData:
         }    
 
         return CSIMetadata(data)
-
-class CSIMetadata:
-
-    __slots__ = ["chipset", "bandwidth", "antenna_config", "frames", "subcarriers", "time_length", "average_sample_rate", "csi_shape"]
-    def __init__(self, data):
-        self.chipset = data["chipset"]
-        self.bandwidth = data["bandwidth"]
-        self.antenna_config = data["antenna_config"]
-        self.frames = data["frames"]
-        self.subcarriers = data["subcarriers"]
-        self.time_length = data["time_length"]
-        self.average_sample_rate = data["average_sample_rate"]
-        self.csi_shape = data["csi_shape"]

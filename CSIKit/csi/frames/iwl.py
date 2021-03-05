@@ -1,9 +1,11 @@
 from CSIKit.csi import CSIFrame
 
+import numpy as np
+
 class IWLCSIFrame(CSIFrame):
 
     __slots__ = ["timestamp_low", "bfee_count", "n_rx", "n_tx", "rssi_a", "rssi_b", "rssi_c", "noise", "agc", "antenna_sel", "length", "rate", "csi_matrix"]
-    def __init__(self, header_block, csi_matrix):
+    def __init__(self, header_block: list, csi_matrix: np.array):
         self.timestamp_low = header_block[0]
         self.bfee_count = header_block[1]
         self.n_rx = header_block[3]
