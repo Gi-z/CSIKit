@@ -1,9 +1,7 @@
-
-from cmath import phase
 import numpy as np
 import statistics
-from typing import Dict, List, Tuple
-from scipy.constants import c, pi
+
+from scipy.constants import pi
 
 from CSIKit.csi import IWLCSIFrame as CsiEntry
 
@@ -44,8 +42,8 @@ from CSIKit.csi import IWLCSIFrame as CsiEntry
 
 """
 
-
 class Metric:
+
     def get_name(self):
         """
         Abstract Funktion to retrun the name 
@@ -57,17 +55,20 @@ class Metric:
         Abstract Funktion to retrun the unit
         """
         raise Exception("not implemented function get_unit")
+
     def notice(self, entry:CsiEntry):
         """
         Abstract Funktion to notice a value by entry
         @entry : CsiEntry
         """
         raise Exception("not implemented function notice")
+
 class TupleMetric:
     """
     notice should return a tuple
     """
     pass
+
 class MatrixMetric(Metric):
     """
     fits to the colormap tpe. should return Matrix
@@ -75,14 +76,19 @@ class MatrixMetric(Metric):
     pass
 
 class RSSI(Metric):
+
     def __init__(self):
         super().__init__()
+
     def notice(self, entry:CsiEntry):
         return self._get_total_rssi(entry)
+
     def get_name(self):
         return "RSS"
+
     def get_unit(self):
         return "dBm"
+
     @classmethod
     def _get_total_rssi(cls, entry):
         rssi_a = entry.rssi_a
@@ -97,26 +103,36 @@ class RSSI(Metric):
 
         if rssi_c != 0:
             rssi_mag = rssi_mag + np.power(10.0, rssi_c/10)
+
         return rssi_mag
+
 class RSSI_per_Antenna(TupleMetric):
+
     def notice(self, entry: CsiEntry):
         return tuple([entry.rssi_a, entry.rssi_b, entry.rssi_c])
+
     def get_name(self):
         return "RSSI pro Antenne"
+
     def get_unit(self):
         return "dB"
+
 class RSS(Metric):
     def __init__(self):
         super().__init__()
+
     def notice(self, entry:CsiEntry):
         return self._get_total_rss(entry)
     def get_name(self):
         return "RSSI"
+
     def get_unit(self):
         return "dB"
+
     @classmethod
     def _to_dBm(cls, rssi, agc):
         return rssi - 44 - agc
+
     @classmethod
     def _get_total_rss(cls, csiEntry: CsiEntry):
         # Calculates the Received Signal Strength (RSS) in dBm from
@@ -128,6 +144,7 @@ class RSS(Metric):
         rssi_mag = RSSI._get_total_rssi(csiEntry)
         rss = cls._to_dBm(10*np.log10(rssi_mag), agc)
         return rss
+
 class RSS_per_Antenna(TupleMetric):
 
     def notice(self, entry: CsiEntry):
@@ -136,34 +153,46 @@ class RSS_per_Antenna(TupleMetric):
                 RSS._to_dBm(entry.rssi_a, agc),
                 RSS._to_dBm(entry.rssi_b, agc),
                 RSS._to_dBm(entry.rssi_c, agc)) 
+
     def get_name(self):
         return "RSS pro Antenne"
+
     def get_unit(self):
         return "dBm"
     
 class AGC(Metric):
+
     def notice(self, entry:CsiEntry):
         return entry.agc
+
     def get_name(self):
         return "AGC"
+
     def get_unit(self):
         return "dB"
 
 class Noise(Metric):
+
     def notice(self, entry:CsiEntry):
         return entry.noise
+
     def get_name(self):
         return "Noise"
+
     def get_unit(self):
         return "dBm"
 
 class Datarate(Metric):
+
     def notice(self, entry:CsiEntry):
         return self._calc_datarate(entry)
+
     def get_name(self):
         return "Datarate"
+
     def get_unit(self):
         return "MBit"
+
     @classmethod
     def _calc_datarate(cls, entry:CsiEntry):
         """ calcs and sets self.daterate coded from self.rate. 
@@ -227,18 +256,24 @@ class Datarate(Metric):
 class SNR(RSS,Metric):
     def notice(self, entry:CsiEntry):
         return self._get_total_rss(entry) - entry.noise
+
     def get_name(self):
         return "SNR"
+
     def get_unit(self):
         return "dB"
 
 class Amplitude_Sum(Metric):
+
     def notice(self, entry: CsiEntry):
         return self.__calc_amplitude(entry)
+
     def get_name(self):
         return "Amplitude"
+
     def get_unit(self):
         return "dB"
+
     @classmethod
     def __calc_amplitude(cls, entry: CsiEntry):
         if entry.n_tx < 1:
@@ -250,10 +285,13 @@ class Amplitude_Sum(Metric):
                 amplitude += sum([abs(comp) for comp in sub[rx]])
         amplitude = amplitude /(30*entry.n_rx) # average amplitude per subcarrier per antenna
         return amplitude
+
 class _Phase_Diff(Metric):
+
     def notice(self, entry):
         diffs = self._calc_phasediff(entry)
         return diffs
+
     @classmethod
     def _calc_phasediff(cls, entry: CsiEntry):
         """ Calculates the phasediffs A->B, B->C
@@ -266,25 +304,26 @@ class _Phase_Diff(Metric):
         for sub_carrier in entry.csi_matrix:
 
             for rx in range(entry.n_rx):
-                if rx is 0: # skip first antenna to not compare A->A
+                if rx == 0: # skip first antenna to not compare A->A
                     continue
-                last_phase = phase(sub_carrier[rx-1])
-                cur_phase = phase(sub_carrier[rx])
+                last_phase = np.angle(sub_carrier[rx-1])
+                cur_phase = np.angle(sub_carrier[rx])
                 diff = last_phase-cur_phase
                 diffs[rx-1].append((diff+pi)%(pi/2)) # pi/2 is for intel5300
         return(diffs)
+
 class Phase_Diff_Std_err(TupleMetric, _Phase_Diff):
 
     def notice(self, entry):
         diffs = self._calc_phasediff(entry)
         std_errs =[statistics.stdev(diff) for diff in diffs]
         return tuple(std_errs)
+
     def get_name(self):
         return "Phase std err"
+
     def get_unit(self):
         return "dB"
-
-
 
 class Amplitude_per_Antenna(TupleMetric):
     def notice(self, entry: CsiEntry):
@@ -298,17 +337,21 @@ class Amplitude_per_Antenna(TupleMetric):
 
     def get_name(self):
         return "Amplitude pro Antenne"
+
     def get_unit(self):
         return "dB"
 
-
 class CSI_Matrix_Amplitude(MatrixMetric):
+
     def notice(self, entry:CsiEntry):
         return self._extract_amplitude(entry)
+
     def get_name(self):
         return "Amplitude"
+
     def get_unit(self):
         return "dBm"
+
     @classmethod
     def _extract_amplitude(cls, entry):
         amplitudes = []
@@ -326,11 +369,14 @@ class CSI_Matrix_Phase_Diff_1_2(MatrixMetric):
     """
     def notice(self, entry:CsiEntry):
         return self._extract_phase(entry)
+
     def get_name(self):
         return "Phase"
+
     def get_unit(self):
         return "radians"
+
     @classmethod
     def _extract_phase(cls, entry):
-        modo = lambda com1,com2: ((phase(com1)-phase(com2)))%(pi/2)
+        modo = lambda com1,com2: ((np.angle(com1)-np.angle(com2)))%(pi/2)
         return [(modo(sub[0],sub[1])) for sub in entry.csi_matrix]

@@ -1,21 +1,18 @@
 import math
 from math import pi
 import statistics
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-
 
 from CSIKit.visualization.metric import Metric
 from matplotlib.colors import BoundaryNorm, LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 
-
-
-
 class Graph:
-    def __init__(self, metric:Metric):
+
+    def __init__(self, metric: Metric):
         self.metric = metric
         self._axes = []
         super().__init__()
@@ -31,7 +28,7 @@ class Graph:
             raise Exception("return value is not list")
         return self._axes
         
-    def _plot_axes(self,values_per_measurement):
+    def _plot_axes(self, values_per_measurement):
         """
         Abstract function.
         This function has to fill self.axes
@@ -82,8 +79,7 @@ class PlotBox(Graph):
             axes.set_ylim(top=0)
 
         axes.set_ylabel(f"{self.metric.get_name()}[{self.metric.get_unit()}]")
-        axes.set_xlabel('measurement')
-
+        axes.set_xlabel('Measurement')
 
 class PlotCandle(Graph):
     def __init__(self, metric):
@@ -118,7 +114,7 @@ class PlotCandle(Graph):
             0.99: 2.576
         }
         if not interval in INTERVALS:
-            raise Exception(f"invalid intervall {interval}")
+            raise Exception(f"Invalid interval {interval}")
 
         confidenz_errors = {}
         for name in variance:
@@ -148,7 +144,7 @@ class PlotCandle(Graph):
             axes.set_xticklabels(
                 tuple(values_per_measurement.keys()), rotation=45, ha="right")
         axes.set_ylabel(f"{self.metric.get_name()}[{self.metric.get_unit()}]")
-        axes.set_xlabel('measurement')
+        axes.set_xlabel('Measurement')
 
 
     @classmethod
@@ -224,7 +220,8 @@ class PlotCandleTuple(TupleGraph, PlotCandle):
             axes.set_xticklabels(
                 tuple(values_per_measurement.keys()), rotation=45, ha="right")
         axes.set_ylabel(f"{self.metric.get_name()}[{self.metric.get_unit()}]")
-        axes.set_xlabel('measurement')
+        axes.set_xlabel('Measurement')
+        
     @classmethod
     def _get_measurement_by_tuple_index(cls, values_per_measurement, tuple_index):
         """
@@ -248,12 +245,14 @@ class PlotCandleTuple_Phase(PlotCandleTuple):
 
 
 class PlotColorMap(Graph):
+
     def __init__(self, metric):
         super().__init__(metric)
         self.vmin=None
         self.vmax=None
         self.cmap = plt.cm.plasma
         self.color_legend = True
+
     def _plot_axes(self,  values_per_measurement):
 
         for measur_name in values_per_measurement:
@@ -274,8 +273,8 @@ class PlotColorMap(Graph):
     
 
 class PlotColorMap_Phase(PlotColorMap):
-    def __init__(self, metric):
 
+    def __init__(self, metric):
         super().__init__(metric)
         colors = ["#008000", "white", "#008000"]
         cmap_custom = LinearSegmentedColormap.from_list("mycmap", colors)
@@ -286,6 +285,7 @@ class PlotColorMap_Phase(PlotColorMap):
         self.color_legend = True
 
 class PlotColorMap_Amplitude(PlotColorMap):
+
     def __init__(self, metric):
         super().__init__(metric)
         self.vmax = 150
@@ -294,6 +294,7 @@ class PlotColorMap_Amplitude(PlotColorMap):
         self.color_legend = True
 
 class PlotPhaseDiff(Graph):
+    
     def _plot_axes(self,  values_per_measurement):
 
         COLORS = ['red', '#008000', 'blue']
