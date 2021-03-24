@@ -57,7 +57,7 @@ class ATHBeamformReader(Reader):
             for nc_idx in range(nc):
                 for nr_idx in range(nr):
                     if ((bits_left - BITS_PER_SYMBOL) < 0):
-                        current_data, idx, bits_left = ATHBeamformReader.get_next_bits(csi_buf, current_data, idx, bits_left)
+                        current_data, idx, bits_left = byteops.get_next_bits(csi_buf, current_data, idx, bits_left)
                     
                     imag = current_data & bitmask
                     imag = byteops.signbit_convert(imag, BITS_PER_SYMBOL)
@@ -67,7 +67,7 @@ class ATHBeamformReader(Reader):
                     current_data = current_data >> BITS_PER_SYMBOL
 
                     if ((bits_left - BITS_PER_SYMBOL) < 0):
-                        current_data, idx, bits_left = ATHBeamformReader.get_next_bits(csi_buf, current_data, idx, bits_left)
+                        current_data, idx, bits_left = byteops.get_next_bits(csi_buf, current_data, idx, bits_left)
 
                     real = current_data & bitmask
                     real = byteops.signbit_convert(real, BITS_PER_SYMBOL)
