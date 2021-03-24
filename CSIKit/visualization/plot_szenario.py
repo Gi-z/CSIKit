@@ -8,13 +8,11 @@ import os
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-import numpy as np
 
 from CSIKit.csi import IWLCSIFrame as CsiEntry
 from CSIKit.visualization.graph import Graph, TupleGraph, PlotColorMap
 from CSIKit.visualization.metric import Metric, TupleMetric, MatrixMetric
 from CSIKit.reader.readers.read_bfee import IWLBeamformReader
-
 
 class PlotableCSI():
     """
@@ -57,6 +55,7 @@ class PlotableCSI():
             raise Exception(
                 "No measurement started yet. call self.add_measurement")
         self._curr_measurement.append(self.metric.notice(entry))
+
     def _plot(self):
         self._figure = plt.figure()
         axes_list = self.graph.plot( self._values_per_measurement)
@@ -75,8 +74,6 @@ class PlotableCSI():
         path = f"./{folder}/{prefix}{file_name}.pdf".replace(" ","")
         with PdfPages(path) as pdf:
             pdf.savefig(self._figure, bbox_inches='tight')
-        
-
 
 class SzenarioPlotter():
     """
@@ -143,14 +140,14 @@ class SzenarioPlotter():
         my_reader = IWLBeamformReader()
         csi_data = my_reader.read_file(path)
 
-        # maybe you have to filter your entrys if not all rx are used
-        csi_entrys = []
+        # maybe you have to filter your entries if not all rx are used
+        csi_entries = []
         if filter_n_rx:
-            csi_entrys = [
+            csi_entries = [
                 frame for frame in csi_data.frames if frame.n_rx == 3]
         else:
-            csi_entrys = csi_data.frames
-        return csi_entrys
+            csi_entries = csi_data.frames
+        return csi_entries
 
     def add_measurement_file(self, name, path: str):
         """
@@ -180,9 +177,6 @@ class SzenarioPlotter():
         self._is_szenario_vaild()
         {plotable.show() for  plotable in self.__plot_implementations}
 
-
-
-
     def save(self,folder="./images"):
         """
         saves pdf of the plot at this szenarios
@@ -190,6 +184,7 @@ class SzenarioPlotter():
         """
         self._is_szenario_vaild()
         {plotable.save(folder, prefix=self.szenario_name) for  plotable in self.__plot_implementations}
+
     def _is_szenario_vaild(self):
         """
         plots into a matplotlib axes

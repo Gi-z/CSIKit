@@ -1,10 +1,8 @@
 import math
-from math import pi
-import statistics
-from typing import Dict, Tuple
-
 import matplotlib.pyplot as plt
 import numpy as np
+
+from typing import Dict, Tuple
 
 from CSIKit.visualization.metric import Metric
 from matplotlib.colors import BoundaryNorm, LinearSegmentedColormap
@@ -46,7 +44,6 @@ class Graph:
 
 class TupleGraph:
     pass
-
 
 class PlotBox(Graph):
  
@@ -100,7 +97,7 @@ class PlotCandle(Graph):
         val_per_meas = values_per_measurement.copy()
         std_errs = {}
         for name in val_per_meas:
-            std_errs[name] = statistics.stdev(val_per_meas[name])
+            std_errs[name] = np.std(val_per_meas[name])
 
         return std_errs
 
@@ -146,7 +143,6 @@ class PlotCandle(Graph):
         axes.set_ylabel(f"{self.metric.get_name()}[{self.metric.get_unit()}]")
         axes.set_xlabel('Measurement')
 
-
     @classmethod
     def _plot_candle(cls, axes, values_per_measurement, width=4, color="#008000", x_offset=0, plot_wick=True):
         averages = cls._calc_average(values_per_measurement)
@@ -180,7 +176,6 @@ class PlotCandle(Graph):
             else:
                 axes.bar(ind, averages.values(), width=width,
                          error_kw=dict(linewidth=wick_width), color=color)
-
 
 class PlotCandleTuple(TupleGraph, PlotCandle):
     """
@@ -236,13 +231,11 @@ class PlotCandleTuple(TupleGraph, PlotCandle):
 
         return result
 
-
 class PlotCandleTuple_Phase(PlotCandleTuple):
 
     def _plot_axes(self,  values_per_measurement, plot_wick=False):  # set wick false
         super()._plot_axes( values_per_measurement, plot_wick=plot_wick)
-        {ax._axes.set_ylim((0, pi)) for ax in self._axes}
-
+        {ax._axes.set_ylim((0, np.pi)) for ax in self._axes}
 
 class PlotColorMap(Graph):
 
@@ -270,7 +263,6 @@ class PlotColorMap(Graph):
             axes.set_xlabel(f"subcarrier")
             axes.set_ylabel('measurement')
             plt.show()
-    
 
 class PlotColorMap_Phase(PlotColorMap):
 
@@ -280,7 +272,7 @@ class PlotColorMap_Phase(PlotColorMap):
         cmap_custom = LinearSegmentedColormap.from_list("mycmap", colors)
         
         self.cmap = cmap_custom
-        self.vmax = pi/2
+        self.vmax = np.pi/2
         self.vmin = 0
         self.color_legend = True
 
@@ -309,5 +301,5 @@ class PlotPhaseDiff(Graph):
             #axes.title('Phase diff', fontsize=16)
             axes.set_xlabel('Subcarrier index')
             axes.set_ylabel('phase')
-            axes.set_ylim(0,2*pi)
+            axes.set_ylim(0,2*np.pi)
             plt.show()

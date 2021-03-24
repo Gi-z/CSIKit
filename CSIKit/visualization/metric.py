@@ -1,7 +1,4 @@
 import numpy as np
-import statistics
-
-from scipy.constants import pi
 
 from CSIKit.csi import IWLCSIFrame as CsiEntry
 
@@ -254,6 +251,7 @@ class Datarate(Metric):
 
 
 class SNR(RSS,Metric):
+
     def notice(self, entry:CsiEntry):
         return self._get_total_rss(entry) - entry.noise
 
@@ -309,14 +307,15 @@ class _Phase_Diff(Metric):
                 last_phase = np.angle(sub_carrier[rx-1])
                 cur_phase = np.angle(sub_carrier[rx])
                 diff = last_phase-cur_phase
-                diffs[rx-1].append((diff+pi)%(pi/2)) # pi/2 is for intel5300
-        return(diffs)
+                diffs[rx-1].append((diff+np.pi)%(np.pi/2)) # pi/2 is for intel5300
+
+        return diffs
 
 class Phase_Diff_Std_err(TupleMetric, _Phase_Diff):
 
     def notice(self, entry):
         diffs = self._calc_phasediff(entry)
-        std_errs =[statistics.stdev(diff) for diff in diffs]
+        std_errs = [np.std(diff) for diff in diffs]
         return tuple(std_errs)
 
     def get_name(self):
@@ -378,5 +377,5 @@ class CSI_Matrix_Phase_Diff_1_2(MatrixMetric):
 
     @classmethod
     def _extract_phase(cls, entry):
-        modo = lambda com1,com2: ((np.angle(com1)-np.angle(com2)))%(pi/2)
+        modo = lambda com1,com2: ((np.angle(com1)-np.angle(com2)))%(np.pi/2)
         return [(modo(sub[0],sub[1])) for sub in entry.csi_matrix]
