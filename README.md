@@ -2,7 +2,7 @@
 
 Tools for extracting Channel State Information from formats produced by a range of WiFi hardware/drivers, written in Python with numpy.
 
-Python 3.5+ required.
+Python 3.6+ required.
 
 - **CSI parsing** from Atheros, Intel and Broadcom (nexmon) formats.
 - **Processing** and **Visualisation** using numpy and matplotlib.
