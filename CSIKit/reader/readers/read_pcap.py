@@ -23,9 +23,13 @@ class PcapFrame:
 
     CHIPS = {
         "": "4339",
+        
         "6500": "43455c0",
+        
         "adde": "4358",
-        "34e8": "4366c0"
+
+        "34e8": "4366c0",
+        "6a00": "4366c0"
     }
 
     def __init__(self, data: bytes, offset: int):
