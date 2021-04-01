@@ -4,8 +4,10 @@ from typing import Tuple
 
 import numpy as np
 
-def get_CSI(csi_data: 'CSIData', metric: str="amplitude", antenna_stream: int=None) -> Tuple[np.array, int, int]:
+def get_CSI(csi_data: 'CSIData', metric: str="amplitude", antenna_stream: int=None, db: bool=True) -> Tuple[np.array, int, int]:
     
+    #TODO: Clean this up.
+
     frames = csi_data.frames
 
     csi_shape = frames[0].csi_matrix.shape
@@ -24,9 +26,15 @@ def get_CSI(csi_data: 'CSIData', metric: str="amplitude", antenna_stream: int=No
         for y in range(no_subcarriers):
             if metric == "amplitude":
                 if antenna_stream is not None:
-                    csi[y][x] = db(abs(entry[y][antenna_stream][antenna_stream]))
+                    if db:
+                        csi[y][x] = db(abs(entry[y][antenna_stream][antenna_stream]))
+                    else:
+                        csi[y][x] = abs(entry[y][antenna_stream][antenna_stream])
                 else:
-                    csi[y][x] = db(abs(entry[y]))
+                    if db:
+                        csi[y][x] = db(abs(entry[y]))
+                    else:
+                        csi[y][x] = abs(entry[y])
             elif metric == "phasediff":
                 if entry.shape[1] >= 2:
                     #Not 100% sure this generates correct Phase Difference.
