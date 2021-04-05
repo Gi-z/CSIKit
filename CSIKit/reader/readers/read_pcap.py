@@ -22,14 +22,14 @@ class PcapFrame:
     ])
 
     CHIPS = {
-        "": "4339",
+        "": "4339", #Cannot find an up to date version of this format.
         
-        "6500": "43455c0",
+        "6500": "43455c0", 
         
         "adde": "4358",
 
-        "34e8": "4366c0",
-        "6a00": "4366c0"
+        "34e8": "4366c0", #Seen in data/nexmon/example_4366c0
+        "6a00": "4366c0" #Seen on both the RT-AC86U and GT-AC5300
     }
 
     def __init__(self, data: bytes, offset: int):
