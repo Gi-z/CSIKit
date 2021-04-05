@@ -4,13 +4,14 @@ from typing import Tuple
 
 import numpy as np
 
-def get_CSI(csi_data: 'CSIData', metric: str="amplitude", antenna_stream: int=None, db: bool=True) -> Tuple[np.array, int, int]:
+def get_CSI(csi_data: 'CSIData', metric: str="amplitude", antenna_stream: int=None, extract_as_dBm: bool=True) -> Tuple[np.array, int, int]:
     
     #TODO: Clean this up.
 
     frames = csi_data.frames
 
     csi_shape = frames[0].csi_matrix.shape
+    print("CSI Shape: " + str(csi_shape))
 
     no_frames = len(frames)
     no_subcarriers = csi_shape[0]
@@ -26,12 +27,12 @@ def get_CSI(csi_data: 'CSIData', metric: str="amplitude", antenna_stream: int=No
         for y in range(no_subcarriers):
             if metric == "amplitude":
                 if antenna_stream is not None:
-                    if db:
+                    if extract_as_dBm:
                         csi[y][x] = db(abs(entry[y][antenna_stream][antenna_stream]))
                     else:
                         csi[y][x] = abs(entry[y][antenna_stream][antenna_stream])
                 else:
-                    if db:
+                    if extract_as_dBm:
                         csi[y][x] = db(abs(entry[y]))
                     else:
                         csi[y][x] = abs(entry[y])
