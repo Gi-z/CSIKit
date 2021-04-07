@@ -225,14 +225,8 @@ class NEXBeamformReader(Reader):
             self.chip = chipType
 
         csiData = data.reshape(-1, 2)
-
-        csi = np.zeros((csiData.shape[0],), dtype=np.complex)
-
-        i = 0
-        for x in csiData:
-            csi[i] = np.complex(x[0], x[1])
-            i += 1
-
+        csi = csiData.astype(np.float32).view(np.complex64)
+        
         if scaled:
             csi = NEXBeamformReader.scale_csi_frame(csi, pcap_frame.payloadHeader)
 

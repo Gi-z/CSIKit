@@ -60,6 +60,13 @@ class BatchGraph:
 
         csi_trace = self.csi_data.frames
         finalEntry, no_frames, no_subcarriers = get_CSI(self.csi_data)
+        if len(finalEntry.shape) == 4:
+            #>1 antenna stream.
+            #Loading the first for ease.
+            finalEntry = finalEntry[:,:,0,0]
+
+        #Transpose to get subcarriers * amplitude.
+        finalEntry = np.transpose(finalEntry)
 
         x_label = "Time (s)"
         try:
