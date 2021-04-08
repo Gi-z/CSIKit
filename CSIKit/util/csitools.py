@@ -3,6 +3,7 @@ from CSIKit.util.matlab import db
 from typing import Tuple
 
 import numpy as np
+import itertools
 
 # This function takes CSIData and returns the assembled CSI matrix from all frames, 
 # as well as the number of frames and subcarrier contained therein.
@@ -15,7 +16,7 @@ import numpy as np
 # 3. Iterate through each frame and extract CSI for each subcarrier at each antenna stream.
 # 4. Return complete CSI matrix, number of frames and number of subcarriers.
 
-def get_CSI(csi_data: 'CSIData', metric: str="amplitude", extract_as_dBm: bool=True) -> Tuple[np.array, int, int]:
+def get_CSI(csi_data: 'CSIData', metric: str="amplitude", extract_as_dBm: bool=True, squeeze_output: bool=False) -> Tuple[np.array, int, int]:
 
     #TODO: Add proper error handling.
 
@@ -42,16 +43,14 @@ def get_CSI(csi_data: 'CSIData', metric: str="amplitude", extract_as_dBm: bool=T
 
     csi = np.zeros((no_frames, no_subcarriers, no_rx_antennas, no_tx_antennas), dtype=np.complex)
 
-    for frame in range(no_frames):
+    ranges = itertools.product(*[range(n) for n in [no_frames, no_subcarriers, no_rx_antennas, no_tx_antennas]])
+    is_single_antenna = no_rx_antennas == 1 and no_tx_antennas == 1
+
+    for frame, subcarrier, rx_antenna_index, tx_antenna_index in ranges:
         frame_data = frames[frame].csi_matrix
-        for subcarrier in range(no_subcarriers):
-            subcarrier_data = frame_data[subcarrier]
-            for rx_antenna in range(no_rx_antennas):
-                for tx_antenna in range(no_tx_antennas):
-                    if no_rx_antennas == 1 and no_tx_antennas == 1:
-                        csi[frame][subcarrier] = subcarrier_data
-                    else:
-                        csi[frame][subcarrier] = subcarrier_data[rx_antenna][tx_antenna]
+        subcarrier_data = frame_data[subcarrier]
+
+        csi[frame][subcarrier] = subcarrier_data if is_single_antenna else subcarrier_data[rx_antenna_index][tx_antenna_index]
 
     if metric == "amplitude":
         csi = abs(csi)
@@ -60,8 +59,8 @@ def get_CSI(csi_data: 'CSIData', metric: str="amplitude", extract_as_dBm: bool=T
     elif metric == "phase":
         csi = np.angle(csi)
 
-    # if squeeze_output:
-    #     csi = np.squeeze(csi)
+    if squeeze_output:
+        csi = np.squeeze(csi)
 
     return (csi, no_frames, no_subcarriers)
 

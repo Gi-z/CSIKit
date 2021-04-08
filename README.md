@@ -131,7 +131,7 @@ from CSIKit.util import csitools
 
 my_reader = get_reader("path/to/file.pcap")
 csi_data = my_reader.read_file("path/to/file.pcap", scaled=True)
-csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="amplitude")
+csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="amplitude", squeeze_output=True)
 csi_matrix_trans = np.transpose(csi_matrix)
 
 #This example assumes CSI data is sampled at ~100Hz.
