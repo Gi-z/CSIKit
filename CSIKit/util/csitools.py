@@ -60,6 +60,9 @@ def get_CSI(csi_data: 'CSIData', metric: str="amplitude", extract_as_dBm: bool=T
     elif metric == "phase":
         csi = np.angle(csi)
 
+    # if squeeze_output:
+    #     csi = np.squeeze(csi)
+
     return (csi, no_frames, no_subcarriers)
 
 # def get_CSI(csi_data: 'CSIData', metric: str="amplitude", antenna_stream: int=None, extract_as_dBm: bool=True) -> Tuple[np.array, int, int]:
