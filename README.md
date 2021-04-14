@@ -233,4 +233,28 @@ Further to that, if there are any assertions I have made within code comments or
 
 ## License
 
-The code in this project is licensed under MIT license.
+The code in this project is licensed under MIT license. If you are using this codebase for any research or other projects, I would greatly appreciate if you could cite this repository or one of my papers.
+
+a) "G. Forbes. CSIKit: Python CSI processing and visualisation tools for commercial off-the-shelf hardware. (2021). https://github.com/Gi-z/CSIKit."
+
+b) "Forbes, G., Massie, S. and Craw, S., 2020, November. 
+      WiFi-based Human Activity Recognition using Raspberry Pi. 
+      In 2020 IEEE 32nd International Conference on Tools with Artificial Intelligence (ICTAI) (pp. 722-730). IEEE."
+
+  ```
+  @electronic{csikit:gforbes,
+      author = {Forbes, Glenn},
+      title = {CSIKit: Python CSI processing and visualisation tools for commercial off-the-shelf hardware.},
+      url = {https://github.com/Gi-z/CSIKit},
+      year = {2021}
+  }
+
+  @inproceedings{forbes2020wifi,
+    title={WiFi-based Human Activity Recognition using Raspberry Pi},
+    author={Forbes, Glenn and Massie, Stewart and Craw, Susan},
+    booktitle={2020 IEEE 32nd International Conference on Tools with Artificial Intelligence (ICTAI)},
+    pages={722--730},
+    year={2020},
+    organization={IEEE}
+  }
+  ```
