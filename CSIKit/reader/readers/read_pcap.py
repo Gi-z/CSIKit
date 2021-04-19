@@ -125,33 +125,51 @@ class Pcap:
         self.frames = []
         self.skipped_frames = 0
         self.bandwidth = 0
+        self.expected_size = None
 
         offset = self.PCAP_HEADER_DTYPE.itemsize
         while offset < len(self.data):
-            nextFrame = PcapFrame(self.data, offset)
-            offset = nextFrame.offset
+            next_frame = PcapFrame(self.data, offset)
+            offset = next_frame.offset
 
-            givenSize = nextFrame.header["orig_len"][0]-(self.HOFFSET-1)*4
+            given_size = next_frame.header["orig_len"][0]-(self.HOFFSET-1)*4
 
-            if givenSize not in self.BW_SIZES:
-                # print("Skipped frame with incorrect size.")
+            # Checking if the frame size is valid for ANY bandwidth.
+            if given_size not in self.BW_SIZES:
+                #print("Skipped frame with incorrect size.")
+                self.skipped_frames += 1
+                continue
+
+            # Establishing the bandwidth (and so, expected size) using the first frame.
+            if self.expected_size is None:
+                self.bandwidth = self.BW_SIZES[given_size]
+                self.expected_size = given_size
+
+            # Checking if the frame size matches the expected size for the established bandwidth.
+            if self.expected_size != given_size:
+                #print("Change in bandwidth observed in adjacent CSI frames, skipping...")
                 self.skipped_frames += 1
             else:
-                bandwidth = self.BW_SIZES[givenSize]
-                if self.bandwidth == 0:
-                    self.bandwidth = bandwidth
-                elif self.bandwidth != bandwidth:
-                    # print("Change in observed bandwidth during capture.")
-                    pass
-
-                self.frames.append(nextFrame)
+                self.frames.append(next_frame)
 
     def readHeader(self) -> np.array:
         return np.frombuffer(self.data[:self.PCAP_HEADER_DTYPE.itemsize], dtype=self.PCAP_HEADER_DTYPE)
 
 class NEXBeamformReader(Reader):
-    def __init__(self):
-        pass
+
+    BW_SUBS = {
+        80: 256,
+        40: 128,
+        20: 64
+    }
+
+    HEADER_SLOTS = ["timestamp", "rssi", "frame_control", "source_mac", "sequence_no", "core", "spatial_stream", "channel_spec",
+     "chip"]
+    EMPTY_HEADER = {k: 0 for k in HEADER_SLOTS}
+
+    def __init__(self, fill_skipped_frames: bool=True):
+        super().__init__()
+        self.fill_skipped_frames = fill_skipped_frames
 
     @staticmethod
     def can_read(path: str) -> bool:
@@ -192,11 +210,20 @@ class NEXBeamformReader(Reader):
                 ret_data.push_frame(frame)
                 ret_data.timestamps.append(frame.timestamp)
 
+        if self.fill_skipped_frames:
+            empty_subcount = self.BW_SUBS[ret_data.bandwidth]
+            empty_csi = np.zeros((empty_subcount, 1), dtype=np.complex64)
+            empty_frame = NEXCSIFrame(self.EMPTY_HEADER, empty_csi)
+            for _ in range(ret_data.skipped_frames):
+                ret_data.push_frame(empty_frame)
+
         ret_data.set_chipset("Broadcom BCM{}".format(self.chip))
 
         return ret_data
 
     def read_bfee(self, pcap_frame: PcapFrame, scaled: bool, bandwidth: int) -> NEXCSIFrame:
+        if pcap_frame is None:
+            return None
 
         #ts_usec contains microseconds as an offset to the main seconds timestamp.
         usecs = pcap_frame.header["ts_usec"][0]/1e+6
@@ -224,6 +251,10 @@ class NEXBeamformReader(Reader):
         if chipType != "UNKNOWN":
             self.chip = chipType
 
+        # data is now a 1d matrix of int32 values.
+        # To convert this to complex doubles, we'll first reshape into pairs.
+        # And then view the int32 matrix as float32, before viewing as complex64.
+        # This removes several for loops.
         csiData = data.reshape(-1, 2)
         csi = csiData.astype(np.float32).view(np.complex64)
         

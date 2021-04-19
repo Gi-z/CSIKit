@@ -89,8 +89,7 @@ class IWLBeamformReader(Reader):
                     index += 16
 
         if scaled:
-            scaled_csi = IWLBeamformReader.scale_csi_entry(csi, header)
-            return scaled_csi
+            return IWLBeamformReader.scale_csi_entry(csi, header)
         else:
             return csi
 
