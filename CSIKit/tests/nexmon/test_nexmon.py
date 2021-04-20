@@ -19,7 +19,6 @@ def run_nexmon_tests(example_dir, mat_dir):
     reader = NEXBeamformReader()
 
     # Load all files from data/nexmon.
-
     example_files = glob.glob(os.path.join(example_dir, "*.pcap"))
     matlab_files = glob.glob(os.path.join(mat_dir, "*.mat"))
 

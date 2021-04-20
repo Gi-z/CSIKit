@@ -59,8 +59,8 @@ def main():
     elif args.test:
         if args.test_type:
             if args.test_type.lower() == "intel":
-                # run_iwl_test(args.test_dir)
-                pass
+                from CSIKit.tests.intel.test_intel import run_intel_tests
+                run_intel_tests(args.test_example_dir, args.test_mat_dir)
             elif args.test_type.lower() == "nexmon":
                 from CSIKit.tests.nexmon.test_nexmon import run_nexmon_tests
                 run_nexmon_tests(args.test_example_dir, args.test_mat_dir)
