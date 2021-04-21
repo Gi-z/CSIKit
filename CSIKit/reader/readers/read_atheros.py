@@ -13,7 +13,7 @@ import numpy as np
 SIZE_STRUCT = struct.Struct(">H").unpack
 
 HEADER_STRUCT_BE = struct.Struct(">QHHBBBBBBBBBBBH").unpack
-HEADER_STRUCT_LE = struct.Struct(">QHHBBBBBBBBBBBH").unpack
+HEADER_STRUCT_LE = struct.Struct("<QHHBBBBBBBBBBBH").unpack
 HEADER_FORMAT = collections.namedtuple("frame_header", ["timestamp", "csi_length", "tx_channel", "err_info", "noise_floor", "rate", "bandwidth", "num_tones", "nr", "nc", "rssi", "rssi_1", "rssi_2", "rssi_3", "payload_length"])
 
 BITS_PER_SYMBOL = 10
@@ -27,14 +27,20 @@ class ATHBeamformReader(Reader):
     @staticmethod
     def can_read(path: str) -> bool: 
         if os.path.exists(path):
-            with open(path, "rb") as file:
-                first_byte = file.read(1)
-                if first_byte == b"\xff":
-                    #Currently using the first byte.
-                    #Big Endian format only supported (for auto selection) right now.
-                    return True
-                else:
-                    return False
+            data = open(path, "rb").read()
+            header_block = HEADER_FORMAT._make(HEADER_STRUCT_LE(data[2:27]))
+            tx_antenna_count = header_block.nc
+            rx_antenna_count = header_block.nr
+
+            # Looking for a quick heuristic for identifying if the first frame is valid.
+            # Here we're interpreting the first frame's header as we regularly would.
+            # https://wands.sg/research/wifi/AtherosCSI/document/Atheros-CSI-Tool-User-Guide.pdf
+            # ^ This document says at most 3 tx and 3 rx antennas can be used.
+            # So we want to check both antenna counts are between 1 and 3.
+            tx_valid = tx_antenna_count >= 1 and tx_antenna_count <= 3
+            rx_valid = rx_antenna_count >= 1 and rx_antenna_count <= 3
+
+            return tx_valid and rx_valid
         else:
             raise Exception("File not found: {}".format(path))
 
@@ -93,7 +99,6 @@ class ATHBeamformReader(Reader):
         length = len(data)
 
         ret_data = CSIData(self.filename, "Atheros 802.11n-compatible")
-        ret_data.bandwidth = 20
 
         cursor = 0
         expected_count = 0
@@ -102,16 +107,13 @@ class ATHBeamformReader(Reader):
 
         first_byte = data[cursor:cursor+1]
 
-        if first_byte == b'\xff':
+        if first_byte == b'\xff': # This is a holdout from a weird version of the format I found. Likely not used now.
             struct_type = HEADER_STRUCT_BE
-            cursor += 1
-        elif first_byte == b'\x00':
-            struct_type = HEADER_STRUCT_LE
             cursor += 1
         else:
             #¯\_(ツ)_/¯
-            print("File contains no endianness header. Assuming big.")
-            struct_type = HEADER_STRUCT_BE
+            #print("File contains no endianness header. Assuming little.")
+            struct_type = HEADER_STRUCT_LE
 
         while cursor < (length - 4):
             field_length = SIZE_STRUCT(data[cursor:cursor+2])[0]
@@ -123,6 +125,10 @@ class ATHBeamformReader(Reader):
 
             header_block = HEADER_FORMAT._make(struct_type(data[cursor:cursor+25]))
             cursor += 25
+
+            # Grabbing the bandwidth for the CSIData object using the boolean in the first Atheros frame.
+            if ret_data.bandwidth == 0:
+                ret_data.bandwidth = 20 if header_block.bandwidth == 0 else 40
 
             if header_block.csi_length > 0:
                 data_block = data[cursor:cursor+header_block.csi_length]

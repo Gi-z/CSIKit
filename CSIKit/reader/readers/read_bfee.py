@@ -38,11 +38,14 @@ class IWLBeamformReader(Reader):
     @staticmethod
     def can_read(path: str) -> bool:
         if os.path.exists(path):
-            _, extension = os.path.splitext(path)
-            if extension == ".dat":
-                return True
-            else:
-                return False
+
+            # Quick heuristic for Linux 802.11n CSI Tool files
+            # Check for the VALID_BEAMFORMING_MEASUREMENT code at 0x2.
+            # Potentially may return a false negative for files which start with an invalid frame.
+            data = open(path, "rb").read()
+            code = CODE_STRUCT(data[2:3])[0]
+
+            return code == VALID_BEAMFORMING_MEASUREMENT
         else:
             raise Exception("File not found: {}".format(path))
 
