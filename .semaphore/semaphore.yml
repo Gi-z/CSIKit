@@ -16,3 +16,12 @@ blocks:
             - python setup.py install
             - pip install pytest
             - pytest
+      env_vars:
+        - name: NEX_TEST_EXAMPLE_DIR
+          value: CSIKit/data/nexmon
+        - name: NEX_TEST_MAT_DIR
+          value: tests/matlab/nexmon/mats
+        - name: INTEL_TEST_EXAMPLE_DIR
+          value: CSIKit/data/intel
+        - name: INTEL_TEST_MAT_DIR
+          value: tests/matlab/intel/mats
