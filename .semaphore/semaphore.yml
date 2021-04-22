@@ -5,7 +5,7 @@ agent:
     type: e1-standard-2
     os_image: ubuntu1804
 blocks:
-  - name: Intel Test
+  - name: All PyTests
     task:
       jobs:
         - name: pytest
@@ -14,4 +14,5 @@ blocks:
             - checkout
             - python -m pip install --upgrade pip
             - python setup.py install
-            - csikit CSIKit/data/intel/example.dat
+            - pip install pytest
+            - pytest
