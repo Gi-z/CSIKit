@@ -28,8 +28,8 @@ def test_intel_matlab_consistency():
     reader = IWLBeamformReader()
 
     # Load all files from data/intel.
-    example_files = glob.glob(os.path.join(example_dir, "*.dat"))
-    matlab_files = glob.glob(os.path.join(mat_dir, "*.mat"))
+    example_files = sorted(glob.glob(os.path.join(example_dir, "*.dat")))
+    matlab_files = sorted(glob.glob(os.path.join(mat_dir, "*.mat")))
 
     test_count, success_count = 0, 0
 
