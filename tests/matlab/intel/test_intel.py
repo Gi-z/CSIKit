@@ -43,7 +43,8 @@ def test_intel_matlab_consistency():
         mat_filename = os.path.splitext(os.path.basename(mat_path))[0]
 
         if dat_filename != mat_filename:
-            print("Unknown dat file found in examples: {}".format(dat_filename))
+            print("Unknown dat file found in examples: {}".format(dat_path))
+            print("Accompanied by mat: {}".format(mat_path))
             print("No accompanying MAT file found. Ensure one has been generated for sanity testing.")
             print("Exiting.")
             exit(1)
