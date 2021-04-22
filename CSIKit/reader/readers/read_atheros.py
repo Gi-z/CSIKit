@@ -28,6 +28,9 @@ class ATHBeamformReader(Reader):
     def can_read(path: str) -> bool: 
         if os.path.exists(path):
             data = open(path, "rb").read()
+            if len(data) < 30:
+                return False
+
             header_block = HEADER_FORMAT._make(HEADER_STRUCT_LE(data[2:27]))
             tx_antenna_count = header_block.nc
             rx_antenna_count = header_block.nr

@@ -3,18 +3,26 @@ from CSIKit.util import csitools
 
 import numpy as np
 
+import errno
 import glob
 import os
 import scipy.io
 
 
-def run_intel_tests(example_dir, mat_dir):
+class InconsistentOutputError(RuntimeError):
+    def __init__(self, arg):
+        self.args = arg
 
-    if example_dir == "" or mat_dir == "":
-        print("Example and MAT directories must be set with launch parameters.")
-        print("See tests/nexmon/README.md for examples.")
-        print("Exiting.")
-        exit(1)
+def test_intel_matlab_consistency():
+
+    example_dir = os.environ["INTEL_TEST_EXAMPLE_DIR"]
+    mat_dir = os.environ["INTEL_TEST_MAT_DIR"]
+
+    if not os.path.isdir(example_dir):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), example_dir)
+
+    if not os.path.isdir(mat_dir):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), mat_dir)
 
     # Instantiate reader.
     reader = IWLBeamformReader()
@@ -86,15 +94,17 @@ def run_intel_tests(example_dir, mat_dir):
                 incorrect_scaled_frames += 1
 
         if incorrect_frames > 0:
-            print("Test Failed: {}".format(dat_filename))
-        else:
-            success_count += 1
+            # print("Test Failed: {}".format(dat_filename))
+            raise InconsistentOutputError("Stored MATLAB output does not match CSIKit's generated matrices.")
+        # else:
+        #     success_count += 1
 
         if incorrect_scaled_frames > 0:
-            print("Test (Scaled) Failed: {}".format(dat_filename))
-        else:
-            success_count += 1
+            # print("Test (Scaled) Failed: {}".format(dat_filename))
+            raise InconsistentOutputError("Stored MATLAB output does not match CSIKit's scaled matrices.")
+        # else:
+        #     success_count += 1
 
-        test_count += 2
+        # test_count += 2
 
-    print("Intel Tests complete: {}/{} successful.".format(success_count, test_count))
+    # print("Intel Tests complete: {}/{} successful.".format(success_count, test_count))

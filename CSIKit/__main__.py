@@ -20,11 +20,6 @@ def main():
     parser.add_argument("--npz_dest", dest="npz_dest", default="output.npz", help="Choose a destination for the output npz file. (Default: output.npz)")
     parser.add_argument("--npz_metric", dest="npz_metric", default="amplitude", help="Choose the extracted CSI metric: amplitude, phase (Default: amplitude)")
 
-    parser.add_argument("--test", action="store_true", default=False, help="Run performance test (internal).")
-    parser.add_argument("--test_type", dest="test_type", default="intel", help="Select test type (intel, nexmon).")
-    parser.add_argument("--test_example_dir", dest="test_example_dir", default="", help="Select test example directory.")
-    parser.add_argument("--test_mat_dir", dest="test_mat_dir", default="", help="Select test mat directory.")
-
     parser.add_argument("file", type=str, help="Path to CSI file.")
 
     args = parser.parse_args()
@@ -56,14 +51,6 @@ def main():
         from CSIKit.tools.convert_npz import generate_npz
         
         generate_npz(args.file, args.npz_dest, args.npz_metric)
-    elif args.test:
-        if args.test_type:
-            if args.test_type.lower() == "intel":
-                from CSIKit.tests.intel.test_intel import run_intel_tests
-                run_intel_tests(args.test_example_dir, args.test_mat_dir)
-            elif args.test_type.lower() == "nexmon":
-                from CSIKit.tests.nexmon.test_nexmon import run_nexmon_tests
-                run_nexmon_tests(args.test_example_dir, args.test_mat_dir)
     elif args.info:
         from CSIKit.tools.get_info import display_info
 

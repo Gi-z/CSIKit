@@ -1,5 +1,13 @@
 # CSIKit - Nexmon Sanity Tests
 
+- [Introduction](#introduction)
+- [Running Tests](#running-tests) 
+- [Generating MATs](#generating-mats)
+- [Example File Listing](#example-file-listing)
+  * [example_4358.pcap](#example-4358pcap)
+  * [example_4366c0.pcap](#example-4366c0pcap)
+  * [example_43455c0.pcap](#example-43455c0pcap)
+
 ## Introduction
 
 These tests serve to check the output of CSIKit's parsing and processing functions are identical (to at least 8 decimal places) to that of the MATLAB example scripts supplied with [nexmon_csi](https://github.com/seemoo-lab/nexmon_csi/tree/master/utils/matlab).
@@ -7,6 +15,14 @@ These tests serve to check the output of CSIKit's parsing and processing functio
 The tests work by iterating through each file in `./CSIKit/data/nexmon`, first parsing them with a `NEXBeamformReader`, and then extracting CSI amplitude using `csitools.get_CSI`. The output from these functions can then be compared directly to the matrices produced by the MATLAB scripts, loaded from the accompanying .mat file in `./CSIKit/tests/matlab/nexmon/mats`.
 
 These should be run before any deployment occurs to ensure the output of CSIKit is correct, and the core functionality of CSIKit does not contain any critical errors. If you notice an error within one of these tests, please create an Issue with [this link](https://github.com/Gi-z/CSIKit/issues/new) and mark it as URGENT.
+
+## Running Tests
+
+In order to run the tests in `test_nexmon.py` with PyTest, the following environment variables must be set.
+- `NEX_TEST_EXAMPLE_DIR`: Directory containing pcap files to be used for tests.
+- `NEX_TEST_MAT_DIR`: Directory containing mat files generated for files in the `EXAMPLE_DIR` using the method below.
+
+Once these environment variables are set, these tests can be run either by directly running `pytest test_nexmon.py`, or (once the Intel environment variables from `tests/intel/README.md` have been created) all tests can be run from the root directory by just running `pytest`.
 
 ## Generating MATs
 

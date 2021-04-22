@@ -43,6 +43,9 @@ class IWLBeamformReader(Reader):
             # Check for the VALID_BEAMFORMING_MEASUREMENT code at 0x2.
             # Potentially may return a false negative for files which start with an invalid frame.
             data = open(path, "rb").read()
+            if len(data) < 4:
+                return False
+
             code = CODE_STRUCT(data[2:3])[0]
 
             return code == VALID_BEAMFORMING_MEASUREMENT
