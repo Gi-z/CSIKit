@@ -5,7 +5,7 @@ agent:
     type: e1-standard-2
     os_image: ubuntu1804
 blocks:
-  - name: Test
+  - name: Intel Test
     task:
       jobs:
         - name: pytest
@@ -14,8 +14,4 @@ blocks:
             - checkout
             - python -m pip install --upgrade pip
             - python setup.py install
-            - pip install flake8
-            - 'flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics'
-            - flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-            - pip install pytest
-            - pytest
+            - csikit CSIKit/data/intel/example.dat
