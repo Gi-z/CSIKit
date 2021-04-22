@@ -27,8 +27,8 @@ def test_nexmon_matlab_consistency():
     reader = NEXBeamformReader()
 
     # Load all files from data/nexmon.
-    example_files = glob.glob(os.path.join(example_dir, "*.pcap"))
-    matlab_files = glob.glob(os.path.join(mat_dir, "*.mat"))
+    example_files = sorted(glob.glob(os.path.join(example_dir, "*.pcap")))
+    matlab_files = sorted(glob.glob(os.path.join(mat_dir, "*.mat")))
 
     test_count, success_count = 0, 0
 
