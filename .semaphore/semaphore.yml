@@ -5,7 +5,7 @@ agent:
     type: e1-standard-2
     os_image: ubuntu1804
 blocks:
-  - name: PyTests (All)
+  - name: All PyTests
     task:
       jobs:
         - name: pytest
