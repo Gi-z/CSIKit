@@ -22,13 +22,7 @@ def get_next_bits(buf: bytes, current_data: int, idx: int, bits_left: int) -> Tu
 def unpack_float_acphy(nbits: int, autoscale: int, shft: int, fmt: int, nman: int, nexp: int, nfft: int, H: np.array) -> np.array:
     k_tof_unpack_sgn_mask = (1<<31)
 
-    e_p, maxbit, e, i, e_zero, sgn = 0, 0, 0, 0, 0, 0
-    n_out, e_shift = 0, 0
-
     He = [0] * nfft
-
-    vi, vq, = 0, 0
-    x, iq_mask, e_mask, sgnr_mask, sgni_mask = 0, 0, 0, 0, 0
 
     iq_mask = (1 << (nman - 1)) - 1
     e_mask = (1 << nexp) - 1
@@ -37,7 +31,7 @@ def unpack_float_acphy(nbits: int, autoscale: int, shft: int, fmt: int, nman: in
     sgni_mask = (sgnr_mask >> nman)
     e_zero = -nman
 
-    out = np.zeros((nfft*2, 1), dtype=np.int32)
+    out = np.zeros((nfft*2, 1), dtype=np.int64)
     n_out = (nfft << 1)
     e_shift = 1
     maxbit = -e_p

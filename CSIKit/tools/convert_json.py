@@ -3,7 +3,7 @@ import json
 from CSIKit.util.csitools import get_CSI
 from CSIKit.reader import get_reader
 
-def generate_json(path: str) -> str:
+def generate_json(path: str, metric: str="amplitude") -> str:
     """
         This function converts a csi_trace into the json format. It works for single entry or the whole trace.
 
@@ -22,7 +22,11 @@ def generate_json(path: str) -> str:
 
     reader = get_reader(path)
     csi_data = reader.read_file(path)
-    csi, _, _ = get_CSI(csi_data)
+    csi_matrix, no_frames, no_subcarriers = get_CSI(csi_data, metric)
 
-    json_str = json.dumps(csi, default=default, indent=True)
+    print("CSI Shape: {}".format(csi_matrix.shape))
+    print("Number of Frames: {}".format(no_frames))
+    print("Generating CSI {}...".format(metric))
+
+    json_str = json.dumps(csi_matrix, default=default, indent=True)
     return json_str

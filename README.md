@@ -2,7 +2,7 @@
 
 Tools for extracting Channel State Information from formats produced by a range of WiFi hardware/drivers, written in Python with numpy.
 
-Python 3.5+ required.
+Python 3.6+ required.
 
 - **CSI parsing** from Atheros, Intel and Broadcom (nexmon) formats.
 - **Processing** and **Visualisation** using numpy and matplotlib.
@@ -119,7 +119,7 @@ from CSIKit.util import csitools
 
 my_reader = get_reader("path/to/file.pcap")
 csi_data = my_reader.read_file("path/to/file.pcap", scaled=True)
-csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="amplitude")
+csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data)
 ```
 
 The returned tuple contains a modified matrix which contains CSI amplitudes in dBm, followed by the number of frames and subcarriers represented therein.
@@ -133,7 +133,8 @@ from CSIKit.util import csitools
 
 my_reader = get_reader("path/to/file.pcap")
 csi_data = my_reader.read_file("path/to/file.pcap", scaled=True)
-csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="amplitude")
+csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="amplitude", squeeze_output=True)
+csi_matrix_trans = np.transpose(csi_matrix)
 
 #This example assumes CSI data is sampled at ~100Hz.
 #In this example, we apply (sequentially):
@@ -141,10 +142,10 @@ csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="ampli
 #  - a hampel filter to reduce high frequency noise (window size = 10, significance = 3)
 #  - a running mean filter for smoothing (window size = 10)
 
-for x in no_subcarriers:
-  csi_matrix[x] = lowpass(csi_matrix[x], 10, 100, 5)
-  csi_matrix[x] = hampel(csi_matrix[x], 10, 3)
-  csi_matrix[x] = running_mean(csi_matrix[x], 10)
+for x in no_frames:
+  csi_matrix_trans[x] = lowpass(csi_matrix_trans[x], 10, 100, 5)
+  csi_matrix_trans[x] = hampel(csi_matrix_trans[x], 10, 3)
+  csi_matrix_trans[x] = running_mean(csi_matrix_trans[x], 10)
 ```
 
 ### ATHCSIFrame
@@ -202,23 +203,12 @@ This format is based on the modified version of [nexmon_csi](https://github.com/
 
 - Qualcomm Atheros 802.11n Chipsets
 - Intel IWL5300
-- Broadcom BCM43455c0
-
-## Known Issues
-
-- CSVs and Visualisations always assume you want to view the first antenna stream.
-  - If this affects you, reach out to me.
-  - I am interested as to how you make use of multiple streams.
-- nexmon_csi pcaps generated with non-43455c0 hardware will be parsed incorrectly. 
-  - I only have 43455c0 hardware to generate data with, so I have been unable to spend time with others.
-  - BCM hardware will have to be detected from file headers.
-  - Once additional hardware support is completed, this will be resolved.
+- Broadcom BCM4358, BCM43455c0, BCM4355c0
 
 ## Coming Soon
 
 ### Additional Hardware support
 
-- Additional **[nexmon_csi](https://github.com/seemoo-lab/nexmon_csi)** compatible hardware.
 - ESP32.
 
 ### Realtime Retrieval
@@ -248,4 +238,28 @@ Further to that, if there are any assertions I have made within code comments or
 
 ## License
 
-The code in this project is licensed under MIT license.
+The code in this project is licensed under MIT license. If you are using this codebase for any research or other projects, I would greatly appreciate if you could cite this repository or one of my papers.
+
+a) "G. Forbes. CSIKit: Python CSI processing and visualisation tools for commercial off-the-shelf hardware. (2021). https://github.com/Gi-z/CSIKit."
+
+b) "Forbes, G., Massie, S. and Craw, S., 2020, November. 
+      WiFi-based Human Activity Recognition using Raspberry Pi. 
+      In 2020 IEEE 32nd International Conference on Tools with Artificial Intelligence (ICTAI) (pp. 722-730). IEEE."
+
+  ```
+  @electronic{csikit:gforbes,
+      author = {Forbes, Glenn},
+      title = {CSIKit: Python CSI processing and visualisation tools for commercial off-the-shelf hardware.},
+      url = {https://github.com/Gi-z/CSIKit},
+      year = {2021}
+  }
+
+  @inproceedings{forbes2020wifi,
+    title={WiFi-based Human Activity Recognition using Raspberry Pi},
+    author={Forbes, Glenn and Massie, Stewart and Craw, Susan},
+    booktitle={2020 IEEE 32nd International Conference on Tools with Artificial Intelligence (ICTAI)},
+    pages={722--730},
+    year={2020},
+    organization={IEEE}
+  }
+  ```

@@ -1,0 +1,27 @@
+version: v1.0
+name: Python
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+blocks:
+  - name: All PyTests
+    task:
+      jobs:
+        - name: pytest
+          commands:
+            - sem-version python 3.7
+            - checkout
+            - python -m pip install --upgrade pip
+            - python setup.py install
+            - pip install pytest
+            - pytest
+      env_vars:
+        - name: NEX_TEST_EXAMPLE_DIR
+          value: CSIKit/data/nexmon
+        - name: NEX_TEST_MAT_DIR
+          value: tests/matlab/nexmon/mats
+        - name: INTEL_TEST_EXAMPLE_DIR
+          value: CSIKit/data/intel
+        - name: INTEL_TEST_MAT_DIR
+          value: tests/matlab/intel/mats
