@@ -1,5 +1,5 @@
-from CSIKit.csi import CSIFrame
-from CSIKit.csi import CSIMetadata
+from CSIKit.csi.csiframe import CSIFrame
+from CSIKit.csi.csimetadata import CSIMetadata
 from CSIKit.util.csitools import get_CSI
 
 class CSIData:
