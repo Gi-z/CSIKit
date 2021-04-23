@@ -1,9 +1,9 @@
-"""
-Classes to Plot a szenario belog different measurements
-"""
+# Credit: tweigel-dev https://github.com/tweigel-dev
 
-from cmath import phase
-from typing import Dict, List, Tuple
+"""
+Classes to Plot a szenario belong different measurements
+"""
+from typing import Dict, List
 import os
 
 import matplotlib.pyplot as plt
@@ -12,11 +12,11 @@ from matplotlib.backends.backend_pdf import PdfPages
 from CSIKit.csi import IWLCSIFrame as CsiEntry
 from CSIKit.visualization.graph import Graph, TupleGraph, PlotColorMap
 from CSIKit.visualization.metric import Metric, TupleMetric, MatrixMetric
-from CSIKit.reader.readers.read_bfee import IWLBeamformReader
+from CSIKit.reader import IWLBeamformReader
 
 class PlotableCSI():
     """
-    to plot csiEntrys
+    to plot csiEntries
     """
 
     def __init__(self, metric, graph):
@@ -24,15 +24,15 @@ class PlotableCSI():
         if  issubclass(metric, TupleMetric) ^ issubclass(graph,TupleGraph):
             raise Exception(
                 f"""
-                    boath should have the same output, but only on is Tuple 
+                    both should have the same output, but only on is Tuple 
                     Metric:{metric.__name__} 
                     Graph:{graph.__name__}
                     isTuple: {issubclass(metric, TupleMetric)} ^ {issubclass(graph,TupleGraph)}
                 """)
-        if  issubclass(metric, MatrixMetric) ^ issubclass(graph,PlotColorMap):
+        if issubclass(metric, MatrixMetric) ^ issubclass(graph,PlotColorMap):
             raise Exception(
                 f"""
-                    boath should have the same output, but only on is Graph 
+                    both should have the same output, but only on is Graph 
                     Metric:{metric.__name__} 
                     Graph:{graph.__name__}
                     isTuple: {issubclass(metric, MatrixMetric)} ^ {issubclass(graph,PlotColorMap)}
@@ -172,7 +172,7 @@ class SzenarioPlotter():
 
     def show(self, title=""):
         """
-        shows the results of the plt of the different metrics
+        shows the results of the plot of the different metrics
         """
         self._is_szenario_vaild()
         {plotable.show() for  plotable in self.__plot_implementations}
@@ -180,7 +180,7 @@ class SzenarioPlotter():
     def save(self,folder="./images"):
         """
         saves pdf of the plot at this szenarios
-        It maight be happend that if you use this within ipynb of yupiter it show also.
+        It might be happened that if you use this within ipynb of jupiter it show also.
         """
         self._is_szenario_vaild()
         {plotable.save(folder, prefix=self.szenario_name) for  plotable in self.__plot_implementations}
@@ -194,10 +194,9 @@ class SzenarioPlotter():
             raise Exception("define PlotableCSI before show szenario")
         # if __measurements empty
         if not len(self.__measurements) > 0:
-            raise Exception("define meassurments before show szenario")
+            raise Exception("define measurements before show szenario")
         if not isinstance(self.__measurements, dict):
             raise Exception(
                 f"__measurements should be type dict but it is {type(self.__measurements)}")
 
         return True
-        

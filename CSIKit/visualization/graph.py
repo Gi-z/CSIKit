@@ -1,3 +1,5 @@
+# Credit: tweigel-dev https://github.com/tweigel-dev
+
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -5,8 +7,8 @@ import numpy as np
 from typing import Dict, Tuple
 
 from CSIKit.visualization.metric import Metric
-from matplotlib.colors import BoundaryNorm, LinearSegmentedColormap
-from matplotlib.ticker import MaxNLocator
+from matplotlib.colors import LinearSegmentedColormap
+
 
 class Graph:
 
@@ -14,18 +16,18 @@ class Graph:
         self.metric = metric
         self._axes = []
         super().__init__()
-    
+
     def plot(self, values_per_measurement):
         """
         function to plot the visualization into the axes.
-        return axes[] 
+        return axes[]
         """
         self._axes = []
         self._plot_axes(values_per_measurement)
-        if not isinstance(self._axes,list):
+        if not isinstance(self._axes, list):
             raise Exception("return value is not list")
         return self._axes
-        
+
     def _plot_axes(self, values_per_measurement):
         """
         Abstract function.
@@ -33,7 +35,7 @@ class Graph:
         It should call self._create_new_ax
         """
         raise Exception("Not implemented function plot")
-    
+
     def _create_new_ax(self):
         """
         return new axes and appends it to self.axes
@@ -42,13 +44,15 @@ class Graph:
         self._axes.append(ax)
         return ax
 
+
 class TupleGraph:
     pass
 
+
 class PlotBox(Graph):
- 
+
     def _plot_axes(self, values_per_measurement):
-        
+
         axes = self._create_new_ax()
 
         data = list(values_per_measurement.values())
@@ -56,14 +60,14 @@ class PlotBox(Graph):
 
         if all(isinstance(k, int) for k in labels):  # if name is metric
             width = max(list(values_per_measurement.keys())) / \
-                (2*len(list(values_per_measurement.keys())))
-            axes.boxplot(data, positions=labels, labels=labels,  widths=width)
+                    (2 * len(list(values_per_measurement.keys())))
+            axes.boxplot(data, positions=labels, labels=labels, widths=width)
 
         else:
             width = 0.5
             axes.boxplot(data, labels=labels, widths=width)
 
-            ind = np.arange(1, len(values_per_measurement)+1)
+            ind = np.arange(1, len(values_per_measurement) + 1)
             axes.set_xticks(ind)
             axes.set_xticklabels(
                 tuple(values_per_measurement.keys()), rotation=45, ha="right")
@@ -78,6 +82,7 @@ class PlotBox(Graph):
         axes.set_ylabel(f"{self.metric.get_name()}[{self.metric.get_unit()}]")
         axes.set_xlabel('Measurement')
 
+
 class PlotCandle(Graph):
     def __init__(self, metric):
         super().__init__(metric)
@@ -88,7 +93,7 @@ class PlotCandle(Graph):
         averages = {}
         for mes_name in values_per_measurement.copy():
             values = values_per_measurement[mes_name]
-            averages[mes_name] = (sum(values)/len(values))
+            averages[mes_name] = (sum(values) / len(values))
         return averages
 
     @classmethod
@@ -103,7 +108,7 @@ class PlotCandle(Graph):
 
     @classmethod
     def _calc_confidence_diff(cls, variance, interval=0.95):
-        """ Retruns the  +- confidenz delta of the meassrements"""
+        """ Returns the  +- confidence delta of the meassrements"""
         INTERVALS = {
             0.90: 1.645,
             0.95: 1.96,
@@ -113,28 +118,28 @@ class PlotCandle(Graph):
         if not interval in INTERVALS:
             raise Exception(f"Invalid interval {interval}")
 
-        confidenz_errors = {}
+        confidence_errors = {}
         for name in variance:
             std_err = math.sqrt(variance[name])
-            confidenz = INTERVALS[interval] * \
-                (std_err / math.sqrt(len(variance[name])))
-            confidenz_errors[name] = confidenz
-        return confidenz_errors
+            confidence = INTERVALS[interval] * \
+                        (std_err / math.sqrt(len(variance[name])))
+            confidence_errors[name] = confidence
+        return confidence_errors
 
     def _plot_axes(self, values_per_measurement, plot_wick=True):
         axes = self._create_new_ax()
         if all(isinstance(k, int) for k in values_per_measurement.keys()):  # if name is metric
             width = max(list(values_per_measurement.keys())) / \
-                (2*len(list(values_per_measurement.keys())))
-            #width = 4
+                    (2 * len(list(values_per_measurement.keys())))
+            # width = 4
             # for name in self._values_per_measurement: # for each measurement
             self._plot_candle(axes, values_per_measurement,
-                             width=width, plot_wick=plot_wick)
+                              width=width, plot_wick=plot_wick)
 
         else:  # else plot by name
             width = 0.4
             self._plot_candle(axes, values_per_measurement,
-                             width=width, plot_wick=plot_wick)
+                              width=width, plot_wick=plot_wick)
             ind = np.arange(len(values_per_measurement))
             # plot unique text at the center of each candle
             axes.set_xticks(ind)
@@ -159,7 +164,7 @@ class PlotCandle(Graph):
             x_arr = values_per_measurement.keys()
 
             if x_offset != 0:
-                x_arr = [i+x_offset for i in x_arr]  # add offset to x plot
+                x_arr = [i + x_offset for i in x_arr]  # add offset to x plot
             if plot_wick:
                 axes.bar(x_arr, averages.values(), width=width, yerr=std_errors.values(
                 ), error_kw=dict(linewidth=wick_width), color=color)
@@ -168,7 +173,7 @@ class PlotCandle(Graph):
                          error_kw=dict(linewidth=wick_width), color=color)
         else:  # else plot by name
             ind = np.arange(len(values_per_measurement))
-            ind = [i+x_offset for i in ind]  # add offset to x plot
+            ind = [i + x_offset for i in ind]  # add offset to x plot
 
             if plot_wick:
                 axes.bar(ind, averages.values(), width=width, yerr=std_errors.values(
@@ -176,6 +181,7 @@ class PlotCandle(Graph):
             else:
                 axes.bar(ind, averages.values(), width=width,
                          error_kw=dict(linewidth=wick_width), color=color)
+
 
 class PlotCandleTuple(TupleGraph, PlotCandle):
     """
@@ -185,7 +191,8 @@ class PlotCandleTuple(TupleGraph, PlotCandle):
     def __init__(self, metric):
         super().__init__(metric)
         self._values_per_measurement: Dict[str, Tuple] = {}
-    COLORS = ['#008000', 'red',  'blue']
+
+    COLORS = ['#008000', 'red', 'blue']
 
     def _plot_axes(self, values_per_measurement, plot_wick=True):
         axes = self._create_new_ax()
@@ -195,20 +202,24 @@ class PlotCandleTuple(TupleGraph, PlotCandle):
 
         if all(isinstance(k, int) for k in values_per_measurement.keys()):  # if name is metric
             width = (max(list(values_per_measurement.keys())) /
-                     (2*len(list(values_per_measurement.keys()))))/tuple_size
+                     (2 * len(list(values_per_measurement.keys())))) / tuple_size
             # for name in self._values_per_measurement: # for each measurement
 
             for tuple_i in range(tuple_size):
-                self._plot_candle(axes, self._get_measurement_by_tuple_index(values_per_measurement, tuple_i), width, x_offset=(
-                    tuple_i-1)*width, color=self.COLORS[tuple_i], plot_wick=plot_wick)
+                self._plot_candle(axes, self._get_measurement_by_tuple_index(values_per_measurement, tuple_i), width,
+                                  x_offset=(
+                                                   tuple_i - 1) * width, color=self.COLORS[tuple_i],
+                                  plot_wick=plot_wick)
 
         else:  # else plot by name
             width = 0.8 / tuple_size
 
             # plot each bar of group per tuple
             for tuple_i in range(tuple_size):
-                self._plot_candle(axes, self._get_measurement_by_tuple_index(values_per_measurement, tuple_i), width, x_offset=(
-                    tuple_i-1)*width, color=self.COLORS[tuple_i], plot_wick=plot_wick)
+                self._plot_candle(axes, self._get_measurement_by_tuple_index(values_per_measurement, tuple_i), width,
+                                  x_offset=(
+                                                   tuple_i - 1) * width, color=self.COLORS[tuple_i],
+                                  plot_wick=plot_wick)
             # unique label per candle group
             ind = np.arange(len(values_per_measurement))
             axes.set_xticks(ind)
@@ -216,7 +227,7 @@ class PlotCandleTuple(TupleGraph, PlotCandle):
                 tuple(values_per_measurement.keys()), rotation=45, ha="right")
         axes.set_ylabel(f"{self.metric.get_name()}[{self.metric.get_unit()}]")
         axes.set_xlabel('Measurement')
-        
+
     @classmethod
     def _get_measurement_by_tuple_index(cls, values_per_measurement, tuple_index):
         """
@@ -231,31 +242,33 @@ class PlotCandleTuple(TupleGraph, PlotCandle):
 
         return result
 
+
 class PlotCandleTuple_Phase(PlotCandleTuple):
 
-    def _plot_axes(self,  values_per_measurement, plot_wick=False):  # set wick false
-        super()._plot_axes( values_per_measurement, plot_wick=plot_wick)
+    def _plot_axes(self, values_per_measurement, plot_wick=False):  # set wick false
+        super()._plot_axes(values_per_measurement, plot_wick=plot_wick)
         {ax._axes.set_ylim((0, np.pi)) for ax in self._axes}
+
 
 class PlotColorMap(Graph):
 
     def __init__(self, metric):
         super().__init__(metric)
-        self.vmin=None
-        self.vmax=None
+        self.vmin = None
+        self.vmax = None
         self.cmap = plt.cm.plasma
         self.color_legend = True
 
-    def _plot_axes(self,  values_per_measurement):
+    def _plot_axes(self, values_per_measurement):
 
         for measur_name in values_per_measurement:
             axes = self._create_new_ax()
             amplitude_per_sub = values_per_measurement[measur_name]
             amplitude_per_sub = np.matrix(np.array(amplitude_per_sub))
-             # plot
-            cmap= self.cmap
+            # plot
+            cmap = self.cmap
             if not self.vmin is None and not self.vmax is None:
-                pcmap = axes.pcolormesh(amplitude_per_sub, cmap=cmap,  vmin=self.vmin, vmax=self.vmax,rasterized=True)
+                pcmap = axes.pcolormesh(amplitude_per_sub, cmap=cmap, vmin=self.vmin, vmax=self.vmax, rasterized=True)
             else:
                 pcmap = axes.pcolormesh(amplitude_per_sub, cmap=cmap, rasterized=True)
             if self.color_legend:
@@ -264,17 +277,19 @@ class PlotColorMap(Graph):
             axes.set_ylabel('measurement')
             plt.show()
 
+
 class PlotColorMap_Phase(PlotColorMap):
 
     def __init__(self, metric):
         super().__init__(metric)
         colors = ["#008000", "white", "#008000"]
         cmap_custom = LinearSegmentedColormap.from_list("mycmap", colors)
-        
+
         self.cmap = cmap_custom
-        self.vmax = np.pi/2
+        self.vmax = np.pi / 2
         self.vmin = 0
         self.color_legend = True
+
 
 class PlotColorMap_Amplitude(PlotColorMap):
 
@@ -285,9 +300,10 @@ class PlotColorMap_Amplitude(PlotColorMap):
         self.cmap = plt.cm.gist_ncar
         self.color_legend = True
 
+
 class PlotPhaseDiff(Graph):
-    
-    def _plot_axes(self,  values_per_measurement):
+
+    def _plot_axes(self, values_per_measurement):
 
         COLORS = ['red', '#008000', 'blue']
         for measur_name in values_per_measurement:
@@ -296,10 +312,10 @@ class PlotPhaseDiff(Graph):
             for diffs in diffs_entry[:100]:
                 for pair_index in range(len(diffs)):
                     axes.plot(range(len(diffs[pair_index])), diffs[pair_index]
-                            , color=COLORS[pair_index])
-            
-            #axes.title('Phase diff', fontsize=16)
+                              , color=COLORS[pair_index])
+
+            # axes.title('Phase diff', fontsize=16)
             axes.set_xlabel('Subcarrier index')
             axes.set_ylabel('phase')
-            axes.set_ylim(0,2*np.pi)
+            axes.set_ylim(0, 2 * np.pi)
             plt.show()
