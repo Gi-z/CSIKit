@@ -203,7 +203,7 @@ This format is based on the modified version of [nexmon_csi](https://github.com/
 
 - Qualcomm Atheros 802.11n Chipsets
 - Intel IWL5300
-- Broadcom BCM4358, BCM43455c0, BCM4355c0
+- Broadcom BCM4358, BCM43455c0, BCM4366c0
 
 ## Coming Soon
 
