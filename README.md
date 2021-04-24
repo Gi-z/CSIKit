@@ -15,7 +15,7 @@ Don't have your own CSI data? Check out [CSI-Data](https://github.com/Gi-z/CSI-D
   <img src="./img/example_new.png" alt="CSIKit Command Line Example"/>
 </p>
 
-- [CSIKit ![PyPI version](https://badge.fury.io/py/CSIKit)](#csikit-)
+- [CSIKit](#csikit-)
   - [Description](#description)
   - [Installation](#installation)
   - [Example](#example)
