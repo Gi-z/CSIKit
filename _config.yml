@@ -2,5 +2,3 @@ theme: jekyll-theme-minimal
 
 title: CSIKit
 description: Python CSI processing and visualisation tools for Atheros, Intel, and Nexmon formats.
-
-show_downloads: true
