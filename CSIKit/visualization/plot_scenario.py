@@ -1,7 +1,7 @@
 # Credit: tweigel-dev https://github.com/tweigel-dev
 
 """
-Classes to Plot a szenario belong different measurements
+Classes to Plot a scenario belong different measurements
 """
 from typing import Dict, List
 import os
@@ -75,14 +75,14 @@ class PlotableCSI():
         with PdfPages(path) as pdf:
             pdf.savefig(self._figure, bbox_inches='tight')
 
-class SzenarioPlotter():
+class ScenarioPlotter():
     """
-    Plots different metrics of one szenario with multiple measurements
+    Plots different metrics of one scenario with multiple measurements
     """
 
-    def __init__(self, szenario_name: str,
+    def __init__(self, scenario_name: str,
                  plot_impls: List):
-        self.szenario_name = szenario_name
+        self.scenario_name = scenario_name
         self.__measurements: Dict = {}
         self.__plot_implementations: List[PlotableCSI] = [
             PlotableCSI(metric, graph) for metric, graph in plot_impls]
@@ -91,7 +91,7 @@ class SzenarioPlotter():
 
     def add_plot(self, metric: Metric, graph: Graph):
         """
-        Adds PlotableCSI and give him all measurements of this szenario
+        Adds PlotableCSI and give him all measurements of this scenario
         """
         plotable = PlotableCSI(metric, graph)
         for measurement_name in self.__measurements:
@@ -174,27 +174,27 @@ class SzenarioPlotter():
         """
         shows the results of the plot of the different metrics
         """
-        self._is_szenario_vaild()
+        self._is_scenario_vaild()
         {plotable.show() for  plotable in self.__plot_implementations}
 
     def save(self,folder="./images"):
         """
-        saves pdf of the plot at this szenarios
+        saves pdf of the plot at this scenarios
         It might be happened that if you use this within ipynb of jupiter it show also.
         """
-        self._is_szenario_vaild()
-        {plotable.save(folder, prefix=self.szenario_name) for  plotable in self.__plot_implementations}
+        self._is_scenario_vaild()
+        {plotable.save(folder, prefix=self.scenario_name) for  plotable in self.__plot_implementations}
 
-    def _is_szenario_vaild(self):
+    def _is_scenario_vaild(self):
         """
         plots into a matplotlib axes
         """
-        # if no plots spezified
+        # if no plots specified
         if not len(self.__plot_implementations) > 0:
-            raise Exception("define PlotableCSI before show szenario")
+            raise Exception("define PlotableCSI before show scenario")
         # if __measurements empty
         if not len(self.__measurements) > 0:
-            raise Exception("define measurements before show szenario")
+            raise Exception("define measurements before show scenario")
         if not isinstance(self.__measurements, dict):
             raise Exception(
                 f"__measurements should be type dict but it is {type(self.__measurements)}")

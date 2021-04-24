@@ -206,7 +206,7 @@ class Datarate(Metric):
     @classmethod
     def _calc_datarate(cls, entry: CsiEntry):
         """ calcs and sets self.daterate coded from self.rate.
-            coding is spezified herehttps://github.com/dhalperi/linux-80211n-csitool/blob/csitool-3.13/drivers/net/wireless/iwlwifi/dvm/commands.h#L245-L334
+            coding is specified here https://github.com/dhalperi/linux-80211n-csitool/blob/csitool-3.13/drivers/net/wireless/iwlwifi/dvm/commands.h#L245-L334
         """
         if entry.rate is None:
             raise Exception("broken entry. rate is None")
