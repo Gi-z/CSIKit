@@ -32,20 +32,23 @@ class CSVBeamformReader(Reader):
     @staticmethod
     def can_read(path: str) -> bool:
         if os.path.exists(path):
-            data = open(path)
+            try:
+                data = open(path)
 
-            first_line = data.readline()[:-1]
-            second_line = data.readline()[:-1]
+                first_line = data.readline()[:-1]
+                second_line = data.readline()[:-1]
 
-            first_split = first_line.split(",")
-            second_split = second_line.split(",")
+                first_split = first_line.split(",")
+                second_split = second_line.split(",")
 
-            # If they are not the same length then the
-            # CSV is malformed or contains a separate header line.
-            if len(first_split) == len(second_split):
-                # If we have observe a supported header format.
-                # TODO: Add functionality to add your own headers.
-                return first_split in HEADER_NAME_MAPPINGS.values()
+                # If they are not the same length then the
+                # CSV is malformed or contains a separate header line.
+                if len(first_split) == len(second_split):
+                    # If we have observe a supported header format.
+                    # TODO: Add functionality to add your own headers.
+                    return first_split in HEADER_NAME_MAPPINGS.values()
+            except UnicodeDecodeError as _:
+                return False
 
         return False
 
