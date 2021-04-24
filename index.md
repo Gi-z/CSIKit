@@ -11,10 +11,6 @@ Python 3.6+ required.
 
 Don't have your own CSI data? Check out [CSI-Data](https://github.com/Gi-z/CSI-Data) for a collection of public CSI datasets.
 
-<p align="center">
-  <img src="./img/example_new.png" alt="CSIKit Command Line Example"/>
-</p>
-
 - [CSIKit](#csikit-)
   - [Description](#description)
   - [Installation](#installation)
