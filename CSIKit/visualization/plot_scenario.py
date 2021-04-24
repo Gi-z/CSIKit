@@ -14,7 +14,7 @@ from CSIKit.visualization.graph import Graph, TupleGraph, PlotColorMap
 from CSIKit.visualization.metric import Metric, TupleMetric, MatrixMetric
 from CSIKit.reader import IWLBeamformReader
 
-class PlotableCSI():
+class PlottableCSI():
     """
     to plot csiEntries
     """
@@ -84,28 +84,28 @@ class ScenarioPlotter():
                  plot_impls: List):
         self.scenario_name = scenario_name
         self.__measurements: Dict = {}
-        self.__plot_implementations: List[PlotableCSI] = [
-            PlotableCSI(metric, graph) for metric, graph in plot_impls]
+        self.__plot_implementations: List[PlottableCSI] = [
+            PlottableCSI(metric, graph) for metric, graph in plot_impls]
         plt.rcParams.update(
             {'font.size': 22, 'font.family': "Liberation Serif"})
 
     def add_plot(self, metric: Metric, graph: Graph):
         """
-        Adds PlotableCSI and give him all measurements of this scenario
+        Adds PlottableCSI and give him all measurements of this scenario
         """
-        plotable = PlotableCSI(metric, graph)
+        plottable = PlottableCSI(metric, graph)
         for measurement_name in self.__measurements:
-            plotable.add_measurement(measurement_name)
+            plottable.add_measurement(measurement_name)
             entries = self.__measurements[measurement_name]
 
             for entry in entries:
-                plotable.notice(entry)
+                plottable.notice(entry)
 
-        self.__plot_implementations.append(plotable)
+        self.__plot_implementations.append(plottable)
 
     def add_measurement(self, name, data):
         """
-        add new measurement and notice all plotables about the new data
+        add new measurement and notice all plottables about the new data
         """
         if not isinstance(name, (str, int, float)):
             raise Exception(f"invalid input for name")
@@ -117,7 +117,7 @@ class ScenarioPlotter():
         for entry in data:
             if not isinstance(entry, CsiEntry):
                 raise Exception(
-                    f"unclean CSI Entrys. Should be type CsiEntry, but it is {type(isinstance(entry, CsiEntry))}")
+                    f"unclean CSI Entries. Should be type CsiEntry, but it is {type(isinstance(entry, CsiEntry))}")
 
             for plot_impl in self.__plot_implementations:
                 plot_impl.notice(entry)
@@ -175,7 +175,7 @@ class ScenarioPlotter():
         shows the results of the plot of the different metrics
         """
         self._is_scenario_vaild()
-        {plotable.show() for  plotable in self.__plot_implementations}
+        {plottable.show() for  plottable in self.__plot_implementations}
 
     def save(self,folder="./images"):
         """
@@ -183,7 +183,7 @@ class ScenarioPlotter():
         It might be happened that if you use this within ipynb of jupiter it show also.
         """
         self._is_scenario_vaild()
-        {plotable.save(folder, prefix=self.scenario_name) for  plotable in self.__plot_implementations}
+        {plottable.save(folder, prefix=self.scenario_name) for  plottable in self.__plot_implementations}
 
     def _is_scenario_vaild(self):
         """
@@ -191,7 +191,7 @@ class ScenarioPlotter():
         """
         # if no plots specified
         if not len(self.__plot_implementations) > 0:
-            raise Exception("define PlotableCSI before show scenario")
+            raise Exception("define PlottableCSI before show scenario")
         # if __measurements empty
         if not len(self.__measurements) > 0:
             raise Exception("define measurements before show scenario")
