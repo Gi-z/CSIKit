@@ -52,7 +52,7 @@ class CSIData:
             #Get diff between first and last.
             time_length = final_timestamp - timestamps[0]
         else:
-            time_length = final_timestamp
+            time_length = float(final_timestamp)
 
         if final_timestamp == 0:
             average_sample_rate = 0

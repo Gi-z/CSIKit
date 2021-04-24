@@ -177,7 +177,7 @@ class ScenarioPlotter():
         self._is_scenario_vaild()
         {plottable.show() for  plottable in self.__plot_implementations}
 
-    def save(self,folder="./images"):
+    def save(self, folder="./images"):
         """
         saves pdf of the plot at this scenarios
         It might be happened that if you use this within ipynb of jupiter it show also.
