@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>CSIKit | Python CSI processing and visualisation tools for Atheros, Intel, and Nexmon formats.</title>
+<meta name="generator" content="Jekyll v4.2.0" />
+<meta property="og:title" content="CSIKit" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Python CSI processing and visualisation tools for Atheros, Intel, and Nexmon formats." />
+<meta property="og:description" content="Python CSI processing and visualisation tools for Atheros, Intel, and Nexmon formats." />
+<meta property="og:site_name" content="CSIKit" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="CSIKit" />
+<script type="application/ld+json">
+{"@type":"WebSite","headline":"CSIKit","url":"/","description":"Python CSI processing and visualisation tools for Atheros, Intel, and Nexmon formats.","name":"CSIKit","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/assets/css/style.css?v=">
+    <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1><a href="/">CSIKit</a></h1>
+        
+        
+
+        <p>Python CSI processing and visualisation tools for Atheros, Intel, and Nexmon formats.</p>
+
+        
+
+        
+
+        
+        <ul>
+          <li><a href="">Download <strong>ZIP File</strong></a></li>
+          <li><a href="">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="">View On <strong>GitHub</strong></a></li>
+        </ul>
+        
+      </header>
+      <section>
+
+      <h1 id="overview--">Overview <a href="https://crate.io/packages/CSIKit/"><img src="https://pypip.in/v/CSIKit/badge.png" alt="PyPi version" /></a> <a href="https://pepy.tech/project/csikit"><img src="https://pepy.tech/badge/csikit/month" alt="Downloads" /></a></h1>
+
+<p>Tools for extracting Channel State Information from formats produced by a range of WiFi hardware/drivers, written in Python with numpy.</p>
+
+<p>Python 3.6+ required.</p>
+
+<ul>
+  <li><strong>CSI parsing</strong> from Atheros, Intel and Broadcom (nexmon) formats.</li>
+  <li><strong>Processing</strong> and <strong>Visualisation</strong> using numpy and matplotlib.</li>
+  <li><strong>CSV/JSON generators</strong> for dataset serialisation.</li>
+  <li><strong>Library</strong> and <strong>Tools</strong> for parsing CSI for your own Python applications.</li>
+</ul>
+
+<p>Don’t have your own CSI data? Check out <a href="https://github.com/Gi-z/CSI-Data">CSI-Data</a> for a collection of public CSI datasets.</p>
+
+<p align="center">
+  <img src="./img/example_new.png" alt="CSIKit Command Line Example" />
+</p>
+
+<ul>
+  <li><a href="#csikit-">CSIKit</a>
+    <ul>
+      <li><a href="#description">Description</a></li>
+      <li><a href="#installation">Installation</a></li>
+      <li><a href="#example">Example</a>
+        <ul>
+          <li><a href="#command-line">Command Line</a></li>
+          <li><a href="#csikit-library">CSIKit library</a></li>
+        </ul>
+      </li>
+      <li><a href="#supported-hardware">Supported Hardware</a></li>
+      <li><a href="#mistakes-and-tests">Mistakes and Tests</a></li>
+      <li><a href="#reference-links">Reference Links</a></li>
+      <li><a href="#license">License</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="description">Description</h2>
+
+<p><strong>CSIKit</strong> is a framework aimed at assisting data scientists, researchers, and programmers with performing experiments and tests using CSI-capable WiFi hardware.</p>
+
+<p>While the various public extraction toolkits do include scripts for parsing CSI data from their specific formats, these are largely written for MATLAB. Given the increasing focus on using deep learning in CSI experimentation, Python tools for parsing and processing CSI data may be more desirable for some. This is aimed at improving the accessibility of CSI research for those who may be interested in the area but have little experience with network engineering.</p>
+
+<p>As is usually the case with research-oriented software, documentation is in-progress.</p>
+
+<p>CSIKit provides a command line tool for parsing, processing, converting, and visualisation of CSI data, as well as libraries for use in other Python applications such as those working with Tensorflow, PyTorch, etc.</p>
+
+<div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">csikit [OPTIONS] file[.pcap/.dat]
+</span></code></pre></div></div>
+
+<h2 id="installation">Installation</h2>
+
+<p>CSIKit can be installed via pip or used directly from source.</p>
+
+<div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">pip install csikit
+</span></code></pre></div></div>
+
+<h2 id="example">Example</h2>
+
+<h3 id="command-line">Command Line</h3>
+
+<div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">csikit log.all_csi.6.7.6.dat
+csikit --graph --graph-type all_subcarriers log.all_csi.6.7.6.dat
+csikit --csv log.all_csi.6.7.6.dat
+</span></code></pre></div></div>
+
+<h3 id="csikit-library">CSIKit library</h3>
+
+<p>Generic example:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">CSIKit.reader</span> <span class="kn">import</span> <span class="n">get_reader</span>
+
+<span class="n">my_reader</span> <span class="o">=</span> <span class="n">get_reader</span><span class="p">(</span><span class="s">"path/to/csi_file.dat/pcap"</span><span class="p">)</span>
+<span class="n">csi_data</span> <span class="o">=</span> <span class="n">my_reader</span><span class="p">.</span><span class="n">read_file</span><span class="p">(</span><span class="s">"path/to/my_csi_file.dat/pcap"</span><span class="p">)</span>
+</code></pre></div></div>
+
+<!-- Raspberry Pi 4 example:
+
+```python
+from CSIKit.reader import NEXBeamformReader
+
+my_reader = NEXBeamformReader()
+csi_data = my_reader.read_file("path/to/test.pcap")
+``` -->
+
+<p>Hardware-specific (Intel IWL5300) example:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">CSIKit.reader</span> <span class="kn">import</span> <span class="n">IWLBeamformReader</span>
+
+<span class="n">my_reader</span> <span class="o">=</span> <span class="n">IWLBeamformReader</span><span class="p">()</span>
+<span class="n">csi_data</span> <span class="o">=</span> <span class="n">my_reader</span><span class="p">.</span><span class="n">read_file</span><span class="p">(</span><span class="s">"path/to/log.all_csi.6.7.6.dat"</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h2 id="supported-hardware">Supported Hardware</h2>
+
+<ul>
+  <li>Qualcomm Atheros 802.11n Chipsets</li>
+  <li>Intel IWL5300</li>
+  <li>Broadcom BCM4358, BCM43455c0, BCM4366c0</li>
+</ul>
+
+<h2 id="mistakes-and-tests">Mistakes and Tests</h2>
+
+<p>If anything is wrong, <a href="mailto:g.r.forbes@rgu.ac.uk">let me know</a>. I want to know why, and fix it!</p>
+
+<p>I’m a PhD student working on several sensor data-focussed experiments, a few of which involve using CSI. I’m am by no means an RF engineer or particularly experienced this area. I have done and are doing as much as I can to make sure that anything produced with this is accurate. To that end, there are MATLAB .mat files included in the <code class="language-plaintext highlighter-rouge">tests</code> folder which have been generated using IWLBeamformReader, NEXBeamformReader, and scipy’s <code class="language-plaintext highlighter-rouge">savemat</code> method. There are also MATLAB scripts in the <code class="language-plaintext highlighter-rouge">scripts</code> folder which can be used to check the validity of the output from this tool. In my experience I have found these tools to produce identical output to the MATLAB scripts offered by the following developers. If this is not the case, let me know.</p>
+
+<p>Further to that, if there are any assertions I have made within code comments or otherwise which are factually incorrect, again let me know. I want to learn as much about this area as I reasonably can.</p>
+
+<h2 id="reference-links">Reference Links</h2>
+
+<ul>
+  <li><strong><a href="https://wands.sg/research/wifi/AtherosCSI/">Atheros CSI Tool</a></strong>: CSI extraction suite for Atheros 802.11n WiFi hardware.
+    <ul>
+      <li>This project was released by <a href="https://personal.ntu.edu.sg/limo/">Mo Li</a> and <a href="https://www.cs.princeton.edu/~yaxiongx/">Yaxiong Xie</a>.</li>
+    </ul>
+  </li>
+  <li><strong><a href="https://dhalperi.github.io/linux-80211n-csitool/">Linux 802.11n CSI Tool</a></strong>: CSI extraction suite for Intel IWL5300 hardware.
+    <ul>
+      <li>This project was released by <a href="http://github.com/dhalperi">Daniel Halperin</a>.</li>
+    </ul>
+  </li>
+  <li><strong><a href="https://github.com/seemoo-lab/nexmon_csi">nexmon_csi</a></strong>: CSI extraction suite for a range of Broadcom WiFi hardware.
+    <ul>
+      <li>This project was released by the <a href="https://github.com/seemoo-lab">Secure Mobile Networking Lab</a>.</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="license">License</h2>
+
+<p>The code in this project is licensed under MIT license. If you are using this codebase for any research or other projects, I would greatly appreciate if you could cite this repository or one of my papers.</p>
+
+<p>a) “G. Forbes. CSIKit: Python CSI processing and visualisation tools for commercial off-the-shelf hardware. (2021). https://github.com/Gi-z/CSIKit.”</p>
+
+<p>b) “Forbes, G., Massie, S. and Craw, S., 2020, November. 
+      WiFi-based Human Activity Recognition using Raspberry Pi. 
+      In 2020 IEEE 32nd International Conference on Tools with Artificial Intelligence (ICTAI) (pp. 722-730). IEEE.”</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  @electronic{csikit:gforbes,
+      author = {Forbes, Glenn},
+      title = {CSIKit: Python CSI processing and visualisation tools for commercial off-the-shelf hardware.},
+      url = {https://github.com/Gi-z/CSIKit},
+      year = {2021}
+  }
+
+  @inproceedings{forbes2020wifi,
+    title={WiFi-based Human Activity Recognition using Raspberry Pi},
+    author={Forbes, Glenn and Massie, Stewart and Craw, Susan},
+    booktitle={2020 IEEE 32nd International Conference on Tools with Artificial Intelligence (ICTAI)},
+    pages={722--730},
+    year={2020},
+    organization={IEEE}
+  }
+</code></pre></div></div>
+
+
+      </section>
+      <footer>
+        
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="/assets/js/scale.fix.js"></script>
+    
+  </body>
+</html>
