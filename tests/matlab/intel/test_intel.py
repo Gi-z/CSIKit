@@ -35,6 +35,8 @@ def test_intel_matlab_consistency():
 
     for dat_path, mat_path in zip(example_files, matlab_files):
 
+        test_count += 1
+
         # Check if the accompanying .mat file exists.
         #   dat_file/mat_file are absolute paths.
         #   os.path.basename returns the last part of the path including the file extension.
@@ -107,5 +109,8 @@ def test_intel_matlab_consistency():
         #     success_count += 1
 
         # test_count += 2
+
+    if test_count == 0:
+        raise InconsistentOutputError("No tests performed. Ensure .dat and .mat files are present in their respective directories.")
 
     # print("Intel Tests complete: {}/{} successful.".format(success_count, test_count))

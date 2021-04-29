@@ -76,4 +76,7 @@ def test_nexmon_matlab_consistency():
 
         test_count += 1
 
+    if test_count == 0:
+        raise InconsistentOutputError("No tests performed. Ensure .dat and .mat files are present in their respective directories.")
+
     # print("Nexmon Tests complete: {}/{} successful.".format(success_count, test_count))

@@ -41,12 +41,26 @@ class ESP32CSIFrame(CSIFrame):
         self.csi_matrix = ESP32CSIFrame.parse_matrix(string_data)
 
     @staticmethod
-    def parse_matrix(string_data):
+    def parse_matrix(string_data, bandwidth=20):
         array_string = string_data.replace(" ", ", ")
         array_string_asarray = ast.literal_eval(array_string)
+
+        if bandwidth == 20 and len(array_string_asarray) < 128:
+            ESP32CSIFrame.fill_missing(array_string_asarray, 128)
+        elif bandwidth == 40 and len(array_string_asarray) < 256:
+            ESP32CSIFrame.fill_missing(array_string_asarray, 256)
 
         int8_matrix = np.array(array_string_asarray)
         int8_matrix = int8_matrix.reshape(-1, 2)
 
         complex_matrix = int8_matrix.astype(np.float32).view(np.complex64)
         return complex_matrix
+
+    # Seems some CSI lines are missing a value.
+    # Very rare, I assume weird dropped behaviour.
+    # Probably not the best way to fill the gap.
+    @staticmethod
+    def fill_missing(array, expected_length):
+        remainder = expected_length - len(array)
+        for _ in range(remainder):
+            array.append(0)
