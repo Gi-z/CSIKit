@@ -248,7 +248,7 @@ class IWLBeamformReader(Reader):
         if (noise == -127):
             noise_db = -92
 
-        noise_db = np.float(noise_db)
+        noise_db = float(noise_db)
         thermal_noise_pwr = dbinv(noise_db)
 
         #Quantization error: the coefficients in the matrices are 8-bit signed numbers,
