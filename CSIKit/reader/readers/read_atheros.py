@@ -50,7 +50,7 @@ class ATHBeamformReader(Reader):
     @staticmethod
     def read_bfee(csi_buf: bytes, nr: int, nc: int, num_tones: int, scaled: bool=False) -> np.array:
 
-        csi = np.empty((num_tones, nc, nr), dtype=np.complex)
+        csi = np.empty((num_tones, nc, nr), dtype=complex)
 
         bitmask = (1 << BITS_PER_SYMBOL) - 1
         idx = 0
@@ -85,7 +85,7 @@ class ATHBeamformReader(Reader):
                     bits_left -= BITS_PER_SYMBOL
                     current_data = current_data >> BITS_PER_SYMBOL
 
-                    csi[k, nc_idx, nr_idx] = np.complex(real, imag)
+                    csi[k, nc_idx, nr_idx] = complex(real, imag)
 
         return csi
 

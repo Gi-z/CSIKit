@@ -65,7 +65,7 @@ class IWLBeamformReader(Reader):
             # return print_length_error(expected_length, actual_length, i, filename)
             return None
 
-        csi = np.empty((30, n_rx, n_tx), dtype=np.complex)
+        csi = np.empty((30, n_rx, n_tx), dtype=complex)
 
         index = 0
         for i in range(30):
