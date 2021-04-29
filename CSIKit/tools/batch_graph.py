@@ -63,14 +63,14 @@ class BatchGraph:
         if len(finalEntry.shape) == 4:
             #>1 antenna stream.
             #Loading the first for ease.
-            finalEntry = finalEntry[:,:,0,0]
+            finalEntry = finalEntry[:, :, 0, 0]
 
         #Transpose to get subcarriers * amplitude.
         finalEntry = np.transpose(finalEntry)
 
         x_label = "Time (s)"
         try:
-            x = list([x.timestamp for x in csi_trace])
+            x = self.csi_data.timestamps
             x = [timestamp-x[0] for timestamp in x]
         except AttributeError as e:
             #No timestamp in frame. Likely an IWL entry.

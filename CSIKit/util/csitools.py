@@ -41,7 +41,7 @@ def get_CSI(csi_data: 'CSIData', metric: str="amplitude", extract_as_dBm: bool=T
         #Error. Unknown CSI shape.
         print("Error: Unknown CSI shape.")
 
-    csi = np.zeros((no_frames, no_subcarriers, no_rx_antennas, no_tx_antennas), dtype=complex)
+    csi = np.zeros((no_frames, no_subcarriers, no_rx_antennas, no_tx_antennas), dtype=np.complex)
 
     ranges = itertools.product(*[range(n) for n in [no_frames, no_subcarriers, no_rx_antennas, no_tx_antennas]])
     is_single_antenna = no_rx_antennas == 1 and no_tx_antennas == 1
@@ -50,7 +50,7 @@ def get_CSI(csi_data: 'CSIData', metric: str="amplitude", extract_as_dBm: bool=T
         frame_data = frames[frame].csi_matrix
         subcarrier_data = frame_data[subcarrier]
 
-        csi[frame][subcarrier] = subcarrier_data if is_single_antenna else subcarrier_data[rx_antenna_index][tx_antenna_index]
+        csi[frame][subcarrier][rx_antenna_index][tx_antenna_index] = subcarrier_data if is_single_antenna else subcarrier_data[rx_antenna_index][tx_antenna_index]
 
     if metric == "amplitude":
         csi = abs(csi)
