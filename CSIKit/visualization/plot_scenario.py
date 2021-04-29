@@ -58,7 +58,7 @@ class PlottableCSI():
 
     def _plot(self):
         self._figure = plt.figure()
-        axes_list = self.graph.plot( self._values_per_measurement)
+        axes_list = self.graph.plot(self._values_per_measurement)
         #{self._figure.add_subplot(ax) for ax in axes_list}
         
     def show(self):
@@ -67,13 +67,13 @@ class PlottableCSI():
 
     def save(self, folder, prefix=""):
         self._plot()
-        prefix = f"{prefix}-"
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        file_name = f"{self.metric.__class__.__name__}_{self.graph.__class__.__name__}"
-        path = f"./{folder}/{prefix}{file_name}.pdf".replace(" ","")
-        with PdfPages(path) as pdf:
-            pdf.savefig(self._figure, bbox_inches='tight')
+        # prefix = f"{prefix}-"
+        # if not os.path.exists(folder):
+        #     os.makedirs(folder)
+        # file_name = f"{self.metric.__class__.__name__}_{self.graph.__class__.__name__}"
+        # path = f"./{folder}/{prefix}{file_name}.pdf".replace(" ","")
+        # with PdfPages(path) as pdf:
+        #     pdf.savefig(self._figure, bbox_inches='tight')
 
 class ScenarioPlotter():
     """

@@ -159,10 +159,11 @@ class RSS_per_Antenna(TupleMetric):
         return (
             RSS._to_dBm(entry.rssi_a, agc),
             RSS._to_dBm(entry.rssi_b, agc),
-            RSS._to_dBm(entry.rssi_c, agc))
+            RSS._to_dBm(entry.rssi_c, agc)
+        )
 
     def get_name(self):
-        return "RSS pro Antenne"
+        return "RSS per Antenna"
 
     def get_unit(self):
         return "dBm"
@@ -257,7 +258,7 @@ class Datarate(Metric):
             return BANDWITH[mbit_index]
         else:
             raise Exception(
-                f"self.rate is worng encoded. Index does not match:\n{BANDWITH}\nINDEX:{mbit_index}\nRATE:{rate} -----{bin(rate)}")
+                f"self.rate is wrongly encoded. Index does not match:\n{BANDWITH}\nINDEX:{mbit_index}\nRATE:{rate} -----{bin(rate)}")
 
         # 13. BIT--> 0.4 usec (1) 0.8 usec(0) 
         # if rate & (1 << (13 - 1)):
@@ -289,7 +290,7 @@ class Amplitude_Sum(Metric):
     @classmethod
     def __calc_amplitude(cls, entry: CsiEntry):
         if entry.n_tx < 1:
-            raise Exception("corrupted csi Entry. No Tx found")
+            raise Exception("Corrupted csi Entry. No Tx found")
         amplitude = 0
         # TODO what is when tx > 1
         for sub in entry.csi_matrix:
@@ -344,7 +345,7 @@ class Phase_Diff_Std_err(TupleMetric, _Phase_Diff):
 class Amplitude_per_Antenna(TupleMetric):
     def notice(self, entry: CsiEntry):
         if entry.n_tx < 1:
-            raise Exception("corrupted csi Entry. No Tx found")
+            raise Exception("Corrupted csi Entry. No Tx found")
 
         results = []
         for rx in range(entry.n_rx):
@@ -352,7 +353,7 @@ class Amplitude_per_Antenna(TupleMetric):
         return (tuple(results))
 
     def get_name(self):
-        return "Amplitude pro Antenne"
+        return "Amplitude per Antenna"
 
     def get_unit(self):
         return "dB"
@@ -393,7 +394,7 @@ class CSI_Matrix_Phase_Diff_1_2(MatrixMetric):
         return "Phase"
 
     def get_unit(self):
-        return "radians"
+        return "Radians"
 
     @classmethod
     def _extract_phase(cls, entry):
