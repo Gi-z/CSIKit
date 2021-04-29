@@ -22,8 +22,6 @@ VALID_BEAMFORMING_MEASUREMENT = 187
 class IWLBeamformReader(Reader):
     """
         This class handles parsing for CSI data from both batched files and realtime CSI packets from IWL5300 hardware.
-        It is optimised for speed, with minor sanity checking throughout.
-        On a modern system, a frame can usually be processed in around 9e-4 seconds.
 
         The testing options allow for mat files to be generated, whose integrity can be verified with the matlab/intelcompare.m script.
     """
