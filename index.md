@@ -94,6 +94,13 @@ csi_data = my_reader.read_file("path/to/log.all_csi.6.7.6.dat")
 - Qualcomm Atheros 802.11n Chipsets
 - Intel IWL5300
 - Broadcom BCM4358, BCM43455c0, BCM4366c0
+- ESP32 via [ESP32-CSI-Tool](https://github.com/StevenMHernandez/ESP32-CSI-Tool)
+
+## Coming Soon
+
+### Realtime Retrieval
+
+- Utilities for retrieving CSI directly from supported drivers for realtime preprocessing and collection.
 
 ## Mistakes and Tests
 
@@ -111,6 +118,8 @@ Further to that, if there are any assertions I have made within code comments or
   - This project was released by [Daniel Halperin](http://github.com/dhalperi).
 - **[nexmon_csi](https://github.com/seemoo-lab/nexmon_csi)**: CSI extraction suite for a range of Broadcom WiFi hardware.
   - This project was released by the [Secure Mobile Networking Lab](https://github.com/seemoo-lab).
+- **[ESP32-CSI-Tool](https://github.com/StevenMHernandez/ESP32-CSI-Tool)**: CSI extraction utilities for ESP32 hardware.
+  - This project was released by [Steven Hernandez](https://github.com/StevenMHernandez).
 
 ## License
 
