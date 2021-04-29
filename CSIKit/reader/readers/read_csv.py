@@ -1,16 +1,8 @@
-import csv
 import os
-import struct
-import time
-
-import numpy as np
 
 from CSIKit.csi import CSIData
 from CSIKit.csi.frames import ESP32CSIFrame
 from CSIKit.reader import Reader
-
-from CSIKit.util import byteops
-from CSIKit.util.matlab import dbinv
 
 ESP32_HEADER = ["type", "role", "mac", "rssi", "rate", "sig_mode", "mcs", "bandwidth", "smoothing", "not_sounding",
                 "aggregation", "stbc", "fec_coding", "sgi", "noise_floor", "ampdu_cnt", "channel", "secondary_channel",
@@ -98,6 +90,6 @@ class CSVBeamformReader(Reader):
 
             ret_data.push_frame(new_frame)
             #TODO: Normalise the timestamp retrieval.
-            ret_data.timestamps.append(new_frame.real_timestamp)
+            ret_data.timestamps.append(float(new_frame.real_timestamp))
 
         return ret_data
