@@ -8,7 +8,7 @@ Tools for extracting Channel State Information from formats produced by a range 
 
 Python 3.6+ required.
 
-- **CSI parsing** from Atheros, Intel and Broadcom (nexmon) formats.
+- **CSI parsing** from Atheros, Intel, Broadcom (nexmon), and ESP32 formats.
 - **Processing** and **Visualisation** using numpy and matplotlib.
 - **CSV/JSON generators** for dataset serialisation.
 - **Library** and **Tools** for parsing CSI for your own Python applications.
@@ -39,7 +39,7 @@ As is usually the case with research-oriented software, documentation is in-prog
 CSIKit provides a command line tool for parsing, processing, converting, and visualisation of CSI data, as well as libraries for use in other Python applications such as those working with Tensorflow, PyTorch, etc.
 
 ```console
-csikit [OPTIONS] file[.pcap/.dat]
+csikit [OPTIONS] file[.pcap/.dat/.csv]
 ```
 
 ## Installation
