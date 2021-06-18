@@ -9,13 +9,13 @@ def get_var(cD):
 
 def denoise(csi_matrix, level=None):
     denoised_csi = np.zeros(csi_matrix.shape)
-    frame_count = denoised_csi.shape[0]
+    frame_count, subcarrier_count = denoised_csi.shape[:2]
 
     if level is None:
         level = pywt.dwt_max_level(frame_count, "sym3")
 
-    for subcarrier_index in range(denoised_csi.shape[1]):
-        subcarrier_signal = csi_matrix[:,subcarrier_index]
+    for subcarrier_index in range(subcarrier_count):
+        subcarrier_signal = csi_matrix[:, subcarrier_index]
 
         coefficients = pywt.wavedec(subcarrier_signal, "sym3", level=level)
         coefficients_sln = [coefficients[0]]
@@ -33,9 +33,9 @@ def denoise(csi_matrix, level=None):
 
         reconstructed_signal = pywt.waverec(coefficients_sln, "sym3")
         if len(reconstructed_signal) == frame_count:
-            denoised_csi[:,subcarrier_index] = reconstructed_signal
+            denoised_csi[:, subcarrier_index] = reconstructed_signal
         else:
-            denoised_csi[:,subcarrier_index] = reconstructed_signal[:-1]
+            denoised_csi[:, subcarrier_index] = reconstructed_signal[:-1]
 
 
     return denoised_csi
