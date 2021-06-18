@@ -2,6 +2,8 @@ from CSIKit.csi.csiframe import CSIFrame
 from CSIKit.csi.csimetadata import CSIMetadata
 from CSIKit.util.csitools import get_CSI
 
+import numpy as np
+
 class CSIData:
 
     def __init__(self, filename: str="", chipset: str=""):
@@ -52,12 +54,34 @@ class CSIData:
             #Get diff between first and last.
             time_length = final_timestamp - timestamps[0]
         else:
-            time_length = float(final_timestamp)
+            time_length = round(float(final_timestamp), 1)
 
         if final_timestamp == 0:
             average_sample_rate = 0
         else:
-            average_sample_rate = no_frames/time_length
+            average_sample_rate = round(no_frames/time_length, 1)
+
+        rss_total = []
+        if hasattr(self.frames[0], "rssi"):
+            rss_total = [x.rssi for x in self.frames]
+        else:
+            # Must sum a/b/c.
+            for frame in self.frames:
+                total_rss_for_frame = 0
+                divisor = 0
+                if frame.rssi_a != 0:
+                    total_rss_for_frame += frame.rssi_a
+                    divisor += 1
+                if frame.rssi_b != 0:
+                    total_rss_for_frame += frame.rssi_b
+                    divisor += 1
+                if frame.rssi_c != 0:
+                    total_rss_for_frame += frame.rssi_c
+                    divisor += 1
+                total_rss_for_frame /= divisor
+                rss_total.append(total_rss_for_frame)
+
+        average_rssi = round(np.mean(rss_total), 1)
 
         data = {
             "chipset": chipset,
@@ -67,6 +91,7 @@ class CSIData:
             "subcarriers": no_subcarriers,
             "time_length": time_length,
             "average_sample_rate": average_sample_rate,
+            "average_rssi": average_rssi,
             "csi_shape": unmodified_csi_matrix.shape
         }    
 
