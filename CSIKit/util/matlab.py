@@ -9,3 +9,6 @@ def db(x: float, metric: str="voltage") -> float:
         return 20 * np.log10(x)
     elif metric == "pow":
         return 10 * np.log10(x)
+
+def sqtwolog(x: float) -> float:
+    return np.sqrt(2*np.log(len(x)))
