@@ -1,11 +1,12 @@
-from CSIKit.util.matlab import db
+from CSIKit.util.matlab import db, dbinv
 
 from typing import Tuple
 
 import numpy as np
 import itertools
 
-# This function takes CSIData and returns the assembled CSI matrix from all frames, 
+
+# This function takes CSIData and returns the assembled CSI matrix from all frames,
 # as well as the number of frames and subcarrier contained therein.
 # 
 # 1. The first frame's shape is used to establish parameters for the assembled CSI matrix.
@@ -16,29 +17,29 @@ import itertools
 # 3. Iterate through each frame and extract CSI for each subcarrier at each antenna stream.
 # 4. Return complete CSI matrix, number of frames and number of subcarriers.
 
-def get_CSI(csi_data: 'CSIData', metric: str="amplitude", extract_as_dBm: bool=True, squeeze_output: bool=False) -> Tuple[np.array, int, int]:
+def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool = True,
+            squeeze_output: bool = False) -> Tuple[np.array, int, int]:
+    # TODO: Add proper error handling.
 
-    #TODO: Add proper error handling.
-
-    #This looks a little ugly.
+    # This looks a little ugly.
     frames = csi_data.frames
     csi_shape = frames[0].csi_matrix.shape
-    
+
     no_frames = len(frames)
     no_subcarriers = csi_shape[0]
 
-    #Matrices should be Frames * Subcarriers * Rx * Tx.
-    #Single Rx/Tx streams should be squeezed.
+    # Matrices should be Frames * Subcarriers * Rx * Tx.
+    # Single Rx/Tx streams should be squeezed.
     if len(csi_shape) == 3:
-        #Intel data comes as Subcarriers * Rx * Tx.
+        # Intel data comes as Subcarriers * Rx * Tx.
         no_rx_antennas = csi_shape[1]
         no_tx_antennas = csi_shape[2]
     elif len(csi_shape) == 2 or len(csi_shape) == 1:
-        #Single antenna stream.
+        # Single antenna stream.
         no_rx_antennas = 1
         no_tx_antennas = 1
     else:
-        #Error. Unknown CSI shape.
+        # Error. Unknown CSI shape.
         print("Error: Unknown CSI shape.")
 
     csi = np.zeros((no_frames, no_subcarriers, no_rx_antennas, no_tx_antennas), dtype=np.complex)
@@ -50,7 +51,8 @@ def get_CSI(csi_data: 'CSIData', metric: str="amplitude", extract_as_dBm: bool=T
         frame_data = frames[frame].csi_matrix
         subcarrier_data = frame_data[subcarrier]
 
-        csi[frame][subcarrier][rx_antenna_index][tx_antenna_index] = subcarrier_data if is_single_antenna else subcarrier_data[rx_antenna_index][tx_antenna_index]
+        csi[frame][subcarrier][rx_antenna_index][tx_antenna_index] = subcarrier_data if is_single_antenna else \
+        subcarrier_data[rx_antenna_index][tx_antenna_index]
 
     if metric == "amplitude":
         csi = abs(csi)
@@ -64,49 +66,22 @@ def get_CSI(csi_data: 'CSIData', metric: str="amplitude", extract_as_dBm: bool=T
 
     return (csi, no_frames, no_subcarriers)
 
-# def get_CSI(csi_data: 'CSIData', metric: str="amplitude", antenna_stream: int=None, extract_as_dBm: bool=True) -> Tuple[np.array, int, int]:
-    
-#     #TODO: Clean this up.
 
-#     frames = csi_data.frames
+def scale_csi_frame(csi: np.array, rss: int) -> np.array:
+    # This is not a true SNR ratio as is the case for the Intel scaling.
+    # We do not have agc or noise values so it's just about establishing a scale against RSS.
 
-#     csi_shape = frames[0].csi_matrix.shape
-#     print("CSI Shape: " + str(csi_shape))
+    subcarrier_count = csi.shape[0]
 
-#     no_frames = len(frames)
-#     no_subcarriers = csi_shape[0]
+    rss_pwr = dbinv(rss)
 
-#     if len(csi_shape) == 3:
-#         if antenna_stream == None:
-#             antenna_stream = 0
+    csi_sq = np.multiply(csi, np.conj(csi))
+    csi_pwr = np.sum(csi_sq)
+    csi_pwr = np.real(csi_pwr)
 
-#     csi = np.zeros((no_subcarriers, no_frames))
+    # This implementation is based on the equation shown in https://doi.org/10.1109/JIOT.2020.3022573.
+    # scaling_coefficient = sqrt(10^(RSS/10) / sum(CSIi^2))
 
-#     for x in range(no_frames):
-#         entry = frames[x].csi_matrix
-#         for y in range(no_subcarriers):
-#             if metric == "amplitude":
-#                 if antenna_stream is not None:
-#                     if extract_as_dBm:
-#                         csi[y][x] = db(abs(entry[y][antenna_stream][antenna_stream]))
-#                     else:
-#                         csi[y][x] = abs(entry[y][antenna_stream][antenna_stream])
-#                 else:
-#                     if extract_as_dBm:
-#                         csi[y][x] = db(abs(entry[y]))
-#                     else:
-#                         csi[y][x] = abs(entry[y])
-#             elif metric == "phasediff":
-#                 if entry.shape[1] >= 2:
-#                     #Not 100% sure this generates correct Phase Difference.
-#                     csi[y][x] = np.angle(entry[y][1][0])-np.angle(entry[y][0][0])
-#                 else:
-#                     print("Unable to calculate phase difference on single antenna configurations.")
-#                     return False
-#             elif metric == "phase":
-#                 if antenna_stream is not None:
-#                     csi[y][x] = np.angle(entry[y][antenna_stream][antenna_stream])
-#                 else:
-#                     csi[y][x] = np.angle(entry[y])
+    scale = rss_pwr / (csi_pwr / subcarrier_count)
 
-#     return (csi, no_frames, no_subcarriers)
+    return csi * np.sqrt(scale)
