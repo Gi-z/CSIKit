@@ -13,8 +13,8 @@ def bandpass(csi_vec: np.array, low_cut: float, high_cut: float, fs: float, orde
     b, a = signal.butter(order, [low_cut/nyq, high_cut/nyq], btype="band", analog=False)
     return signal.filtfilt(b, a, csi_vec)
 
-#Original implementation from whyrlpool.
-#Runs slightly slower than Pandas implementation.
+# Original implementation from whyrlpool.
+# Runs slightly slower than Pandas implementation.
 def hampel(csi: np.array, k: int=3, nsigma: int=3) -> np.array:
     index = 0
     csi = csi.copy()
