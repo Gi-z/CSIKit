@@ -8,8 +8,8 @@ from CSIKit.csi import CSIData
 from CSIKit.csi.frames import NEXCSIFrame
 from CSIKit.reader import Reader
 
-from CSIKit.util import byteops
-from CSIKit.util.matlab import dbinv
+from CSIKit.util import byteops, stringops
+from CSIKit.util import csitools, constants
 
 start = time.time()
 
@@ -24,8 +24,9 @@ class PcapFrame:
     CHIPS = {
         "": "4339", #Cannot find an up to date version of this format.
         
-        "6500": "43455c0", 
-        
+        "6500": "43455c0",
+        "dca6": "43455c0",
+
         "adde": "4358",
 
         "34e8": "4366c0", #Seen in data/nexmon/example_4366c0
@@ -54,14 +55,14 @@ class PcapFrame:
         payloadHeader["magic_bytes"] = payload[:2]
         payloadHeader["rssi"] = struct.unpack("b", payload[2:3])[0]
         payloadHeader["frame_control"] = struct.unpack("B", payload[3:4])[0]
-        payloadHeader["source_mac"] = payload[4:10].hex()
-        payloadHeader["sequence_no"] = payload[10:12]
+        payloadHeader["source_mac"] = stringops.hexToMACString(payload[4:10].hex())
+        payloadHeader["sequence_no"] = payload[10:12].hex()
 
         coreSpatialBytes = int.from_bytes(payload[12:14], byteorder="little")
         payloadHeader["core"] = [int(coreSpatialBytes&x != 0) for x in range(3)]
         payloadHeader["spatial_stream"] = [int(coreSpatialBytes&x != 0) for x in range(3, 6)]
 
-        payloadHeader["channel_spec"] = payload[14:16]
+        payloadHeader["channel_spec"] = payload[14:16].hex()
        
         chipIdentifier = payload[16:18].hex()
         if chipIdentifier in PcapFrame.CHIPS:
@@ -72,9 +73,12 @@ class PcapFrame:
         return payloadHeader
         
     def read_payload(self) -> np.array:
+        # incl_len = self.header["incl_len"][0]-26
         incl_len = self.header["incl_len"][0]
         if incl_len <= 0:
             return False
+
+        # self.offset += 26
 
         if (incl_len % 4) == 0:
             ints_size = int(incl_len / 4)
@@ -221,7 +225,7 @@ class NEXBeamformReader(Reader):
 
         return ret_data
 
-    def read_bfee(self, pcap_frame: PcapFrame, scaled: bool, bandwidth: int) -> NEXCSIFrame:
+    def read_bfee(self, pcap_frame: PcapFrame, scaled: bool, bandwidth: int, remove_unusuable_subcarriers: bool=True) -> NEXCSIFrame:
         if pcap_frame is None:
             return None
 
@@ -248,6 +252,10 @@ class NEXBeamformReader(Reader):
             # exit(1)
             return None
 
+        # Manually adding timestamp to the payloadHeader.
+        # TODO: Merge differently.
+        pcap_frame.payloadHeader["timestamp"] = timestamp
+
         if chipType != "UNKNOWN":
             self.chip = chipType
 
@@ -255,15 +263,18 @@ class NEXBeamformReader(Reader):
         # To convert this to complex doubles, we'll first reshape into pairs.
         # And then view the int32 matrix as float32, before viewing as complex64.
         # This removes several for loops.
+        if len(data) % 2 != 0:
+            return NEXCSIFrame(pcap_frame.payloadHeader, np.zeros((self.BW_SUBS[bandwidth], 1)))
+
         csiData = data.reshape(-1, 2)
         csi = csiData.astype(np.float32).view(np.complex64)
         
-        if scaled:
-            csi = NEXBeamformReader.scale_csi_frame(csi, pcap_frame.payloadHeader)
+        # if scaled:
+        #     csi = csitools.scale_csi_frame(csi, pcap_frame.payloadHeader["rssi"])
 
-        #Manually adding timestamp to the payloadHeader.
-        #TODO: Merge differently.
-        pcap_frame.payloadHeader["timestamp"] = timestamp
+        # no_subcarriers = csi.shape[0]
+        # if remove_unusuable_subcarriers:
+        #     csi = csi[[x for x in range(no_subcarriers) if x not in constants.PI_20MHZ_UNUSABLE]]
 
         return NEXCSIFrame(pcap_frame.payloadHeader, csi)
 
@@ -271,23 +282,3 @@ class NEXBeamformReader(Reader):
         #Split the file into individual frames.
         #Send payloads to read_bfee so they can be extracted.
         return [self.read_bfee(x, scaled, bandwidth) for x in frames]
-
-    @staticmethod
-    def scale_csi_frame(csi: np.array, header: dict) -> np.array:
-        #This is not a true SNR ratio as is the case for the Intel scaling.
-        #We do not have agc or noise values so it's just about establishing a scale against RSSI.
-
-        rssi = np.abs(header["rssi"])
-
-        #Calculate the scale factor between normalized CSI and RSSI (mW).
-        csi_sq = np.multiply(csi, np.conj(csi))
-        csi_pwr = np.sum(csi_sq)
-        csi_pwr = np.real(csi_pwr)
-        csi_pwr_mean = np.mean(csi_pwr)
-        
-        rssi_pwr = dbinv(rssi)
-        
-        #Scale CSI -> Signal power : rssi_pwr / (mean of csi_pwr)
-        scale = rssi_pwr / csi_pwr_mean
-
-        return csi * np.sqrt(scale)
