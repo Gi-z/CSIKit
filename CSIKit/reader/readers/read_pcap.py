@@ -9,7 +9,6 @@ from CSIKit.csi.frames import NEXCSIFrame
 from CSIKit.reader import Reader
 
 from CSIKit.util import byteops, stringops
-from CSIKit.util import csitools, constants
 
 start = time.time()
 
@@ -49,18 +48,17 @@ class PcapFrame:
     def read_payloadHeader(payload: bytes) -> dict:
         payloadHeader = {}
 
-        #Stupid question, why is the header 18 bytes?
-        #The Hoffset is 16 everywhere else.
-
         payloadHeader["magic_bytes"] = payload[:2]
         payloadHeader["rssi"] = struct.unpack("b", payload[2:3])[0]
         payloadHeader["frame_control"] = struct.unpack("B", payload[3:4])[0]
         payloadHeader["source_mac"] = stringops.hexToMACString(payload[4:10].hex())
-        payloadHeader["sequence_no"] = payload[10:12].hex()
+        payloadHeader["sequence_no"] = int.from_bytes(payload[10:12], byteorder="little")
 
         coreSpatialBytes = int.from_bytes(payload[12:14], byteorder="little")
-        payloadHeader["core"] = [int(coreSpatialBytes&x != 0) for x in range(3)]
-        payloadHeader["spatial_stream"] = [int(coreSpatialBytes&x != 0) for x in range(3, 6)]
+        coreSpatialBits = bin(coreSpatialBytes)[2:].zfill(16)
+
+        payloadHeader["core"] = int(int(coreSpatialBits[3:6], 2)/2)
+        payloadHeader["spatial_stream"] = int(int(coreSpatialBits[6:9], 2)/2)
 
         payloadHeader["channel_spec"] = payload[14:16].hex()
        
@@ -153,7 +151,7 @@ class Pcap:
             if self.expected_size != given_size:
                 #print("Change in bandwidth observed in adjacent CSI frames, skipping...")
                 self.skipped_frames += 1
-            else:
+            elif next_frame is not None:
                 self.frames.append(next_frame)
 
     def readHeader(self) -> np.array:
@@ -268,7 +266,7 @@ class NEXBeamformReader(Reader):
 
         csiData = data.reshape(-1, 2)
         csi = csiData.astype(np.float32).view(np.complex64)
-        
+
         # if scaled:
         #     csi = csitools.scale_csi_frame(csi, pcap_frame.payloadHeader["rssi"])
 
@@ -278,7 +276,96 @@ class NEXBeamformReader(Reader):
 
         return NEXCSIFrame(pcap_frame.payloadHeader, csi)
 
+    def read_bfee_batch(self, pcap_frames: list, scaled: bool, bandwidth: int,
+                  remove_unusuable_subcarriers: bool = True, rx_num: int = 1, tx_num: int = 1) -> NEXCSIFrame:
+
+        total_csi = np.zeros((rx_num, tx_num, self.BW_SUBS[bandwidth]), dtype=complex)
+
+        frame_header = pcap_frames[0].header
+        payload_header = pcap_frames[0].payloadHeader
+
+        # ts_usec contains microseconds as an offset to the main seconds timestamp.
+        usecs = frame_header["ts_usec"][0] / 1e+6
+        timestamp = frame_header["ts_sec"][0] + usecs
+
+        # Manually adding timestamp to the payloadHeader.
+        # TODO: Merge differently.
+        payload_header["timestamp"] = timestamp
+
+        chipType = payload_header["chip"]
+        if chipType != "UNKNOWN":
+            self.chip = chipType
+
+        for pcap_frame in pcap_frames:
+            data = pcap_frame.payload
+
+            if chipType in ["4339", "43455c0"]:
+                data.dtype = np.int16
+                data = data[30:]
+            elif chipType == "4358":
+                data = data[15:15 + int(bandwidth * 3.2)]
+                data = self.unpack_float(0, int(bandwidth * 3.2), data)
+            elif chipType == "4366c0":
+                data = data[15:15 + int(bandwidth * 3.2)]
+                data = self.unpack_float(1, int(bandwidth * 3.2), data)
+            else:
+                print("Invalid chip: " + chipType)
+                print("Current supported chipsets: 4339,43455c0,4358,4366c0")
+                exit(1)
+
+            # data is now a 1d matrix of int32 values.
+            # To convert this to complex doubles, we'll first reshape into pairs.
+            # And then view the int32 matrix as float32, before viewing as complex64.
+            # This removes several for loops.
+            if len(data) % 2 != 0:
+                print("Incomplete payload on frame")
+                exit(1)
+
+            csiData = data.reshape(-1, 2)
+            csi = csiData.astype(np.float32).view(np.complex64)
+
+            # if scaled:
+            #     csi = csitools.scale_csi_frame(csi, pcap_frame.payloadHeader["rssi"])
+
+            core = pcap_frame.payloadHeader["core"]
+            spatial_stream = pcap_frame.payloadHeader["spatial_stream"]
+
+            total_csi[core][spatial_stream] = csi.flatten()
+
+        return NEXCSIFrame(payload_header, np.transpose(total_csi))
+
     def read_frames(self, frames: list, scaled: bool, bandwidth: int) -> list:
-        #Split the file into individual frames.
-        #Send payloads to read_bfee so they can be extracted.
-        return [self.read_bfee(x, scaled, bandwidth) for x in frames]
+        # # Split the file into individual frames.
+        # # Send payloads to read_bfee so they can be extracted.
+        # return [self.read_bfee(x, scaled, bandwidth) for x in frames]
+
+        sequences = []
+        current_sequence = []
+        current_sequence_no = 0
+
+        max_core = 0
+        max_spatial_stream = 0
+
+        for frame in frames:
+            if frame.payloadHeader["sequence_no"] != current_sequence_no:
+                if len(current_sequence) > 0:
+                    sequences.append(current_sequence)
+
+                current_sequence = [frame]
+                current_sequence_no = frame.payloadHeader["sequence_no"]
+            else:
+                if frame.payloadHeader["core"] > max_core:
+                    max_core = frame.payloadHeader["core"]
+
+                if frame.payloadHeader["spatial_stream"] > max_spatial_stream:
+                    max_spatial_stream = frame.payloadHeader["spatial_stream"]
+
+                current_sequence.append(frame)
+
+        max_core += 1
+        max_spatial_stream += 1
+
+        if len(current_sequence) > 0:
+            sequences.append(current_sequence)
+
+        return [self.read_bfee_batch(seq, scaled, bandwidth, tx_num=max_core, rx_num=max_spatial_stream) for seq in sequences]
