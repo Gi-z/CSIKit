@@ -54,7 +54,7 @@ class IWLBeamformReader(Reader):
 
     @staticmethod
     @jit(nopython=True)
-    def read_bfee(header: list, data: bytes, perm: list, i: int=0, filename: str="") -> np.array:
+    def read_bfee(header: list, data: bytes, perm: np.array, i: int=0, filename: str="") -> np.array:
 
         n_rx = header[3]
         n_tx = header[4]
@@ -109,7 +109,7 @@ class IWLBeamformReader(Reader):
 
         #If less than 3 Rx antennas are detected, default permutation should be used.
         #Otherwise invalid indices will likely be raised.
-        perm = [0, 1, 2]
+        perm = np.array([0, 1, 2])
         if sum(perm) == n_rx:
             perm[0] = ((antenna_sel) & 0x3)
             perm[1] = ((antenna_sel >> 2) & 0x3)

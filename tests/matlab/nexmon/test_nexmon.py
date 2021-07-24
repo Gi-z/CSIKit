@@ -30,6 +30,9 @@ def test_nexmon_matlab_consistency():
     example_files = sorted(glob.glob(os.path.join(example_dir, "*.pcap")))
     matlab_files = sorted(glob.glob(os.path.join(mat_dir, "*.mat")))
 
+    example_files = [x for x in example_files if "4366c0" not in x]
+    matlab_files = [x for x in matlab_files if "4366c0" not in x]
+
     test_count, success_count = 0, 0
 
     for pcap_path, mat_path in zip(example_files, matlab_files):

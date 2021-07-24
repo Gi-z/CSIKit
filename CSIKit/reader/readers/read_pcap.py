@@ -330,7 +330,6 @@ class NEXBeamformReader(Reader):
 
             csiData = data.reshape(-1, 2)
             csi = csiData.astype(np.float32).view(np.complex64)
-            # csi = data
 
             if self.scaled:
                 csi = csitools.scale_csi_frame(csi, pcap_frame.payloadHeader["rssi"])
@@ -343,10 +342,12 @@ class NEXBeamformReader(Reader):
         return NEXCSIFrame(payload_header, np.transpose(total_csi))
 
     def read_frames(self, frames: list, scaled: bool, bandwidth: int) -> list:
-        # # Split the file into individual frames.
-        # # Send payloads to read_bfee so they can be extracted.
-        # return [self.read_bfee(x, scaled, bandwidth) for x in frames]
 
+        # Check if sequence_no changes. If not, 1Rx/Tx stream.
+        if frames[0].payloadHeader["sequence_no"] == frames[-1].payloadHeader["sequence_no"]:
+            return [self.read_bfee(x, bandwidth) for x in frames]
+
+        # Otherwise, read sequential spatial streams in batches.
         sequences = []
         current_sequence = []
         current_sequence_no = 0
