@@ -2,13 +2,19 @@ import os
 import struct
 import time
 
+# import byteops
+
 import numpy as np
 
 from CSIKit.csi import CSIData
 from CSIKit.csi.frames import NEXCSIFrame
 from CSIKit.reader import Reader
 
-from CSIKit.util import byteops, stringops
+from CSIKit.util import byteops
+from CSIKit.util import csitools, stringops
+
+from joblib import Parallel, delayed
+from numba import jit
 
 start = time.time()
 
@@ -169,7 +175,7 @@ class NEXBeamformReader(Reader):
      "chip"]
     EMPTY_HEADER = {k: 0 for k in HEADER_SLOTS}
 
-    def __init__(self, fill_skipped_frames: bool=True):
+    def __init__(self, fill_skipped_frames: bool = True):
         super().__init__()
         self.fill_skipped_frames = fill_skipped_frames
 
@@ -190,8 +196,9 @@ class NEXBeamformReader(Reader):
             return byteops.unpack_float_acphy(10, 1, 0, 1, 9, 5, nfft, nfftx1)
         elif format == 1:
             return byteops.unpack_float_acphy(10, 1, 0, 1, 12, 6, nfft, nfftx1)
+            # return byteops.unpack_float_acphy(1, 12, 6, nfft, nfftx1)
 
-    def read_file(self, path: str, scaled: bool=False) -> CSIData:
+    def read_file(self, path: str, scaled: bool = False) -> CSIData:
 
         self.chip = " UNKNOWN"
 
@@ -200,6 +207,7 @@ class NEXBeamformReader(Reader):
             raise Exception("File not found: {}".format(path))
 
         self.pcap = Pcap(path)
+        self.scaled = scaled
 
         ret_data = CSIData(self.filename)
         ret_data.bandwidth = self.pcap.bandwidth
@@ -223,7 +231,7 @@ class NEXBeamformReader(Reader):
 
         return ret_data
 
-    def read_bfee(self, pcap_frame: PcapFrame, scaled: bool, bandwidth: int, remove_unusuable_subcarriers: bool=True) -> NEXCSIFrame:
+    def read_bfee(self, pcap_frame: PcapFrame, bandwidth: int, remove_unusuable_subcarriers: bool=True) -> NEXCSIFrame:
         if pcap_frame is None:
             return None
 
@@ -259,7 +267,7 @@ class NEXBeamformReader(Reader):
 
         # data is now a 1d matrix of int32 values.
         # To convert this to complex doubles, we'll first reshape into pairs.
-        # And then view the int32 matrix as float32, before viewing as complex64.
+        # And then interpret the int32 matrix as float32, before viewing as complex64.
         # This removes several for loops.
         if len(data) % 2 != 0:
             return NEXCSIFrame(pcap_frame.payloadHeader, np.zeros((self.BW_SUBS[bandwidth], 1)))
@@ -267,8 +275,8 @@ class NEXBeamformReader(Reader):
         csiData = data.reshape(-1, 2)
         csi = csiData.astype(np.float32).view(np.complex64)
 
-        # if scaled:
-        #     csi = csitools.scale_csi_frame(csi, pcap_frame.payloadHeader["rssi"])
+        if self.scaled:
+            csi = csitools.scale_csi_frame(csi, pcap_frame.payloadHeader["rssi"])
 
         # no_subcarriers = csi.shape[0]
         # if remove_unusuable_subcarriers:
@@ -276,8 +284,7 @@ class NEXBeamformReader(Reader):
 
         return NEXCSIFrame(pcap_frame.payloadHeader, csi)
 
-    def read_bfee_batch(self, pcap_frames: list, scaled: bool, bandwidth: int,
-                  remove_unusuable_subcarriers: bool = True, rx_num: int = 1, tx_num: int = 1) -> NEXCSIFrame:
+    def read_bfee_batch(self, pcap_frames: list, bandwidth: int, rx_num: int = 1, tx_num: int = 1) -> NEXCSIFrame:
 
         total_csi = np.zeros((rx_num, tx_num, self.BW_SUBS[bandwidth]), dtype=complex)
 
@@ -323,9 +330,10 @@ class NEXBeamformReader(Reader):
 
             csiData = data.reshape(-1, 2)
             csi = csiData.astype(np.float32).view(np.complex64)
+            # csi = data
 
-            # if scaled:
-            #     csi = csitools.scale_csi_frame(csi, pcap_frame.payloadHeader["rssi"])
+            if self.scaled:
+                csi = csitools.scale_csi_frame(csi, pcap_frame.payloadHeader["rssi"])
 
             core = pcap_frame.payloadHeader["core"]
             spatial_stream = pcap_frame.payloadHeader["spatial_stream"]
@@ -368,4 +376,4 @@ class NEXBeamformReader(Reader):
         if len(current_sequence) > 0:
             sequences.append(current_sequence)
 
-        return [self.read_bfee_batch(seq, scaled, bandwidth, tx_num=max_core, rx_num=max_spatial_stream) for seq in sequences]
+        return [self.read_bfee_batch(seq, bandwidth, tx_num=max_core, rx_num=max_spatial_stream) for seq in sequences]

@@ -5,10 +5,12 @@ from time import time
 import numpy as np
 
 from math import floor
+from numba import jit
 
 from CSIKit.csi import CSIData
 from CSIKit.csi.frames import IWLCSIFrame
 from CSIKit.reader import Reader
+from CSIKit.util import csitools
 
 from CSIKit.util.errors import print_length_error
 from CSIKit.util.matlab import db, dbinv
@@ -51,7 +53,8 @@ class IWLBeamformReader(Reader):
             raise Exception("File not found: {}".format(path))
 
     @staticmethod
-    def read_bfee(header: list, data: bytes, perm: list, scaled: bool, i: int=0, filename: str="") -> np.array:
+    @jit(nopython=True)
+    def read_bfee(header: list, data: bytes, perm: list, i: int=0, filename: str="") -> np.array:
 
         n_rx = header[3]
         n_tx = header[4]
@@ -63,7 +66,7 @@ class IWLBeamformReader(Reader):
             # return print_length_error(expected_length, actual_length, i, filename)
             return None
 
-        csi = np.empty((30, n_rx, n_tx), dtype=complex)
+        csi = np.zeros((30, n_rx, n_tx), dtype=np.complex64)
 
         index = 0
         for i in range(30):
@@ -73,7 +76,7 @@ class IWLBeamformReader(Reader):
                 for k in range(n_tx):
                     ind8 = floor(index/8)
 
-                    if (ind8+2 >= len(data)):
+                    if ind8+2 >= len(data):
                         break
 
                     real = (data[ind8] >> remainder) | (data[1+ind8] << (8-remainder))
@@ -84,18 +87,16 @@ class IWLBeamformReader(Reader):
 
                     complex_no = real + imag * 1j
 
-                    try:
-                        csi[i][perm[j]][k] = complex_no
-                    except IndexError as _:
-                        #Minor backup in instances where severely invalid permutation parameters are generated.
-                        csi[i][j][k] = complex_no
+                    csi[i][perm[j]][k] = complex_no
+                    # try:
+                    #     csi[i][perm[j]][k] = complex_no
+                    # except IndexError as e:
+                    #     #Minor backup in instances where severely invalid permutation parameters are generated.
+                    #     csi[i][j][k] = complex_no
 
                     index += 16
 
-        if scaled:
-            return IWLBeamformReader.scale_csi_entry(csi, header)
-        else:
-            return csi
+        return csi
 
     @staticmethod
     def read_bf_entry(data: bytes, scaled: bool=False) -> np.array:
@@ -172,8 +173,11 @@ class IWLBeamformReader(Reader):
                     perm[1] = ((antenna_sel >> 2) & 0x3)
                     perm[2] = ((antenna_sel >> 4) & 0x3)
 
-                csi_matrix = IWLBeamformReader.read_bfee(header_block, data_block, perm, scaled, ret_data.expected_frames)
+                csi_matrix = IWLBeamformReader.read_bfee(header_block, data_block, perm, ret_data.expected_frames)
                 if csi_matrix is not None:
+                    if scaled:
+                        csi_matrix = IWLBeamformReader.scale_csi_entry(csi_matrix, header_block)
+
                     frame = IWLCSIFrame(header_block, csi_matrix)
                     ret_data.push_frame(frame)
 
