@@ -37,7 +37,7 @@ def unpack_float_acphy(nbits: int, autoscale: int, shft: int, fmt: int, nman: in
     sgni_mask = (sgnr_mask >> nman)
     e_zero = -nman
 
-    out = np.zeros((nfft * 2, 1), dtype=np.int64)
+    out = np.zeros((nfft * 2), dtype=np.int64)
     n_out = (nfft << 1)
     e_shift = 1
     maxbit = -e_p
