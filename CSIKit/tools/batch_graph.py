@@ -63,7 +63,7 @@ class BatchGraph:
         if len(finalEntry.shape) == 4:
             #>1 antenna stream.
             #Loading the first for ease.
-            finalEntry = finalEntry[:, :, 3, 0]
+            finalEntry = finalEntry[:, :, 0, 0]
 
         # from CSIKit.filters.wavelets.dwt import denoise
         # finalEntry = denoise(finalEntry)
