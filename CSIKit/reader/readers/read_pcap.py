@@ -13,9 +13,6 @@ from CSIKit.reader import Reader
 from CSIKit.util import byteops
 from CSIKit.util import csitools, stringops
 
-from joblib import Parallel, delayed
-from numba import jit
-
 start = time.time()
 
 class PcapFrame:
@@ -42,13 +39,20 @@ class PcapFrame:
         self.data = data
         self.offset = offset
 
+        self.header = None
+        self.payload = None
+        self.payloadHeader = None
+
         self.header = self.read_header()
         self.payload = self.read_payload()
             
     def read_header(self):
-        header = np.frombuffer(self.data[self.offset:self.offset+self.FRAME_HEADER_DTYPE.itemsize], dtype=self.FRAME_HEADER_DTYPE)
-        self.offset += self.FRAME_HEADER_DTYPE.itemsize
-        return header
+        if len(self.data) > self.offset + self.FRAME_HEADER_DTYPE.itemsize:
+            header = np.frombuffer(self.data[self.offset:self.offset+self.FRAME_HEADER_DTYPE.itemsize], dtype=self.FRAME_HEADER_DTYPE)
+            self.offset += self.FRAME_HEADER_DTYPE.itemsize
+            return header
+        else:
+            return None
     
     @staticmethod
     def read_payloadHeader(payload: bytes) -> dict:
@@ -77,6 +81,9 @@ class PcapFrame:
         return payloadHeader
         
     def read_payload(self) -> np.array:
+        if self.header is None:
+            return None
+
         incl_len = self.header["incl_len"][0]
         if incl_len <= 0 or (self.offset + incl_len) > len(self.data):
             return False
@@ -136,6 +143,11 @@ class Pcap:
         while offset < len(self.data):
             next_frame = PcapFrame(self.data, offset)
             offset = next_frame.offset
+
+            if next_frame.header is None or next_frame.payload is None or next_frame.payloadHeader is None:
+                print("Incomplete pcap frame header found. Cannot parse any further frames.")
+                self.skipped_frames += 1
+                break
 
             given_size = next_frame.header["orig_len"][0]-(self.HOFFSET-1)*4
 
