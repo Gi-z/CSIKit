@@ -77,12 +77,9 @@ class PcapFrame:
         return payloadHeader
         
     def read_payload(self) -> np.array:
-        # incl_len = self.header["incl_len"][0]-26
         incl_len = self.header["incl_len"][0]
-        if incl_len <= 0:
+        if incl_len <= 0 or (self.offset + incl_len) > len(self.data):
             return False
-
-        # self.offset += 26
 
         if (incl_len % 4) == 0:
             ints_size = int(incl_len / 4)
@@ -143,7 +140,7 @@ class Pcap:
             given_size = next_frame.header["orig_len"][0]-(self.HOFFSET-1)*4
 
             # Checking if the frame size is valid for ANY bandwidth.
-            if given_size not in self.BW_SIZES:
+            if given_size not in self.BW_SIZES or next_frame.payload is None:
                 #print("Skipped frame with incorrect size.")
                 self.skipped_frames += 1
                 continue
