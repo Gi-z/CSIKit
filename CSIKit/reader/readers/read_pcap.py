@@ -58,17 +58,37 @@ class PcapFrame:
     def read_payloadHeader(payload: bytes) -> dict:
         payloadHeader = {}
 
+        thing = payload.hex()
+
         payloadHeader["magic_bytes"] = payload[:2]
         payloadHeader["rssi"] = struct.unpack("b", payload[2:3])[0]
         payloadHeader["frame_control"] = struct.unpack("B", payload[3:4])[0]
         payloadHeader["source_mac"] = stringops.hexToMACString(payload[4:10].hex())
         payloadHeader["sequence_no"] = int.from_bytes(payload[10:12], byteorder="little")
 
-        coreSpatialBytes = int.from_bytes(payload[12:14], byteorder="little")
-        coreSpatialBits = bin(coreSpatialBytes)[2:].zfill(16)
+        coreSpatialBytes = payload[12:14]
+        coreSpatialVal = int.from_bytes(coreSpatialBytes, byteorder="little")
 
-        payloadHeader["core"] = int(int(coreSpatialBits[3:6], 2)/2)
-        payloadHeader["spatial_stream"] = int(int(coreSpatialBits[6:9], 2)/2)
+        # First, we need to check whether the correct endianness is used here.
+        # For some reason it seems to change. I guess OpenWRT on the RT-AC86U
+        # uses big endianness or something?
+        # We can check this by checking if the core/spatial bytes exceed the
+        # max possible value: 0b111111 = 63
+        if coreSpatialVal > 63:
+            coreSpatialVal = int.from_bytes(coreSpatialBytes, byteorder="big")
+
+        # Then we'll get the binary mask so we can inspect it ourselves.
+        coreSpatialBits = bin(coreSpatialVal)[2:].zfill(6)
+
+        # nexmon_csi defines the mask as follows:
+        # "The next two bytes [bytes 12 and 13] contain core and spatial stream
+        # number where the lowest three bits indicate the core and the next three
+        # bits the spatial stream number,
+        # e.g. 0x0019 (0b00011001) means core 0 and spatial stream 3."
+        # While I'm not entirely sure whether they mean core 0 or 1 (since 0b001 == 3),
+        # we can
+        payloadHeader["core"] = int(coreSpatialBits[3:6], 2)
+        payloadHeader["spatial_stream"] = int(coreSpatialBits[:3], 2)
 
         payloadHeader["channel_spec"] = payload[14:16].hex()
        
@@ -295,7 +315,7 @@ class NEXBeamformReader(Reader):
 
     def read_bfee_batch(self, pcap_frames: list, bandwidth: int, rx_num: int = 1, tx_num: int = 1) -> NEXCSIFrame:
 
-        total_csi = np.zeros((rx_num, tx_num, self.BW_SUBS[bandwidth]), dtype=complex)
+        total_csi = np.zeros((tx_num, rx_num, self.BW_SUBS[bandwidth]), dtype=complex)
 
         frame_header = pcap_frames[0].header
         payload_header = pcap_frames[0].payloadHeader
