@@ -58,11 +58,17 @@ class PcapFrame:
     def read_payloadHeader(payload: bytes) -> dict:
         payloadHeader = {}
 
-        thing = payload.hex()
-
         payloadHeader["magic_bytes"] = payload[:2]
-        payloadHeader["rssi"] = struct.unpack("b", payload[2:3])[0]
-        payloadHeader["frame_control"] = struct.unpack("B", payload[3:4])[0]
+
+        if payload[:4] == b'\x11\x11\x11\x11':
+            # Device is running stock nexmon.
+            payloadHeader["rssi"] = -1
+            payloadHeader["frame_control"] = -1
+        else:
+            # Device is running mzakharo's PR.
+            payloadHeader["rssi"] = struct.unpack("b", payload[2:3])[0]
+            payloadHeader["frame_control"] = struct.unpack("B", payload[3:4])[0]
+
         payloadHeader["source_mac"] = stringops.hexToMACString(payload[4:10].hex())
         payloadHeader["sequence_no"] = int.from_bytes(payload[10:12], byteorder="little")
 
