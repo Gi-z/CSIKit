@@ -24,7 +24,7 @@ class PcapFrame:
     ])
 
     CHIPS = {
-        "": "4339", #Cannot find an up to date version of this format.
+        "0100": "4339", #Cannot find an up to date version of this format.
         
         "6500": "43455c0",
         "dca6": "43455c0",
