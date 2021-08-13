@@ -3,15 +3,99 @@ from CSIKit.csi import CSIFrame
 import ast
 import numpy as np
 
+
 class ESP32CSIFrame(CSIFrame):
+    """
+        CSIFrame subclass for ESP32 hardware.
+        Format produced by ESP32-CSI-Tool, developed by Steven Hernandez.
+
+        ...
+
+        Attributes
+        ----------
+        type : str
+            "CSI_DATA" string to indicate the beginning of a CSV payload.
+        role : str
+            Field indicating the role of the ESP capturing the frame.
+            Possible values:
+                 - AP
+                 - STA
+                 - PASSIVE
+        mac : str
+            Source MAC address for the frame.
+        rssi : int
+            Observed signal strength in dB.
+        rate : int
+            Bitmask containing the rate options used for frame transmission.
+        sig_mode : str
+            Field indicating the 802.11 specification used for frame transmission.
+            Possible values:
+                - 11abg
+                - 11n
+                - 11ac (Should not occur with ESP32)
+        mcs : int
+            Modulation Coding Scheme index (only valid for 11n frames).
+            Ranges from 0-76.
+        bandwidth : int
+            Bandwidth used for frame transmission, in MHz.
+        smoothing : int
+            Field indicating whether channel estimate smoothing is recommended.
+            May not be functional as ESP-IDF states it is "reserve".
+        not_sounding : int
+            Field indicating whether the Physical layer Protocol Data Unit is not sounding.
+            May not be functional as ESP-IDF states it is "reserve".
+        aggregation : str
+            Field indicating whether the frame used MPDU or AMPDU.
+        stbc : bool
+            Field indicating whether Space-time Block Coding was used for frame transmission.
+        fec_coding : bool
+            Field indicating 11n frames which use LDPC/FEC.
+        sgi : str
+            Field indicating the guide interval used.
+            Possible values:
+                - long
+                - short
+        noise_floor : int
+            Measured noise floor at the receiver, with units of 0.25dBm.
+        ampdu_cnt : int
+            Number of AMPDUs.
+        channel : int
+            802.11 channel number used for transmission.
+        secondary_channel : str
+            Field indicating whether the frame was received on a secondary channel, and if so which.
+            Possible values:
+                - none
+                - above
+                - below
+        local_timestamp : int
+            Device local timestamp (in microseconds), starting from 0 at the device boot.
+        ant : int
+            Antenna number from which the frame was received.
+        sig_len : int
+            Full length of the received 802.11 packet.
+        rx_state : int
+            Private ESP-IDF error code for packet transmission. 0 indicates no error.
+        real_time_set : bool
+            Additional field added by ESP32-CSI-Tool.
+            Indicates whether an initial time value was set via serial.
+        real_timestamp: float
+            Additional field added by ESP32-CSI-Tool.
+            Real timestamp (in seconds) factoring in the local time and a base timestamp provided by the user.
+            If real_time_set=False, real_timestamp acts as a mirror of local_timestamp, instead measured in seconds.
+        len : int
+            Length of the 802.11 packet.
+        csi_matrix : np.array
+            Matrix of CSI values.
+
+    """
 
     # https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html#_CPPv418wifi_pkt_rx_ctrl_t
     # https://github.com/espressif/esp-idf/blob/9d0ca60398481a44861542638cfdc1949bb6f312/components/esp_wifi/include/esp_wifi_types.h#L314
 
     SIGS = {
-        0: "nonHT",
-        1: "HT",
-        3: "VHT"
+        0: "11abg",
+        1: "11n",
+        3: "11ac"  # Not possible with this hardware?
     }
 
     SECONDARY_CHANNELS = {
@@ -21,8 +105,9 @@ class ESP32CSIFrame(CSIFrame):
     }
 
     __slots__ = ["type", "role", "mac", "rssi", "rate", "sig_mode", "mcs", "bandwidth", "smoothing", "not_sounding",
-                "aggregation", "stbc", "fec_coding", "sgi", "noise_floor", "ampdu_cnt", "channel", "secondary_channel",
-                "local_timestamp", "ant", "sig_len", "rx_state", "real_time_set", "real_timestamp", "len", "CSI_DATA"]
+                 "aggregation", "stbc", "fec_coding", "sgi", "noise_floor", "ampdu_cnt", "channel", "secondary_channel",
+                 "local_timestamp", "ant", "sig_len", "rx_state", "real_time_set", "real_timestamp", "len", "CSI_DATA"]
+
     def __init__(self, csv_line: list):
         self.type = csv_line[0]
         self.role = csv_line[1]

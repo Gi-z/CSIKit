@@ -3,8 +3,59 @@ from CSIKit.csi import CSIFrame
 import numpy as np
 
 class IWLCSIFrame(CSIFrame):
+    """
+        CSIFrame subclass for Intel IWL5300 hardware.
+        Format produced by Linux 802.11n CSI Tool, developed by Daniel Halperin.
 
-    __slots__ = ["timestamp_low", "bfee_count", "n_rx", "n_tx", "rssi_a", "rssi_b", "rssi_c", "noise", "agc", "antenna_sel", "length", "rate", "csi_matrix"]
+        ...
+
+        Attributes
+        ----------
+        timestamp_low : int
+            Timestamp indicating the current state of the IWL5300's built in 32bit clock.
+        bfee_count : int
+            Sequential index of the given frame.
+        n_rx : int
+            Number of receiving antennas present.
+        n_tx : int
+            Number of transmitting antennas present.
+        rssi_a : int
+            RSSI observed on the first receiving antenna.
+        rssi_b : int
+            RSSI observed on the second receiving antenna (if present).
+        rssi_c : int
+            RSSI observed on the third receiving antenna (if present).
+        noise : int
+            Measured noise floor.
+        agc : int
+            Gain applied by the Automatic Gain Control system.
+            Used for rescaling CSI values.
+        antenna_sel : int
+            Bitmask indicating the permutation setting used by the antenna selection system.
+        length : int
+            Expected length for the CSI payload.
+        rate : int
+            Bitmask containing the rate options used for frame transmission.
+        csi_matrix : np.array
+            Matrix of CSI values.
+
+    """
+
+    __slots__ = [
+        "timestamp_low",
+        "bfee_count",
+        "n_rx",
+        "n_tx",
+        "rssi_a",
+        "rssi_b",
+        "rssi_c",
+        "noise",
+        "agc",
+        "antenna_sel",
+        "length",
+        "rate",
+        "csi_matrix"
+    ]
     def __init__(self, header_block: list, csi_matrix: np.array):
         self.timestamp_low = header_block[0]
         self.bfee_count = header_block[1]
