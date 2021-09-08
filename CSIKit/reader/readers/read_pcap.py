@@ -2,8 +2,6 @@ import os
 import struct
 import time
 
-# import byteops
-
 import numpy as np
 
 from CSIKit.csi import CSIData
@@ -35,9 +33,9 @@ class PcapFrame:
         "6a00": "4366c0" #Seen on both the RT-AC86U and GT-AC5300
     }
 
-    def __init__(self, data: bytes, offset: int):
+    def __init__(self, data: bytes):
         self.data = data
-        self.offset = offset
+        self.length = 0
 
         self.header = None
         self.payload = None
@@ -47,12 +45,11 @@ class PcapFrame:
         self.payload = self.read_payload()
             
     def read_header(self):
-        if len(self.data) > self.offset + self.FRAME_HEADER_DTYPE.itemsize:
-            header = np.frombuffer(self.data[self.offset:self.offset+self.FRAME_HEADER_DTYPE.itemsize], dtype=self.FRAME_HEADER_DTYPE)
-            self.offset += self.FRAME_HEADER_DTYPE.itemsize
-            return header
-        else:
-            return None
+        header = np.frombuffer(self.data.read(self.FRAME_HEADER_DTYPE.itemsize), dtype=self.FRAME_HEADER_DTYPE)
+        if not header:
+            raise BufferError("Unable to read data for header")
+        self.length += self.FRAME_HEADER_DTYPE.itemsize
+        return header
     
     @staticmethod
     def read_payloadHeader(payload: bytes) -> dict:
@@ -111,18 +108,19 @@ class PcapFrame:
             return None
 
         incl_len = self.header["incl_len"][0]
-        if incl_len <= 0 or (self.offset + incl_len) > len(self.data):
+
+        if incl_len <= 0:
             return False
 
         if (incl_len % 4) == 0:
             ints_size = int(incl_len / 4)
-            payload = np.array(struct.unpack(ints_size*"I", self.data[self.offset:self.offset+incl_len]), dtype=np.uint32)
+            payload = np.array(struct.unpack(ints_size*"I", self.data.read(incl_len)), dtype=np.uint32)
         else:
             ints_size = incl_len
-            payload = np.array(struct.unpack(ints_size*"B", self.data[self.offset:self.offset+incl_len]), dtype=np.uint8)
+            payload = np.array(struct.unpack(ints_size*"B", self.data.read(incl_len)), dtype=np.uint8)
 
-        self.payloadHeader = PcapFrame.read_payloadHeader(self.data[self.offset+42:self.offset+62])
-        self.offset += incl_len
+        self.payloadHeader = PcapFrame.read_payloadHeader(payload.tobytes()[42:64])
+        self.length += incl_len
 
         return payload
 
@@ -157,46 +155,56 @@ class Pcap:
         ("network", np.uint32)
     ])
 
+    def stream(self):
+        while True:
+            try:
+                next_frame = PcapFrame(self.data)
+                self.calculate_size(next_frame)
+                yield next_frame
+            except BufferError:
+                break
+
     def __init__(self, filename: str):
-        self.data = open(filename, "rb").read()
-        self.header = self.readHeader()
+        self.data = open(filename, "rb")
+        self.header = self.data.read(self.PCAP_HEADER_DTYPE.itemsize)
         self.frames = []
         self.skipped_frames = 0
         self.bandwidth = 0
         self.expected_size = None
 
-        offset = self.PCAP_HEADER_DTYPE.itemsize
-        while offset < len(self.data):
-            next_frame = PcapFrame(self.data, offset)
-            offset = next_frame.offset
-
-            if next_frame.header is None or next_frame.payload is None or next_frame.payloadHeader is None:
-                print("Incomplete pcap frame header found. Cannot parse any further frames.")
-                self.skipped_frames += 1
+    def read(self):
+        while True:
+            try:
+                next_frame = PcapFrame(self.data)
+                self.calculate_size(next_frame)
+                if next_frame is not None:
+                    self.frames.append(next_frame)
+            except BufferError:
                 break
 
-            given_size = next_frame.header["orig_len"][0]-(self.HOFFSET-1)*4
+    def calculate_size(self, frame):
+        if frame.header is None or frame.payload is None or frame.payloadHeader is None:
+            print("Incomplete pcap frame header found. Cannot parse any further frames.")
+            self.skipped_frames += 1
+            return
 
-            # Checking if the frame size is valid for ANY bandwidth.
-            if given_size not in self.BW_SIZES or next_frame.payload is None:
-                #print("Skipped frame with incorrect size.")
-                self.skipped_frames += 1
-                continue
+        given_size = frame.header["orig_len"][0]-(self.HOFFSET-1)*4
 
-            # Establishing the bandwidth (and so, expected size) using the first frame.
-            if self.expected_size is None:
-                self.bandwidth = self.BW_SIZES[given_size]
-                self.expected_size = given_size
+        # Checking if the frame size is valid for ANY bandwidth.
+        if given_size not in self.BW_SIZES or frame.payload is None:
+            #print("Skipped frame with incorrect size.")
+            self.skipped_frames += 1
+            return
 
-            # Checking if the frame size matches the expected size for the established bandwidth.
-            if self.expected_size != given_size:
-                #print("Change in bandwidth observed in adjacent CSI frames, skipping...")
-                self.skipped_frames += 1
-            elif next_frame is not None:
-                self.frames.append(next_frame)
+        # Establishing the bandwidth (and so, expected size) using the first frame.
+        if self.expected_size is None:
+            self.bandwidth = self.BW_SIZES[given_size]
+            self.expected_size = given_size
 
-    def readHeader(self) -> np.array:
-        return np.frombuffer(self.data[:self.PCAP_HEADER_DTYPE.itemsize], dtype=self.PCAP_HEADER_DTYPE)
+        # Checking if the frame size matches the expected size for the established bandwidth.
+        #if self.expected_size != given_size:
+            #print("Change in bandwidth observed in adjacent CSI frames, skipping...")
+        #    self.skipped_frames += 1
 
 class NEXBeamformReader(Reader):
 
@@ -233,6 +241,24 @@ class NEXBeamformReader(Reader):
             return byteops.unpack_float_acphy(10, 1, 0, 1, 12, 6, nfft, nfftx1)
             # return byteops.unpack_float_acphy(1, 12, 6, nfft, nfftx1)
 
+    def read_stream(self, path: str, scaled: bool = False):
+        self.chip = " UNKNOWN"
+        self.scaled = scaled
+
+        self.filename = os.path.basename(path)
+        if not os.path.exists(path):
+            raise Exception("File not found: {}".format(path))
+        
+        self.pcap = Pcap(path)
+        for f in self.pcap.stream():
+            ret_data = CSIData()
+            ret_data.bandwidth = self.pcap.bandwidth
+            data = self.read_frame(f, scaled, ret_data.bandwidth)
+            ret_data.push_frame(data)
+            ret_data.timestamps.append(data.timestamp)
+            ret_data.set_chipset("Broadcom BCM{}".format(self.chip))
+            yield ret_data
+
     def read_file(self, path: str, scaled: bool = False) -> CSIData:
 
         self.chip = " UNKNOWN"
@@ -242,6 +268,7 @@ class NEXBeamformReader(Reader):
             raise Exception("File not found: {}".format(path))
 
         self.pcap = Pcap(path)
+        self.pcap.read()
         self.scaled = scaled
 
         ret_data = CSIData(self.filename)
@@ -269,6 +296,7 @@ class NEXBeamformReader(Reader):
     def read_bfee(self, pcap_frame: PcapFrame, bandwidth: int, remove_unusuable_subcarriers: bool=True) -> NEXCSIFrame:
         if pcap_frame is None:
             return None
+        header = pcap_frame.payloadHeader
 
         #ts_usec contains microseconds as an offset to the main seconds timestamp.
         usecs = pcap_frame.header["ts_usec"][0]/1e+6
@@ -296,6 +324,7 @@ class NEXBeamformReader(Reader):
         # Manually adding timestamp to the payloadHeader.
         # TODO: Merge differently.
         pcap_frame.payloadHeader["timestamp"] = timestamp
+        header["timestamp"] = timestamp
 
         if chipType != "UNKNOWN":
             self.chip = chipType
@@ -375,6 +404,8 @@ class NEXBeamformReader(Reader):
             total_csi[core][spatial_stream] = csi.flatten()
 
         return NEXCSIFrame(payload_header, np.transpose(total_csi))
+    def read_frame(self, frame, scaled:bool, bandwidth: int):
+        return self.read_bfee(frame, bandwidth)
 
     def read_frames(self, frames: list, scaled: bool, bandwidth: int) -> list:
 
