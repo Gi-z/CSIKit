@@ -108,7 +108,6 @@ class PcapFrame:
             return None
 
         incl_len = self.header["incl_len"][0]
-
         if incl_len <= 0:
             return False
 
@@ -296,7 +295,6 @@ class NEXBeamformReader(Reader):
     def read_bfee(self, pcap_frame: PcapFrame, bandwidth: int, remove_unusuable_subcarriers: bool=True) -> NEXCSIFrame:
         if pcap_frame is None:
             return None
-        header = pcap_frame.payloadHeader
 
         #ts_usec contains microseconds as an offset to the main seconds timestamp.
         usecs = pcap_frame.header["ts_usec"][0]/1e+6
@@ -324,7 +322,6 @@ class NEXBeamformReader(Reader):
         # Manually adding timestamp to the payloadHeader.
         # TODO: Merge differently.
         pcap_frame.payloadHeader["timestamp"] = timestamp
-        header["timestamp"] = timestamp
 
         if chipType != "UNKNOWN":
             self.chip = chipType
@@ -404,6 +401,7 @@ class NEXBeamformReader(Reader):
             total_csi[core][spatial_stream] = csi.flatten()
 
         return NEXCSIFrame(payload_header, np.transpose(total_csi))
+
     def read_frame(self, frame, scaled:bool, bandwidth: int):
         return self.read_bfee(frame, bandwidth)
 
