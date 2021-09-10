@@ -46,7 +46,7 @@ class PcapFrame:
             
     def read_header(self):
         header = np.frombuffer(self.data.read(self.FRAME_HEADER_DTYPE.itemsize), dtype=self.FRAME_HEADER_DTYPE)
-        if not header:
+        if header is None:
             raise BufferError("Unable to read data for header")
         self.length += self.FRAME_HEADER_DTYPE.itemsize
         return header
@@ -73,7 +73,7 @@ class PcapFrame:
         coreSpatialVal = int.from_bytes(coreSpatialBytes, byteorder="little")
 
         # First, we need to check whether the correct endianness is used here.
-        # For some reason it seems to change. I guess OpenWRT on the RT-AC86U
+        # For some reason it seems to change. I guess Merlin on the RT-AC86U
         # uses big endianness or something?
         # We can check this by checking if the core/spatial bytes exceed the
         # max possible value: 0b111111 = 63
