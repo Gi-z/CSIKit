@@ -6,11 +6,11 @@ from math import floor
 from CSIKit.csi import CSIData
 from CSIKit.csi.frames import ATHCSIFrame
 from CSIKit.reader import Reader
-from CSIKit.util import byteops
+from CSIKit.util import byteops, csitools
 
 import numpy as np
 
-SIZE_STRUCT = struct.Struct(">H").unpack
+SIZE_STRUCT = struct.Struct("<H").unpack
 
 HEADER_STRUCT_BE = struct.Struct(">QHHBBBBBBBBBBBH").unpack
 HEADER_STRUCT_LE = struct.Struct("<QHHBBBBBBBBBBBH").unpack
@@ -26,12 +26,15 @@ class ATHBeamformReader(Reader):
 
     @staticmethod
     def can_read(path: str) -> bool: 
-        if os.path.exists(path):
+        if os.path.exists(path) and os.path.splitext(path)[1] == ".dat":
             data = open(path, "rb").read()
             if len(data) < 30:
                 return False
 
             header_block = HEADER_FORMAT._make(HEADER_STRUCT_LE(data[2:27]))
+            if header_block is None:
+                return False
+
             tx_antenna_count = header_block.nc
             rx_antenna_count = header_block.nr
 
@@ -44,8 +47,8 @@ class ATHBeamformReader(Reader):
             rx_valid = rx_antenna_count >= 1 and rx_antenna_count <= 3
 
             return tx_valid and rx_valid
-        else:
-            raise Exception("File not found: {}".format(path))
+
+        return False
 
     @staticmethod
     def read_bfee(csi_buf: bytes, nr: int, nc: int, num_tones: int, scaled: bool=False) -> np.array:
@@ -65,9 +68,9 @@ class ATHBeamformReader(Reader):
         for k in range(num_tones):
             for nc_idx in range(nc):
                 for nr_idx in range(nr):
-                    if ((bits_left - BITS_PER_SYMBOL) < 0):
+                    if (bits_left - BITS_PER_SYMBOL) < 0:
                         current_data, idx, bits_left = byteops.get_next_bits(csi_buf, current_data, idx, bits_left)
-                    
+
                     imag = current_data & bitmask
                     imag = byteops.signbit_convert(imag, BITS_PER_SYMBOL)
                     imag += 1
@@ -75,7 +78,7 @@ class ATHBeamformReader(Reader):
                     bits_left -= BITS_PER_SYMBOL
                     current_data = current_data >> BITS_PER_SYMBOL
 
-                    if ((bits_left - BITS_PER_SYMBOL) < 0):
+                    if (bits_left - BITS_PER_SYMBOL) < 0:
                         current_data, idx, bits_left = byteops.get_next_bits(csi_buf, current_data, idx, bits_left)
 
                     real = current_data & bitmask
@@ -89,10 +92,7 @@ class ATHBeamformReader(Reader):
 
         return csi
 
-    def read_file(self, path: str, scaled: bool=False) -> CSIData:
-
-        if scaled:
-            print("Scaling not yet supported in Atheros format.")
+    def read_file(self, path: str, scaled: bool = False) -> CSIData:
 
         self.filename = os.path.basename(path)
         if not os.path.exists(path):
@@ -108,15 +108,17 @@ class ATHBeamformReader(Reader):
 
         initial_timestamp = 0
 
-        first_byte = data[cursor:cursor+1]
+        # first_byte = data[cursor:cursor+1]
 
-        if first_byte == b'\xff': # This is a holdout from a weird version of the format I found. Likely not used now.
-            struct_type = HEADER_STRUCT_BE
-            cursor += 1
-        else:
-            #¯\_(ツ)_/¯
-            #print("File contains no endianness header. Assuming little.")
-            struct_type = HEADER_STRUCT_LE
+        # if first_byte == b'\xff': # This is a holdout from a weird version of the format I found. Likely not used now.
+        #     struct_type = HEADER_STRUCT_BE
+        #     cursor += 1
+        # else:
+        #     #¯\_(ツ)_/¯
+        #     #print("File contains no endianness header. Assuming little.")
+        #     struct_type = HEADER_STRUCT_LE
+
+        struct_type = HEADER_STRUCT_LE
 
         while cursor < (length - 4):
             field_length = SIZE_STRUCT(data[cursor:cursor+2])[0]
@@ -133,28 +135,37 @@ class ATHBeamformReader(Reader):
             if ret_data.bandwidth == 0:
                 ret_data.bandwidth = 20 if header_block.bandwidth == 0 else 40
 
-            if header_block.csi_length > 0:
-                data_block = data[cursor:cursor+header_block.csi_length]
+            # if header_block.csi_length > 0:
+            data_block = data[cursor:cursor+header_block.csi_length]
+            if len(data_block) <= 0:
+                continue
 
+            try:
                 csi_matrix = ATHBeamformReader.read_bfee(data_block, header_block.nr, header_block.nc, header_block.num_tones)
                 if csi_matrix is not None:
+
+                    # if scaled:
+                    #     csi_matrix = csitools.scale_csi_frame(csi_matrix, rssi_dbm)
+
                     frame = ATHCSIFrame(header_block, csi_matrix)
                     ret_data.push_frame(frame)
-                    
+
                     timestamp_low = header_block.timestamp*1e-6
 
                     if initial_timestamp == 0:
                         initial_timestamp = timestamp_low
 
                     ret_data.timestamps.append(timestamp_low - initial_timestamp)
+            except IndexError as e:
+                print(e)
 
-                expected_count += 1
-                cursor += header_block.csi_length
+            expected_count += 1
+            cursor += header_block.csi_length
 
             if header_block.payload_length > 0:
                 cursor += header_block.payload_length
 
-            if (cursor + 420 > length):
+            if cursor + 420 > length:
                 break
 
         return ret_data
