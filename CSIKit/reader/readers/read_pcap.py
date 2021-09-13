@@ -45,10 +45,16 @@ class PcapFrame:
         self.payload = self.read_payload()
             
     def read_header(self):
-        header = np.frombuffer(self.data.read(self.FRAME_HEADER_DTYPE.itemsize), dtype=self.FRAME_HEADER_DTYPE)
+        headerBytes = self.data.read(self.FRAME_HEADER_DTYPE.itemsize)
+        if len(headerBytes) != self.FRAME_HEADER_DTYPE.itemsize:
+            raise BufferError("Unable to read data for header")
+
+        header = np.frombuffer(headerBytes, dtype=self.FRAME_HEADER_DTYPE)
+        self.length += self.FRAME_HEADER_DTYPE.itemsize
+
         if header is None:
             raise BufferError("Unable to read data for header")
-        self.length += self.FRAME_HEADER_DTYPE.itemsize
+
         return header
     
     @staticmethod
@@ -104,19 +110,23 @@ class PcapFrame:
         return payloadHeader
         
     def read_payload(self) -> np.array:
-        if self.header is None:
+        if self.header is None or len(self.header["incl_len"]) == 0:
             return None
 
         incl_len = self.header["incl_len"][0]
         if incl_len <= 0:
             return False
 
+        payload_bytes = self.data.read(incl_len)
+        if payload_bytes is None:
+            raise BufferError("Could not read payload")
+
         if (incl_len % 4) == 0:
             ints_size = int(incl_len / 4)
-            payload = np.array(struct.unpack(ints_size*"I", self.data.read(incl_len)), dtype=np.uint32)
+            payload = np.array(struct.unpack(ints_size*"I", payload_bytes), dtype=np.uint32)
         else:
             ints_size = incl_len
-            payload = np.array(struct.unpack(ints_size*"B", self.data.read(incl_len)), dtype=np.uint8)
+            payload = np.array(struct.unpack(ints_size*"B", payload_bytes), dtype=np.uint8)
 
         self.payloadHeader = PcapFrame.read_payloadHeader(payload.tobytes()[42:64])
         self.length += incl_len
@@ -158,8 +168,8 @@ class Pcap:
         while True:
             try:
                 next_frame = PcapFrame(self.data)
-                self.calculate_size(next_frame)
-                yield next_frame
+                if self.calculate_size(next_frame):
+                    yield next_frame
             except BufferError:
                 break
 
@@ -175,17 +185,16 @@ class Pcap:
         while True:
             try:
                 next_frame = PcapFrame(self.data)
-                self.calculate_size(next_frame)
-                if next_frame is not None:
+                if self.calculate_size(next_frame):
                     self.frames.append(next_frame)
             except BufferError:
                 break
 
     def calculate_size(self, frame):
-        if frame.header is None or frame.payload is None or frame.payloadHeader is None:
-            print("Incomplete pcap frame header found. Cannot parse any further frames.")
-            self.skipped_frames += 1
-            return
+        if frame is None or frame.header is None or frame.payload is None or frame.payloadHeader is None:
+            # print("Incomplete pcap frame header found. Cannot parse any further frames.")
+            # self.skipped_frames += 1
+            return False
 
         given_size = frame.header["orig_len"][0]-(self.HOFFSET-1)*4
 
@@ -193,7 +202,7 @@ class Pcap:
         if given_size not in self.BW_SIZES or frame.payload is None:
             #print("Skipped frame with incorrect size.")
             self.skipped_frames += 1
-            return
+            return False
 
         # Establishing the bandwidth (and so, expected size) using the first frame.
         if self.expected_size is None:
@@ -201,9 +210,12 @@ class Pcap:
             self.expected_size = given_size
 
         # Checking if the frame size matches the expected size for the established bandwidth.
-        #if self.expected_size != given_size:
-            #print("Change in bandwidth observed in adjacent CSI frames, skipping...")
-        #    self.skipped_frames += 1
+        if self.expected_size != given_size:
+            print("Change in bandwidth observed in adjacent CSI frames, skipping...")
+            self.skipped_frames += 1
+            return False
+
+        return True
 
 class NEXBeamformReader(Reader):
 
