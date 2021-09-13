@@ -2,9 +2,11 @@ from CSIKit.reader.readers.read_pcap import Pcap
 from CSIKit.reader import get_reader
 from CSIKit.util import csitools
 import json
+import os
 
 def test_pcap_extraction():
-    path = "example.pcap"
+    test_dir = os.environ["NEX_READER_TEST_DIR"]
+    path = os.path.join(test_dir, "example.pcap")
     r = get_reader(path)
     num_frames = 0
     for frame in r.read_stream(path):
@@ -14,7 +16,8 @@ def test_pcap_extraction():
     assert(num_frames == 4)
 
 def test_pcap_extraction_read():
-    path = "example.pcap"
+    test_dir = os.environ["NEX_READER_TEST_DIR"]
+    path = os.path.join(test_dir, "example.pcap")
     r = get_reader(path)
     csi_file = r.read_file(path)
     

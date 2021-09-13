@@ -25,3 +25,5 @@ blocks:
           value: CSIKit/data/intel
         - name: INTEL_TEST_MAT_DIR
           value: tests/matlab/intel/mats
+        - name: NEX_READER_TEST_DIR
+          value: tests/reader
