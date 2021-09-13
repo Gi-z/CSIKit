@@ -235,14 +235,7 @@ class NEXBeamformReader(Reader):
 
     @staticmethod
     def can_read(path: str) -> bool:
-        if os.path.exists(path):
-            _, extension = os.path.splitext(path)
-            if extension == ".pcap":
-                return True
-            else:
-                return False
-        else:
-            raise Exception("File not found: {}".format(path))
+        return os.path.exists(path) and os.path.splitext(path)[1] == ".pcap"
             
     @staticmethod
     def unpack_float(format: int, nfft: int, nfftx1: np.array) -> np.array:
