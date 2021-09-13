@@ -13,5 +13,8 @@ def display_info(path: str):
     print("Subcarrier Count: {}".format(metadata.subcarriers))
     print("Length: {0:.2f}s".format(metadata.time_length))
     print("Average Sample Rate: {0:.2f}Hz".format(metadata.average_sample_rate))
-    print("Average RSSI: {}dBm".format(metadata.average_rssi))
+
+    if metadata.average_rssi != -1:
+        print("Average RSSI: {}dBm".format(metadata.average_rssi))
+
     print("CSI Shape: {}".format((metadata.frames, *metadata.csi_shape)))
