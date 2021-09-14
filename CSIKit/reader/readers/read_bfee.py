@@ -134,7 +134,7 @@ class IWLBeamformReader(Reader):
         """
         self.filename = os.path.basename(path)
 
-        ret_data = CSIData(self.filename, "Linux 802.11n CSI Tool", "Intel IWL5300")
+        ret_data = CSIData(self.filename, backend="Linux 802.11n CSI Tool", chipset="Intel IWL5300")
         ret_data.bandwidth = 20
 
         if not os.path.exists(path):
