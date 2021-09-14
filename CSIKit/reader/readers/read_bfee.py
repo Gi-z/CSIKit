@@ -6,6 +6,7 @@ import numpy as np
 
 from math import floor
 from numba import jit
+from numba.typed import List
 
 from CSIKit.csi import CSIData
 from CSIKit.csi.frames import IWLCSIFrame
@@ -38,7 +39,6 @@ class IWLBeamformReader(Reader):
     @staticmethod
     def can_read(path: str) -> bool:
         if os.path.exists(path) and os.path.splitext(path)[1] == ".dat":
-
             # Quick heuristic for Linux 802.11n CSI Tool files
             # Check for the VALID_BEAMFORMING_MEASUREMENT code at 0x2.
             # Potentially may return a false negative for files which start with an invalid frame.
@@ -54,11 +54,7 @@ class IWLBeamformReader(Reader):
 
     @staticmethod
     @jit(nopython=True)
-    def read_bfee(header: list, data: bytes, perm: np.array, i: int=0, filename: str="") -> np.array:
-
-        n_rx = header[3]
-        n_tx = header[4]
-        expected_length = header[11]
+    def read_bfee(data: bytes, n_tx: int, n_rx: int, expected_length: int, perm: List, i: int=0, filename: str="") -> np.array:
 
         #Flag invalid payloads so we don't error out trying to parse them into matrices.
         actual_length = len(data)
@@ -109,13 +105,20 @@ class IWLBeamformReader(Reader):
 
         #If less than 3 Rx antennas are detected, default permutation should be used.
         #Otherwise invalid indices will likely be raised.
-        perm = np.array([0, 1, 2])
+        perm = [0, 1, 2]
         if sum(perm) == n_rx:
             perm[0] = ((antenna_sel) & 0x3)
             perm[1] = ((antenna_sel >> 2) & 0x3)
             perm[2] = ((antenna_sel >> 4) & 0x3)
 
-        csi_block = IWLBeamformReader.read_bfee(csi_header, all_data, perm, scaled)
+        perm_typed = List()
+        [perm_typed.append(x) for x in perm]
+
+        n_rx = csi_header[3]
+        n_tx = csi_header[4]
+        expected_length = csi_header[11]
+
+        csi_block = IWLBeamformReader.read_bfee(all_data, n_tx, n_rx, expected_length, perm_typed, scaled)
 
         return csi_block
 
@@ -131,7 +134,7 @@ class IWLBeamformReader(Reader):
         """
         self.filename = os.path.basename(path)
 
-        ret_data = CSIData(self.filename, "Intel IWL5300")
+        ret_data = CSIData(self.filename, "Linux 802.11n CSI Tool", "Intel IWL5300")
         ret_data.bandwidth = 20
 
         if not os.path.exists(path):
@@ -173,7 +176,14 @@ class IWLBeamformReader(Reader):
                     perm[1] = ((antenna_sel >> 2) & 0x3)
                     perm[2] = ((antenna_sel >> 4) & 0x3)
 
-                csi_matrix = IWLBeamformReader.read_bfee(header_block, data_block, perm, ret_data.expected_frames)
+                perm_typed = List()
+                [perm_typed.append(x) for x in perm]
+
+                n_tx = header_block[3]
+                n_rx = header_block[4]
+                expected_length = header_block[11]
+
+                csi_matrix = IWLBeamformReader.read_bfee(data_block, n_tx, n_rx, expected_length, perm_typed, ret_data.expected_frames)
                 if csi_matrix is not None:
                     if scaled:
                         csi_matrix = IWLBeamformReader.scale_csi_entry(csi_matrix, header_block)
