@@ -54,7 +54,7 @@ class IWLBeamformReader(Reader):
 
     @staticmethod
     @jit(nopython=True)
-    def read_bfee(data: bytes, n_tx: int, n_rx: int, expected_length: int, perm: List, i: int=0, filename: str="") -> np.array:
+    def read_bfee(data: bytes, n_rx: int, n_tx: int, expected_length: int, perm: List, i: int=0, filename: str="") -> np.array:
 
         #Flag invalid payloads so we don't error out trying to parse them into matrices.
         actual_length = len(data)
