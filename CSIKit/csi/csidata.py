@@ -6,7 +6,7 @@ import numpy as np
 
 class CSIData:
 
-    def __init__(self, filename: str="", chipset: str=""):
+    def __init__(self, filename: str="", backend: str="", chipset: str=""):
         
         self.frames = []
         self.timestamps = []
@@ -17,16 +17,21 @@ class CSIData:
         self.bandwidth = 0
 
         self.filename = filename
+        self.backend = backend
         self.chipset = chipset
 
     def set_chipset(self, chipset: str):
         self.chipset = chipset
+
+    def set_backend(self, backend: str):
+        self.backend = backend
 
     def push_frame(self, frame: CSIFrame):
         self.frames.append(frame)
 
     def get_metadata(self) -> CSIMetadata:
         chipset = self.chipset
+        backend = self.backend
 
         bandwidth = self.bandwidth
 
@@ -85,6 +90,7 @@ class CSIData:
 
         data = {
             "chipset": chipset,
+            "backend": backend,
             "bandwidth": bandwidth,
             "antenna_config": antenna_config_string,
             "frames": no_frames,
