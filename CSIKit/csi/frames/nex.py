@@ -3,8 +3,8 @@ from CSIKit.csi import CSIFrame
 import numpy as np
 
 class NEXCSIFrame(CSIFrame):
-    """
-        CSIFrame subclass for Nexmon-compatible Broadcom hardware.
+    """CSIFrame subclass for Nexmon-compatible Broadcom hardware.
+
         Format produced by nexmon_csi, developed by Seemoo Lab.
 
         ...

@@ -3,8 +3,8 @@ from CSIKit.csi import CSIFrame
 import numpy as np
 
 class IWLCSIFrame(CSIFrame):
-    """
-        CSIFrame subclass for Intel IWL5300 hardware.
+    """CSIFrame subclass for Intel IWL5300 hardware.
+
         Format produced by Linux 802.11n CSI Tool, developed by Daniel Halperin.
 
         ...
@@ -71,3 +71,22 @@ class IWLCSIFrame(CSIFrame):
         self.rate = header_block[12]
         # self.perm = header_block[13]
         self.csi_matrix = csi_matrix
+
+    @classmethod
+    def from_picoscenes(cls, frame_container: "FrameContainer"):
+        header_block = [
+            frame_container.RxSBasic.timestamp,
+            0,
+            0,
+            frame_container.CSI.numRx,
+            frame_container.CSI.actualNumSTSPerChain,
+            frame_container.RxSBasic.rssi_ctl0,
+            frame_container.RxSBasic.rssi_ctl1,
+            frame_container.RxSBasic.rssi_ctl2,
+            frame_container.RxSBasic.noiseFloor,
+            0,
+            frame_container.CSI.antSelByte,
+            0,
+            0
+        ]
+        return cls(header_block, frame_container.CSI.parsed_csi)

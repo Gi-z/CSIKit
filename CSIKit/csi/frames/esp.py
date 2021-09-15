@@ -5,8 +5,8 @@ import numpy as np
 
 
 class ESP32CSIFrame(CSIFrame):
-    """
-        CSIFrame subclass for ESP32 hardware.
+    """CSIFrame subclass for ESP32 hardware.
+
         Format produced by ESP32-CSI-Tool, developed by Steven Hernandez.
 
         ...

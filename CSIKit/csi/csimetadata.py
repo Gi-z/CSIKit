@@ -1,8 +1,9 @@
 class CSIMetadata:
 
-    __slots__ = ["chipset", "bandwidth", "antenna_config", "frames", "subcarriers", "time_length", "average_sample_rate", "average_rssi", "csi_shape"]
+    __slots__ = ["chipset", "backend", "bandwidth", "antenna_config", "frames", "subcarriers", "time_length", "average_sample_rate", "average_rssi", "csi_shape"]
     def __init__(self, data: dict):
         self.chipset = data["chipset"]
+        self.backend = data["backend"]
         self.bandwidth = data["bandwidth"]
         self.antenna_config = data["antenna_config"]
         self.frames = data["frames"]

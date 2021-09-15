@@ -3,10 +3,12 @@ from CSIKit.reader import get_reader
 
 def display_info(path: str):
     reader = get_reader(path)
-    csi_data = reader.read_file(path, scaled=True)
+    # csi_data = reader.read_file(path, scaled=True)
+    csi_data = reader.read_file(path)
     metadata = csi_data.get_metadata()
 
     print("Hardware: {}".format(metadata.chipset))
+    print("Backend: {}".format(metadata.backend))
     print("Bandwidth: {}MHz".format(metadata.bandwidth))
     print("Antenna Configuration: {}".format(metadata.antenna_config))
     print("Frame Count: {}".format(metadata.frames))

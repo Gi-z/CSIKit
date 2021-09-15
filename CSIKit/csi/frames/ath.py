@@ -1,3 +1,5 @@
+import collections
+
 from CSIKit.csi import CSIFrame
 
 from collections import namedtuple
@@ -5,8 +7,8 @@ from collections import namedtuple
 import numpy as np
 
 class ATHCSIFrame(CSIFrame):
-    """
-        CSIFrame subclass for Atheros hardware.
+    """CSIFrame subclass for Atheros hardware.
+
         Format produced by Atheros CSI Tool, developed by Mo Li and Yaxiong Xie.
 
         ...
@@ -71,6 +73,8 @@ class ATHCSIFrame(CSIFrame):
         "csi_matrix"
     ]
 
+    HEADER_DATA = collections.namedtuple("header_data", __slots__[:-1])
+
     def __init__(self, header_data: namedtuple, csi_matrix: np.array):
         self.timestamp = header_data.timestamp
         self.csi_length = header_data.csi_length
@@ -88,3 +92,24 @@ class ATHCSIFrame(CSIFrame):
         self.rssi_3 = header_data.rssi_3
         self.payload_length = header_data.payload_length
         self.csi_matrix = csi_matrix
+
+    @classmethod
+    def from_picoscenes(cls, frame_container: "FrameContainer"):
+        header_data = cls.HEADER_DATA._make([
+            frame_container.RxSBasic.timestamp,
+            0,
+            frame_container.RxSBasic.channelFreq,
+            0,
+            frame_container.RxSBasic.noiseFloor,
+            0,
+            frame_container.RxSBasic.cbw,
+            frame_container.CSI.numTone,
+            frame_container.CSI.numRx,
+            frame_container.CSI.numSTS,
+            frame_container.RxSBasic.rssi,
+            frame_container.RxSBasic.rssi_ctl0,
+            frame_container.RxSBasic.rssi_ctl1,
+            frame_container.RxSBasic.rssi_ctl2,
+            0
+        ])
+        return cls(header_data, frame_container.CSI.parsed_csi)

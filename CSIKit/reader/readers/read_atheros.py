@@ -101,7 +101,7 @@ class ATHBeamformReader(Reader):
         data = open(path, "rb").read()
         length = len(data)
 
-        ret_data = CSIData(self.filename, "Atheros 802.11n-compatible")
+        ret_data = CSIData(self.filename, "Atheros CSI Tool", "QCA93XX")
 
         cursor = 0
         expected_count = 0

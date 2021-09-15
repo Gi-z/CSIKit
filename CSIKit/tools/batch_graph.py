@@ -58,7 +58,6 @@ class BatchGraph:
 
     def heatmap(self):
 
-        csi_trace = self.csi_data.frames
         finalEntry, no_frames, no_subcarriers = get_CSI(self.csi_data)
         if len(finalEntry.shape) == 4:
             #>1 antenna stream.

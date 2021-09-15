@@ -49,10 +49,14 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
 
     for frame, subcarrier, rx_antenna_index, tx_antenna_index in ranges:
         frame_data = frames[frame].csi_matrix
+        if subcarrier > len(frame_data):
+            # Inhomogenous component
+            continue
+
         subcarrier_data = frame_data[subcarrier]
 
         csi[frame][subcarrier][rx_antenna_index][tx_antenna_index] = subcarrier_data if is_single_antenna else \
-        subcarrier_data[rx_antenna_index][tx_antenna_index]
+            subcarrier_data[rx_antenna_index][tx_antenna_index]
 
     if metric == "amplitude":
         csi = abs(csi)

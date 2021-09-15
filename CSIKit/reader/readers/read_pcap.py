@@ -260,6 +260,7 @@ class NEXBeamformReader(Reader):
             data = self.read_frame(f, scaled, ret_data.bandwidth)
             ret_data.push_frame(data)
             ret_data.timestamps.append(data.timestamp)
+            ret_data.set_backend("Nexmon CSI")
             ret_data.set_chipset("Broadcom BCM{}".format(self.chip))
             yield ret_data
 
@@ -275,7 +276,7 @@ class NEXBeamformReader(Reader):
         self.pcap.read()
         self.scaled = scaled
 
-        ret_data = CSIData(self.filename)
+        ret_data = CSIData(self.filename, backend="Nexmon CSI")
         ret_data.bandwidth = self.pcap.bandwidth
         ret_data.skipped_frames = self.pcap.skipped_frames
         ret_data.expected_frames = len(self.pcap.frames)+self.pcap.skipped_frames
