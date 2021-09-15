@@ -47,7 +47,7 @@ As is usually the case with research-oriented software, documentation is in-prog
 CSIKit provides a command line tool for parsing, processing, converting, and visualisation of CSI data, as well as libraries for use in other Python applications such as those working with Tensorflow, PyTorch, etc.
 
 ```console
-csikit [OPTIONS] file[.pcap/.dat]
+csikit [OPTIONS] file[.pcap/.dat/.csv/.csi]
 ```
 
 ## Installation
@@ -103,7 +103,7 @@ CSIKit exposes key components for use in other Python applications: `Reader` and
 
 Note: This documentation is initial and brief. More will follow shortly.
 
-A Reader is used to read a given CSI capture file and generate parsed traces and matrices. As each file format differs a significant amount, different readers are necessary for each piece of hardware. Using the `get_reader` method in `CSIKit.reader`, the correct reader can be automatically selected for a given file. Optionally, hardware-specific readers can be imported, as `ATHBeamformReader`, `IWLBeamformReader`, and `NEXBeamformReader`.
+A Reader is used to read a given CSI capture file and generate parsed traces and matrices. As each file format differs a significant amount, different readers are necessary for each piece of hardware. Using the `get_reader` method in `CSIKit.reader`, the correct reader can be automatically selected for a given file. Optionally, hardware-specific readers can be imported, as `ATHBeamformReader`, `IWLBeamformReader`, `NEXBeamformReader`, `CSVBeamformReader`, `PicoScenesBemaformReader`.
 
 Once instantiated, a Reader can be used to read a file using the `read_file` method. This method returns a `CSIData` object, which contain frames (`CSIFrame` objects), timestamps, and metadata from parsing (errors, device information, etc). Additional parsing options can be passed to `read_file`, including `scaled` (bool) to rescale CSI values from manufacturer's internal scaling.
 
@@ -205,6 +205,7 @@ This format is based on the modified version of [nexmon_csi](https://github.com/
 - Intel IWL5300
 - Broadcom BCM4339, BCM4358, BCM43455c0, BCM4366c0
 - ESP32 via [ESP32-CSI-Tool](https://github.com/StevenMHernandez/ESP32-CSI-Tool)
+- USRP SDRs (N2xx, B2xx, X3xx) via [PicoScenes](https://ps.zpj.io/)
 
 ## Coming Soon
 
@@ -230,6 +231,8 @@ Further to that, if there are any assertions I have made within code comments or
   - This project was released by the [Secure Mobile Networking Lab](https://github.com/seemoo-lab).
 - **[ESP32-CSI-Tool](https://github.com/StevenMHernandez/ESP32-CSI-Tool)**: CSI extraction utilities for ESP32 hardware.
   - This project was released by [Steven Hernandez](https://github.com/StevenMHernandez).
+- **[PicoScenes](https://ps.zpj.io/)**: A versatile and powerful Wi-Fi sensing platform middleware for a wide range of hardware.
+  - This project was released by [Zhiping Jiang](https://zpj.io/bio/).
 
 ## License
 
