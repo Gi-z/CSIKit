@@ -257,7 +257,7 @@ class NEXBeamformReader(Reader):
         for f in self.pcap.stream():
             ret_data = CSIData()
             ret_data.bandwidth = self.pcap.bandwidth
-            data = self.read_frame(f, scaled, ret_data.bandwidth)
+            data = self.read_frame(f, ret_data.bandwidth)
             ret_data.push_frame(data)
             ret_data.timestamps.append(data.timestamp)
             ret_data.set_backend("Nexmon CSI")
