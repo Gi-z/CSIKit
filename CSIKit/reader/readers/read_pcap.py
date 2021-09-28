@@ -27,6 +27,7 @@ class PcapFrame:
         "6500": "43455c0",
         "dca6": "43455c0",
 
+        "0300": "4358",
         "adde": "4358",
 
         "34e8": "4366c0", #Seen in data/nexmon/example_4366c0
