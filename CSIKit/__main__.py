@@ -4,7 +4,9 @@ def main():
     parser = argparse.ArgumentParser(description="CSIKit: Parse and interpret CSI data.")
 
     parser.add_argument("--info", "-i", action="store_true", default=True, help="Display structural information about a given CSI file.")
-    
+
+    parser.add_argument("--scaled", dest="scaled", action="store_true", default=False, help="Apply rescaling to CSI based on established AGC reversal via gain or RSSI.")
+
     parser.add_argument("--graph", "-g", action="store_true", default=False, help="Visualise CSI data in a matplotlib graph.")
     parser.add_argument("--graph_type", dest="graph_type", default="heatmap", help="Select the graph type for visualisation: [heatmap, subcarrier_filter, all_subcarriers]. (Default: heatmap)")
     
@@ -27,7 +29,7 @@ def main():
     if args.graph:
         from CSIKit.tools.batch_graph import BatchGraph
 
-        bg = BatchGraph(args.file)
+        bg = BatchGraph(args.file, args.scaled)
         if args.graph_type == "heatmap":
             bg.heatmap()
         elif args.graph_type == "all_subcarriers":
