@@ -28,7 +28,7 @@ class CSVBeamformReader(Reader):
 
     @staticmethod
     def can_read(path: str) -> bool:
-        if os.path.exists(path):
+        if os.path.exists(path) and os.path.splitext(path)[1] == ".csv":
             try:
                 data = open(path)
 
