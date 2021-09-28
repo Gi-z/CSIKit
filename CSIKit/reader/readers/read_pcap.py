@@ -244,7 +244,6 @@ class NEXBeamformReader(Reader):
             return byteops.unpack_float_acphy(10, 1, 0, 1, 9, 5, nfft, nfftx1)
         elif format == 1:
             return byteops.unpack_float_acphy(10, 1, 0, 1, 12, 6, nfft, nfftx1)
-            # return byteops.unpack_float_acphy(1, 12, 6, nfft, nfftx1)
 
     def read_stream(self, path: str, scaled: bool = False):
         self.chip = " UNKNOWN"
@@ -409,10 +408,10 @@ class NEXBeamformReader(Reader):
 
         return NEXCSIFrame(payload_header, np.transpose(total_csi))
 
-    def read_frame(self, frame, scaled:bool, bandwidth: int):
+    def read_frame(self, frame, bandwidth: int):
         return self.read_bfee(frame, bandwidth)
 
-    def read_frames(self, frames: list, scaled: bool, bandwidth: int) -> list:
+    def read_frames(self, frames: list, bandwidth: int) -> list:
 
         # Check if sequence_no changes. If not, 1Rx/Tx stream.
         if frames[0].payloadHeader["sequence_no"] == frames[-1].payloadHeader["sequence_no"]:
