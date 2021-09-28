@@ -281,7 +281,7 @@ class NEXBeamformReader(Reader):
         ret_data.skipped_frames = self.pcap.skipped_frames
         ret_data.expected_frames = len(self.pcap.frames)+self.pcap.skipped_frames
 
-        data_frames = self.read_frames(self.pcap.frames, scaled, ret_data.bandwidth)
+        data_frames = self.read_frames(self.pcap.frames, ret_data.bandwidth)
         for frame in data_frames:
             if frame is not None:
                 ret_data.push_frame(frame)
