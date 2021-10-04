@@ -188,7 +188,7 @@ IWLCSIFrame visualization can be count at ./docs
 
 ### NEXCSIFrame
 
-This format is based on the modified version of [nexmon_csi](https://github.com/nexmonster/nexmon_csi/tree/pi-5.4.51) (credit [mzakharo](https://github.com/seemoo-lab/nexmon_csi/pull/46)) for BCM43455c0 with support for RSSI and Frame Control. If using the [regular](https://github.com/seemoo-lab/nexmon_csi/) version of `nexmon_csi`, these fields will not contain this data.
+This format is based on the modified version of `nexmon_csi` (credit [mzakharo](https://github.com/seemoo-lab/nexmon_csi/pull/46)), for BCM43455c0 with support for RSSI and Frame Control. If using the [stock](https://github.com/seemoo-lab/nexmon_csi/) version of `nexmon_csi`, these fields will not contain this data. For a more streamlined approach to setting up `nexmon_csi`, take a look at [zeroby0's](https://github.com/zeroby0) [fork](https://github.com/nexmonster/nexmon_csi)
 
 - rssi: Observed RSSI (signal strength in dB) on the receiving antenna.
 - frame_control: [Frame Control](https://en.wikipedia.org/wiki/802.11_Frame_Types#Frame_Control) bitmask.
