@@ -142,7 +142,7 @@ csi_matrix_trans = np.transpose(csi_matrix)
 #  - a hampel filter to reduce high frequency noise (window size = 10, significance = 3)
 #  - a running mean filter for smoothing (window size = 10)
 
-for x in no_frames:
+for x in range(no_frames):
   csi_matrix_trans[x] = lowpass(csi_matrix_trans[x], 10, 100, 5)
   csi_matrix_trans[x] = hampel(csi_matrix_trans[x], 10, 3)
   csi_matrix_trans[x] = running_mean(csi_matrix_trans[x], 10)
