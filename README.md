@@ -123,8 +123,10 @@ csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data)
 ```
 
 The returned tuple contains a modified matrix which contains CSI amplitudes in dBm, followed by the number of frames and subcarriers represented therein.
+This matrix will be returned in the shape `(no_frames, no_subcarriers, no_rx_antennas, no_tx_antennas)`. When parsing data from devices using single omnidirectional antennas, such as the ESP32 or Raspberry Pi 3B+/4, you can use the `squeeze_output=True` parameter to remove the singular antenna dimensions and instead return CSI in the shape `(no_frames, no_subcarriers)`.
 
 Once we have CSI amplitude data, we can also apply filters for preprocessing (as seen in many publications making use of CSI).
+These filters should be applied per-subcarrier, as each subcarrier stream represents CSI from one subcarrier sampled for n frames.
 
 ```python
 from CSIKit.filters import lowpass, hampel, running_mean
@@ -142,10 +144,15 @@ csi_matrix_trans = np.transpose(csi_matrix)
 #  - a hampel filter to reduce high frequency noise (window size = 10, significance = 3)
 #  - a running mean filter for smoothing (window size = 10)
 
-for x in range(no_frames):
-  csi_matrix_trans[x] = lowpass(csi_matrix_trans[x], 10, 100, 5)
-  csi_matrix_trans[x] = hampel(csi_matrix_trans[x], 10, 3)
-  csi_matrix_trans[x] = running_mean(csi_matrix_trans[x], 10)
+Fs = 100
+window_size = 10
+significance = 3
+order = 5
+
+for x in range(no_subcarriers):
+  csi_matrix_trans[x] = lowpass(csi_matrix_trans[x], window_size, Fs, order)
+  csi_matrix_trans[x] = hampel(csi_matrix_trans[x], window_size, significance)
+  csi_matrix_trans[x] = running_mean(csi_matrix_trans[x], window_size)
 ```
 
 ### ATHCSIFrame
