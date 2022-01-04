@@ -1,4 +1,4 @@
-# CSIKit [![PyPi version](https://pypip.in/v/CSIKit/badge.png)](https://crate.io/packages/CSIKit/) [![Downloads](https://pepy.tech/badge/csikit)](https://pepy.tech/project/csikit)
+# CSIKit [![PyPi version](https://pypip.in/v/CSIKit/badge.png)](https://crate.io/packages/CSIKit/) [![Downloads](https://pepy.tech/badge/csikit/month)](https://pepy.tech/project/csikit)
 
 Tools for extracting Channel State Information from formats produced by a range of WiFi hardware/drivers, written in Python with numpy.
 
@@ -123,36 +123,44 @@ csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data)
 ```
 
 The returned tuple contains a modified matrix which contains CSI amplitudes in dBm, followed by the number of frames and subcarriers represented therein.
-This matrix will be returned in the shape `(no_frames, no_subcarriers, no_rx_antennas, no_tx_antennas)`. When parsing data from devices using single omnidirectional antennas, such as the ESP32 or Raspberry Pi 3B+/4, you can use the `squeeze_output=True` parameter to remove the singular antenna dimensions and instead return CSI in the shape `(no_frames, no_subcarriers)`.
 
 Once we have CSI amplitude data, we can also apply filters for preprocessing (as seen in many publications making use of CSI).
-These filters should be applied per-subcarrier, as each subcarrier stream represents CSI from one subcarrier sampled for n frames.
+
+This example below loads a given CSI file, applies some basic preprocessing, and plots the data in a heatmap.
 
 ```python
-from CSIKit.filters import lowpass, hampel, running_mean
+from CSIKit.filters.passband import lowpass
+from CSIKit.filters.statistical import running_mean
+from CSIKit.util.filters import hampel
+
 from CSIKit.reader import get_reader
+from CSIKit.tools.batch_graph import BatchGraph
 from CSIKit.util import csitools
 
-my_reader = get_reader("path/to/file.pcap")
-csi_data = my_reader.read_file("path/to/file.pcap", scaled=True)
-csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="amplitude", squeeze_output=True)
-csi_matrix_trans = np.transpose(csi_matrix)
+import numpy as np
 
-#This example assumes CSI data is sampled at ~100Hz.
-#In this example, we apply (sequentially):
+my_reader = get_reader("/path/to/csi/file")
+csi_data = my_reader.read_file("/path/to/csi/file", scaled=True)
+csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="amplitude")
+
+# CSI matrix is now returned as (no_frames, no_subcarriers, no_rx_ant, no_tx_ant).
+# First we'll select the first Rx/Tx antenna pairing.
+csi_matrix_first = csi_matrix[:, :, 0, 0]
+# Then we'll squeeze it to remove the singleton dimensions.
+csi_matrix_squeezed = np.squeeze(csi_matrix_first)
+
+# This example assumes CSI data is sampled at ~100Hz.
+# In this example, we apply (sequentially):
 #  - a lowpass filter to isolate frequencies below 10Hz (order = 5)
 #  - a hampel filter to reduce high frequency noise (window size = 10, significance = 3)
 #  - a running mean filter for smoothing (window size = 10)
 
-Fs = 100
-window_size = 10
-significance = 3
-order = 5
+for x in range(no_frames):
+  csi_matrix_squeezed[x] = lowpass(csi_matrix_squeezed[x], 10, 100, 5)
+  csi_matrix_squeezed[x] = hampel(csi_matrix_squeezed[x], 10, 3)
+  csi_matrix_squeezed[x] = running_mean(csi_matrix_squeezed[x], 10)
 
-for x in range(no_subcarriers):
-  csi_matrix_trans[x] = lowpass(csi_matrix_trans[x], window_size, Fs, order)
-  csi_matrix_trans[x] = hampel(csi_matrix_trans[x], window_size, significance)
-  csi_matrix_trans[x] = running_mean(csi_matrix_trans[x], window_size)
+BatchGraph.plot_heatmap(csi_matrix_squeezed, csi_data.timestamps)
 ```
 
 ### ATHCSIFrame
@@ -195,7 +203,7 @@ IWLCSIFrame visualization can be count at ./docs
 
 ### NEXCSIFrame
 
-This format is based on the modified version of `nexmon_csi` (credit [mzakharo](https://github.com/seemoo-lab/nexmon_csi/pull/46)), for BCM43455c0 with support for RSSI and Frame Control. If using the [stock](https://github.com/seemoo-lab/nexmon_csi/) version of `nexmon_csi`, these fields will not contain this data. For a more streamlined approach to setting up `nexmon_csi`, take a look at [zeroby0's](https://github.com/zeroby0) [fork](https://github.com/nexmonster/nexmon_csi)
+This format is based on the modified version of [nexmon_csi](https://github.com/nexmonster/nexmon_csi/tree/pi-5.4.51) (credit [mzakharo](https://github.com/seemoo-lab/nexmon_csi/pull/46)) for BCM43455c0 with support for RSSI and Frame Control. If using the [regular](https://github.com/seemoo-lab/nexmon_csi/) version of `nexmon_csi`, these fields will not contain this data.
 
 - rssi: Observed RSSI (signal strength in dB) on the receiving antenna.
 - frame_control: [Frame Control](https://en.wikipedia.org/wiki/802.11_Frame_Types#Frame_Control) bitmask.
