@@ -134,8 +134,6 @@ class BatchGraph:
         else:
             xlim = max(x)
 
-        print(csi_matrix.shape)
-
         limits = [0, xlim, 1, csi_matrix.shape[0]]
 
         _, ax = plt.subplots()
