@@ -22,6 +22,7 @@ class CSISegment:
             1: self.parseV1or2,
             2: self.parseV1or2,
             3: self.parseV3,
+            4: self.parseV4
         }
 
         self.version = version
@@ -125,11 +126,11 @@ class CSISegment:
         for j in range(self.numRx):
             for k in range(self.numSTS):
                 for n in range(self.numTone):
-                    real = struct.unpack("h", data[pos:pos + 2])
-                    imag = struct.unpack("h", data[pos + 2:pos + 4])
+                    real = struct.unpack("h", data[pos:pos + 2])[0]
+                    imag = struct.unpack("h", data[pos + 2:pos + 4])[0]
                     pos += 4
 
-                    csi_matrix[j, k, n] = complex(real, imag)
+                    csi_matrix[n, j, k] = complex(real, imag)
 
         self.parsed_csi = csi_matrix
 
@@ -308,7 +309,62 @@ class CSISegment:
 
         if self.deviceType == 0x1234:
             self.parseUSRPCSIData(data, pos)
-        elif self.deviceType == 0x2000:
+        elif self.deviceType == 0x2000 or self.deviceType == 0x2100:
+            self.parseIWLMVMCSIData(data, pos)
+        elif self.deviceType == 0x5300:
+            self.parseIWL5300CSIData(data, pos)
+        elif self.deviceType == 0x9300:
+            self.parseQCA9300CSIData(data, pos)
+
+    def parseV4(self, data: bytes):
+        self.deviceType = struct.unpack("H", data[:2])[0]
+        pos = 2
+
+        self.firmwareVersion = struct.unpack("B", data[pos:pos + 1])[0]
+        pos += 1
+
+        self.packetFormat = struct.unpack("b", data[pos:pos + 1])[0]
+        pos += 1
+
+        self.channelBandwidth = struct.unpack("H", data[pos:pos + 2])[0]
+        pos += 2
+
+        self.carrierFreq = struct.unpack("Q", data[pos:pos + 8])[0]
+        pos += 8
+
+        self.samplingRate = struct.unpack("Q", data[pos:pos + 8])[0]
+        pos += 8
+
+        self.subcarrierBandwidth = struct.unpack("I", data[pos:pos + 4])[0]
+        pos += 4
+
+        self.numTone = struct.unpack("H", data[pos:pos + 2])[0]
+        pos += 2
+
+        self.numSTS = struct.unpack("B", data[pos:pos + 1])[0]
+        pos += 1
+
+        self.numRx = struct.unpack("B", data[pos:pos + 1])[0]
+        pos += 1
+
+        self.numESS = struct.unpack("B", data[pos:pos + 1])[0]
+        pos += 1
+
+        self.numCSI = struct.unpack("H", data[pos:pos + 2])[0]
+        pos += 2
+
+        self.antSelByte = struct.unpack("B", data[pos:pos + 1])[0]
+        pos += 1
+
+        self.subcarrierIndexOffset = struct.unpack("h", data[pos:pos + 2])[0]
+        pos += 2
+
+        self.CSIBufferLength = struct.unpack("I", data[pos:pos + 4])[0]
+        pos += 4
+
+        if self.deviceType == 0x1234:
+            self.parseUSRPCSIData(data, pos)
+        elif self.deviceType == 0x2000 or self.deviceType == 0x2100:
             self.parseIWLMVMCSIData(data, pos)
         elif self.deviceType == 0x5300:
             self.parseIWL5300CSIData(data, pos)

@@ -13,6 +13,9 @@ class AbstractPicoScenesFrameSegment:
         pos += 1
 
         self.subsegmentName = data[pos:pos + self.subsegmentNameLength].decode("ascii")
+        if data[pos + self.subsegmentNameLength - 1:pos + self.subsegmentNameLength] == b'\x00':
+            self.subsegmentName = self.subsegmentName[:-1]
+
         pos += self.subsegmentNameLength
 
         self.subsegmentVersion = struct.unpack("H", data[pos:pos + 2])[0]

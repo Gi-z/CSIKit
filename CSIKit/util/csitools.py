@@ -49,8 +49,9 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
 
     for frame, subcarrier, rx_antenna_index, tx_antenna_index in ranges:
         frame_data = frames[frame].csi_matrix
-        if subcarrier > len(frame_data):
+        if subcarrier >= frame_data.shape[0]:
             # Inhomogenous component
+            # Skip frame for now. Need a better method soon.
             continue
 
         subcarrier_data = frame_data[subcarrier]
@@ -71,21 +72,39 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
     return (csi, no_frames, no_subcarriers)
 
 
-def scale_csi_frame(csi: np.array, rss: int) -> np.array:
-    # This is not a true SNR ratio as is the case for the Intel scaling.
-    # We do not have agc or noise values so it's just about establishing a scale against RSS.
-
+def scale_csi_frame(csi: np.array, rss: int, noise_floor: int=0) -> np.array:
     subcarrier_count = csi.shape[0]
 
-    rss_pwr = dbinv(rss)
-
-    csi_sq = np.multiply(csi, np.conj(csi))
-    csi_pwr = np.sum(csi_sq)
-    csi_pwr = np.real(csi_pwr)
+    # This is not a true SNR ratio as is the case for the Intel scaling.
+    # We do not have agc or noise values so it's just about establishing a scale against RSS.
 
     # This implementation is based on the equation shown in https://doi.org/10.1109/JIOT.2020.3022573.
     # scaling_coefficient = sqrt(10^(RSS/10) / sum(CSIi^2))
 
-    scale = rss_pwr / (csi_pwr / subcarrier_count)
+    # CSI is a vector of n subcarriers, represented as complex pairs.
+    # The units are "linear voltage space".
+    # RSS (for current purposes) is a measure of the received signal strength.
+    # The units are dBm.
+
+    # We can observe a linear relationship between CSI magnitude and RSS.
+    # Utilising this, we aim to establish a scaling factor between a given
+    # RSS/CSI pair.
+
+    # First, we'll convert the RSS measurement from dBm to mW.
+    # if noise_floor != 0:
+    #     rss = rss + noise_floor
+
+    rss_pwr = dbinv(rss)
+
+    # Now we'll get CSI magnitude.
+    # First, the individual subcarrier magnitudes.
+    abs_csi = abs(csi)
+    # Then the vector magnitude.
+    csi_mag = np.sum(abs_csi ** 2)
+    # Then, we'll get the average magnitude per subcarrier.
+    norm_csi_mag = csi_mag / subcarrier_count
+
+    # We can then establish a scaling factor
+    scale = rss_pwr / norm_csi_mag
 
     return csi * np.sqrt(scale)

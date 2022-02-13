@@ -1,16 +1,13 @@
 from typing import Tuple
-from numba import jit
 
 import numpy as np
 
-@jit(nopython=True)
 def signbit_convert(data: int, maxbit: int) -> int:
     if (data & (1 << (maxbit - 1))):
         data -= (1 << maxbit)
 
     return data
 
-@jit(nopython=True)
 def get_next_bits(buf: bytes, current_data: int, idx: int, bits_left: int) -> Tuple[int, int, int]:
     h_data = buf[idx]
     h_data += (buf[idx+1] << 8)
@@ -22,8 +19,6 @@ def get_next_bits(buf: bytes, current_data: int, idx: int, bits_left: int) -> Tu
 
     return current_data, idx, bits_left
 
-# @jit(nopython=True, parallel=True)
-@jit(nopython=True)
 def unpack_float_acphy(nbits: int, autoscale: int, shft: int, fmt: int, nman: int, nexp: int, nfft: int,
                        H: np.array) -> np.array:
     k_tof_unpack_sgn_mask = (1 << 31)

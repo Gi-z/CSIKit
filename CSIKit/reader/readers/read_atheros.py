@@ -92,7 +92,7 @@ class ATHBeamformReader(Reader):
 
         return csi
 
-    def read_file(self, path: str, scaled: bool = False) -> CSIData:
+    def read_file(self, path: str, scaled: bool = False, filter_mac: str=None) -> CSIData:
 
         self.filename = os.path.basename(path)
         if not os.path.exists(path):
@@ -101,7 +101,7 @@ class ATHBeamformReader(Reader):
         data = open(path, "rb").read()
         length = len(data)
 
-        ret_data = CSIData(self.filename, "Atheros CSI Tool", "QCA93XX")
+        ret_data = CSIData(self.filename, "Atheros CSI Tool", "QCA93XX", filter_mac=filter_mac)
 
         cursor = 0
         expected_count = 0
@@ -148,14 +148,13 @@ class ATHBeamformReader(Reader):
                     #     csi_matrix = csitools.scale_csi_frame(csi_matrix, rssi_dbm)
 
                     frame = ATHCSIFrame(header_block, csi_matrix)
-                    ret_data.push_frame(frame)
 
-                    timestamp_low = header_block.timestamp*1e-6
+                    timestamp_low = header_block.timestamp * 1e-6
 
                     if initial_timestamp == 0:
                         initial_timestamp = timestamp_low
 
-                    ret_data.timestamps.append(timestamp_low - initial_timestamp)
+                    ret_data.push_frame(frame, timestamp_low - initial_timestamp)
             except IndexError as e:
                 print(e)
 

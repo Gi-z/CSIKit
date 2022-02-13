@@ -37,5 +37,4 @@ def denoise(csi_matrix, level=None):
         else:
             denoised_csi[:, subcarrier_index] = reconstructed_signal[:-1]
 
-
     return denoised_csi

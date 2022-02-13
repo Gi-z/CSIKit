@@ -6,7 +6,7 @@ import numpy as np
 
 class CSIData:
 
-    def __init__(self, filename: str="", backend: str="", chipset: str=""):
+    def __init__(self, filename: str="", backend: str="", chipset: str="", filter_mac: str=None):
         
         self.frames = []
         self.timestamps = []
@@ -19,6 +19,7 @@ class CSIData:
         self.filename = filename
         self.backend = backend
         self.chipset = chipset
+        self.filter_mac = filter_mac
 
     def set_chipset(self, chipset: str):
         self.chipset = chipset
@@ -26,8 +27,19 @@ class CSIData:
     def set_backend(self, backend: str):
         self.backend = backend
 
-    def push_frame(self, frame: CSIFrame):
-        self.frames.append(frame)
+    def push_frame(self, frame: CSIFrame, timestamp: float):
+        if self.filter_mac is not None:
+            if hasattr(frame, "source_mac"):
+                if self.filter_mac.casefold() == frame.source_mac.casefold():
+                    self.frames.append(frame)
+                    self.timestamps.append(timestamp)
+            elif hasattr(frame, "mac"):
+                if self.filter_mac.casefold() == frame.mac.casefold():
+                    self.frames.append(frame)
+                    self.timestamps.append(timestamp)
+        else:
+            self.frames.append(frame)
+            self.timestamps.append(timestamp)
 
     def get_metadata(self) -> CSIMetadata:
         chipset = self.chipset

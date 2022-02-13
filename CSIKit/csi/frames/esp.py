@@ -109,6 +109,35 @@ class ESP32CSIFrame(CSIFrame):
                  "local_timestamp", "ant", "sig_len", "rx_state", "real_time_set", "real_timestamp", "len", "CSI_DATA"]
 
     def __init__(self, csv_line: list):
+        if len(csv_line) == 3 or len(csv_line) == 4:
+            self.type = 0
+            self.role = 0
+            self.mac = "00:16:EA:12:34:56"
+            self.rssi = 0
+            self.rate = 0
+            self.sig_mode = 0
+            self.mcs = 0
+            self.bandwidth = 0
+            self.smoothing = 0
+            self.not_sounding = 0
+            self.aggregation = 0
+            self.stbc = 0
+            self.fec_coding = 0
+            self.sgi = 0
+            self.noise_floor = 0
+            self.ampdu_cnt = 0
+            self.channel = 0
+            self.secondary_channel = 0
+            self.local_timestamp = csv_line[0]
+            self.ant = 0
+            self.sig_len = 0
+            self.rx_state = 0
+            self.real_time_set = 0
+            self.real_timestamp = csv_line[0]
+            self.len = 0
+            self.csi_matrix = ESP32CSIFrame.parse_matrix(csv_line[len(csv_line)-1])
+            return
+
         self.type = csv_line[0]
         self.role = csv_line[1]
         self.mac = csv_line[2]

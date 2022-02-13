@@ -6,6 +6,7 @@ def main():
     parser.add_argument("--info", "-i", action="store_true", default=True, help="Display structural information about a given CSI file.")
 
     parser.add_argument("--scaled", dest="scaled", action="store_true", default=False, help="Apply rescaling to CSI based on established AGC reversal via gain or RSSI.")
+    parser.add_argument("--filter_mac", dest="filter_mac", default=None, help="Filter a specific CSI stream for a given MAC address.")
 
     parser.add_argument("--graph", "-g", action="store_true", default=False, help="Visualise CSI data in a matplotlib graph.")
     parser.add_argument("--graph_type", dest="graph_type", default="heatmap", help="Select the graph type for visualisation: [heatmap, subcarrier_filter, all_subcarriers]. (Default: heatmap)")
@@ -29,9 +30,11 @@ def main():
     if args.graph:
         from CSIKit.tools.batch_graph import BatchGraph
 
-        bg = BatchGraph(args.file, args.scaled)
+        bg = BatchGraph(args.file, args.scaled, args.filter_mac)
         if args.graph_type == "heatmap":
             bg.heatmap()
+        if args.graph_type == "sumsqrssi":
+            bg.sumsqrssi()
         elif args.graph_type == "all_subcarriers":
             bg.plotAllSubcarriers()
         elif args.graph_type == "subcarrier_filter":
@@ -56,7 +59,7 @@ def main():
     elif args.info:
         from CSIKit.tools.get_info import display_info
 
-        display_info(args.file)
+        display_info(args.file, args.scaled, args.filter_mac)
     
 
 if __name__ == "__main__":

@@ -1,0 +1,8 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Forbes"
+  given-names: "Glenn"
+  orcid: "https://orcid.org/0000-0003-0282-3089"
+title: "CSIKit: Python CSI processing and visualisation tools for commercial off-the-shelf hardware."
+doi:

@@ -21,7 +21,7 @@ class ModularPicoScenesFrame:
 
         # if self.frameLength != len(data):
         #     self.log_exception("Invalid length")
-        # if self.magicWord != 0x20150315:
-        #     self.log_exception("Invalid magic")
-        # if self.frameVersion != 0x1:
-        #     self.log_exception("Unsupported frame version")
+        if self.magicWord != 0x20150315:
+            self.log_exception("Invalid magic")
+        if self.frameVersion != 0x1:
+            self.log_exception("Unsupported frame version")

@@ -72,72 +72,72 @@ class ExtraInfoSegment:
         self.chansel = struct.unpack("I", data[pos:pos + 4])[0]
         pos += 4
 
-        self.bmode = struct.unpack("B", data[pos:pos + 1])[0]
-        pos += 1
-
-        self.evm = struct.unpack(20*"B", data[pos:pos + 20])
-        pos += 20
-
-        self.txChainMask = struct.unpack("B", data[pos:pos + 1])[0]
-        pos += 1
-
-        self.rxChainMask = struct.unpack("B", data[pos:pos + 1])[0]
-        pos += 1
-
-        self.txpower = struct.unpack("B", data[pos:pos + 1])[0]
-        pos += 1
-
-        self.cf = struct.unpack("Q", data[pos:pos + 8])[0]
-        pos += 8
-
-        self.txTSF = struct.unpack("I", data[pos:pos + 4])[0]
-        pos += 4
-
-        self.lastHwTxTSF = struct.unpack("H", data[pos:pos + 2])[0]
-        pos += 2
-
-        self.channelFlags = struct.unpack("H", data[pos:pos + 2])[0]
-        pos += 2
-
-        self.tx_ness = struct.unpack("B", data[pos:pos + 1])[0]
-        pos += 1
-
-        tuningpolicy = struct.unpack("B", data[pos:pos + 1])[0]
-        if tuningpolicy == 30:
-            self.tuningPolicy = "Chansel"
-        elif tuningpolicy == 31:
-            self.tuningPolicy = "FastCC"
-        elif tuningpolicy == 32:
-            self.tuningPolicy = "Reset"
-        elif tuningpolicy == 33:
-            self.tuningPolicy = "Default"
-        else:
-            # clean this up
-            print("invalid tuning policy.")
-
-        self.pll_rate = struct.unpack("H", data[pos:pos + 2])[0]
-        pos += 2
-
-        self.pll_refdiv = struct.unpack("B", data[pos:pos + 1])[0]
-        pos += 1
-
-        self.pll_clock_select = struct.unpack("B", data[pos:pos + 1])[0]
-        pos += 1
-
-        self.agc = struct.unpack("B", data[pos:pos + 1])[0]
-        pos += 1
-
-        self.ant_sel = struct.unpack("BBB", data[pos:pos + 3])
-        pos += 3
-
-        self.samplingRate = struct.unpack("Q", data[pos:pos + 8])[0]
-        pos += 8
-
-        self.cfo = struct.unpack("I", data[pos:pos + 4])[0]
-        pos += 4
-
-        self.sfo = struct.unpack("I", data[pos:pos + 4])[0]
-        pos += 4
-
-        self.preciseTxTiming = struct.unpack("d", data[pos:pos + 8])[0]
-        pos += 8
+        # self.bmode = struct.unpack("B", data[pos:pos + 1])[0]
+        # pos += 1
+        # 
+        # self.evm = struct.unpack(20*"B", data[pos:pos + 20])
+        # pos += 20
+        # 
+        # self.txChainMask = struct.unpack("B", data[pos:pos + 1])[0]
+        # pos += 1
+        # 
+        # self.rxChainMask = struct.unpack("B", data[pos:pos + 1])[0]
+        # pos += 1
+        # 
+        # self.txpower = struct.unpack("B", data[pos:pos + 1])[0]
+        # pos += 1
+        # 
+        # self.cf = struct.unpack("Q", data[pos:pos + 8])[0]
+        # pos += 8
+        # 
+        # self.txTSF = struct.unpack("I", data[pos:pos + 4])[0]
+        # pos += 4
+        # 
+        # self.lastHwTxTSF = struct.unpack("H", data[pos:pos + 2])[0]
+        # pos += 2
+        # 
+        # self.channelFlags = struct.unpack("H", data[pos:pos + 2])[0]
+        # pos += 2
+        # 
+        # self.tx_ness = struct.unpack("B", data[pos:pos + 1])[0]
+        # pos += 1
+        # 
+        # tuningpolicy = struct.unpack("B", data[pos:pos + 1])[0]
+        # if tuningpolicy == 30:
+        #     self.tuningPolicy = "Chansel"
+        # elif tuningpolicy == 31:
+        #     self.tuningPolicy = "FastCC"
+        # elif tuningpolicy == 32:
+        #     self.tuningPolicy = "Reset"
+        # elif tuningpolicy == 33:
+        #     self.tuningPolicy = "Default"
+        # else:
+        #     # clean this up
+        #     print("invalid tuning policy.")
+        # 
+        # self.pll_rate = struct.unpack("H", data[pos:pos + 2])[0]
+        # pos += 2
+        # 
+        # self.pll_refdiv = struct.unpack("B", data[pos:pos + 1])[0]
+        # pos += 1
+        # 
+        # self.pll_clock_select = struct.unpack("B", data[pos:pos + 1])[0]
+        # pos += 1
+        # 
+        # self.agc = struct.unpack("B", data[pos:pos + 1])[0]
+        # pos += 1
+        # 
+        # self.ant_sel = struct.unpack("BBB", data[pos:pos + 3])
+        # pos += 3
+        # 
+        # self.samplingRate = struct.unpack("Q", data[pos:pos + 8])[0]
+        # pos += 8
+        # 
+        # self.cfo = struct.unpack("I", data[pos:pos + 4])[0]
+        # pos += 4
+        # 
+        # self.sfo = struct.unpack("I", data[pos:pos + 4])[0]
+        # pos += 4
+        # 
+        # self.preciseTxTiming = struct.unpack("d", data[pos:pos + 8])[0]
+        # pos += 8

@@ -53,6 +53,7 @@ class USRPCSIFrame(CSIFrame):
         "timestamp",
         "csi_length",
         "tx_channel",
+        "mac",
         "err_info",
         "noise_floor",
         "rate",
@@ -69,7 +70,11 @@ class USRPCSIFrame(CSIFrame):
 
     def __init__(self, frame_container: "FrameContainer"):
         self.timestamp = frame_container.RxSBasic.timestamp
-        self.channel_freq = frame_container.RxSBasic.channelFreq
+        if hasattr(frame_container.RxSBasic, "channelFreq"):
+            self.channel_freq = frame_container.RxSBasic.channelFreq
+        else:
+            self.channel_freq = frame_container.RxSBasic.centerFreq
+        self.mac = frame_container.RxSBasic.source_mac
         self.noise_floor = frame_container.RxSBasic.noiseFloor
         self.bandwidth = frame_container.RxSBasic.cbw
         self.num_tones = frame_container.CSI.numTone

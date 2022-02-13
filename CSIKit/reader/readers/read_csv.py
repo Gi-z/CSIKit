@@ -9,16 +9,31 @@ ESP32_HEADER = ["type", "role", "mac", "rssi", "rate", "sig_mode", "mcs", "bandw
                 "aggregation", "stbc", "fec_coding", "sgi", "noise_floor", "ampdu_cnt", "channel", "secondary_channel",
                 "local_timestamp", "ant", "sig_len", "rx_state", "real_time_set", "real_timestamp", "len", "CSI_DATA"]
 
+THROWIE_HEADER = ["time", "movement_detected", "csi"]
+THROWIE_HEADER2 = ["time", "pcc", "movement_detected", "csi"]
+
 HEADER_NAME_MAPPINGS = {
-    "ESP32": ESP32_HEADER
+    "ESP32": ESP32_HEADER,
+    "THROWIE": THROWIE_HEADER,
+    "THROWIE2": THROWIE_HEADER2,
 }
 
 HEADER_FRAMES = {
-    "ESP32": ESP32CSIFrame
+    "ESP32": ESP32CSIFrame,
+    "THROWIE": ESP32CSIFrame,
+    "THROWIE2": ESP32CSIFrame,
 }
 
 BACKEND_MAPPING = {
-    "ESP32": "ESP32 CSI Tool"
+    "ESP32": "ESP32 CSI Tool",
+    "THROWIE": "prototype thing",
+    "THROWIE2": "prototype thing"
+}
+
+LAST_CHAR_MAPPING = {
+    "ESP32": "]",
+    "THROWIE": "]",
+    "THROWIE2": "]"
 }
 
 class CSVBeamformReader(Reader):
@@ -28,7 +43,7 @@ class CSVBeamformReader(Reader):
 
     @staticmethod
     def can_read(path: str) -> bool:
-        if os.path.exists(path) and os.path.splitext(path)[1] == ".csv":
+        if os.path.exists(path):
             try:
                 data = open(path)
 
@@ -49,7 +64,7 @@ class CSVBeamformReader(Reader):
 
         return False
 
-    def read_file(self, path: str, scaled: bool = False, remove_unusable_subcarriers: bool = True) -> CSIData:
+    def read_file(self, path: str, scaled: bool = False, remove_unusable_subcarriers: bool = True, filter_mac: str = None) -> CSIData:
 
         # if scaled:
         #     print("Scaling not yet supported in CSV formats.")
@@ -60,7 +75,7 @@ class CSVBeamformReader(Reader):
 
         data = open(path, "r")
 
-        ret_data = CSIData(self.filename, "", "CSV Format")
+        ret_data = CSIData(self.filename, "", "CSV Format", filter_mac=filter_mac)
 
         header_line = data.readline()[:-1].split(",")
 
@@ -83,10 +98,14 @@ class CSVBeamformReader(Reader):
         ret_data.set_backend(BACKEND_MAPPING[header_name])
 
         header_frame = HEADER_FRAMES[header_name]
+        last_char = LAST_CHAR_MAPPING[header_name]
 
         while True:
             data_line = data.readline().split(",")
             if not data_line or len(data_line) != len(header_line):
+                break
+
+            if last_char and last_char not in data_line[-1]:
                 break
 
             new_frame = header_frame(data_line)
@@ -95,17 +114,15 @@ class CSVBeamformReader(Reader):
                 ret_data.bandwidth = new_frame.bandwidth
 
             if scaled:
-                new_frame.csi_matrix = csitools.scale_csi_frame(new_frame.csi_matrix, new_frame.rssi)
+                new_frame.csi_matrix = csitools.scale_csi_frame(new_frame.csi_matrix, new_frame.rssi, new_frame.noise_floor)
 
-            # no_subcarriers = new_frame.csi_matrix.shape[0]
+            no_subcarriers = new_frame.csi_matrix.shape[0]
 
-            # if remove_unusable_subcarriers and header_name == "ESP32":
-            #     new_frame.csi_matrix = new_frame.csi_matrix[[x for x in range(no_subcarriers) if x not in constants.ESP32_20MHZ_UNUSABLE]]
+            if remove_unusable_subcarriers and header_name == "ESP32":
+                new_frame.csi_matrix = new_frame.csi_matrix[[x for x in range(no_subcarriers) if x not in constants.ESP32_20MHZ_UNUSABLE]]
             # elif remove_unusable_subcarriers:
             #     print("Unsupported header format for null/pilot/guard subcarrier removal.")
 
-            ret_data.push_frame(new_frame)
-            #TODO: Normalise the timestamp retrieval.
-            ret_data.timestamps.append(float(new_frame.real_timestamp))
+            ret_data.push_frame(new_frame, float(new_frame.real_timestamp))
 
         return ret_data

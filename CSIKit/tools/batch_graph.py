@@ -132,7 +132,7 @@ class BatchGraph:
 
             x_label = "Frame No."
         else:
-            xlim = max(x)
+            xlim = max(x)   
 
         limits = [0, xlim, 1, csi_matrix.shape[0]]
 

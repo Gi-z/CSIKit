@@ -48,6 +48,10 @@ class NEXCSIFrame(CSIFrame):
         "spatial_stream",
         "channel_spec",
         "chip",
+
+        # T3rO temp
+        "agcGain",
+        
         "csi_matrix"
     ]
     def __init__(self, header_block: dict, csi_matrix: np.array):
@@ -60,4 +64,8 @@ class NEXCSIFrame(CSIFrame):
         self.spatial_stream = header_block["spatial_stream"]
         self.channel_spec = header_block["channel_spec"]
         self.chip = header_block["chip"]
+
+        if "agcGain" in header_block:
+            self.agcGain = header_block["agcGain"]
+
         self.csi_matrix = csi_matrix

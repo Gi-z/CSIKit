@@ -13,10 +13,14 @@ from CSIKit.reader.readers.pico.RxSBasicSegment import RxSBasicSegment
 import os
 import struct
 
+from CSIKit.util import stringops
+
+
 class PicoScenesBeamformReader(Reader):
 
     SEGMENT_MAPPING = {
         "RxSBasic": RxSBasicSegment,
+        # "ExtraInfo": ExtraInfoSegment,
         "CSI": CSISegment
     }
 
@@ -41,13 +45,13 @@ class PicoScenesBeamformReader(Reader):
         length = struct.unpack("I", data[offset:offset+4])[0] + 4
         return (length, data[offset:offset + length])
 
-    def read_file(self, filename: str, scaled: bool = False) -> CSIData:
+    def read_file(self, filename: str, scaled: bool = False, filter_mac: str = None) -> CSIData:
         file_bytes = open(filename, "rb").read()
         pos = 0
 
         self.filename = filename
 
-        ret_data = CSIData(self.filename, "PicoScenes")
+        ret_data = CSIData(self.filename, "PicoScenes", filter_mac=filter_mac)
         ret_data.bandwidth = 0
 
         self.frames = []
@@ -76,6 +80,9 @@ class PicoScenesBeamformReader(Reader):
 
                 frame_pos += seg_length
 
+            source_mac = stringops.hexToMACString(frame_bytes[frame_pos+4:frame_pos+10].hex())
+            frame_container.set_source_mac(source_mac)
+
             pos += frame_length
 
             if ret_data.bandwidth == 0:
@@ -89,7 +96,6 @@ class PicoScenesBeamformReader(Reader):
 
             given_timestamp = frame_container.get_timestamp_seconds() - initial_timestamp
 
-            ret_data.push_frame(frame_container.get_frame())
-            ret_data.timestamps.append(given_timestamp)
+            ret_data.push_frame(frame_container.get_frame(), given_timestamp)
 
         return ret_data
