@@ -15,7 +15,7 @@ class FrameContainer:
 
     TIMESTAMP_SECONDS_MAP = {
         0x1234: 1e+9,
-        0x2000: 1e+9,
+        0x2000: 1e+6,
         0x2100: 1e+6,
         0x5300: 1e+6,
         0x9300: 1e+6
@@ -29,7 +29,7 @@ class FrameContainer:
         0x9300: ATHCSIFrame,
     }
 
-    __slots__ = ["RxSBasic", "ExtraInfo", "CSI"]
+    __slots__ = ["RxSBasic", "ExtraInfo", "MVMExtra", "CSI"]
 
     def __init__(self):
         pass
@@ -41,7 +41,10 @@ class FrameContainer:
         return self.DEVICE_MAP[self.RxSBasic.deviceType]
 
     def get_timestamp_seconds(self):
-        return self.RxSBasic.timestamp / self.TIMESTAMP_SECONDS_MAP[self.RxSBasic.deviceType]
+        if self.RxSBasic.deviceType == 0x2000:
+            return self.RxSBasic.timestamp / self.TIMESTAMP_SECONDS_MAP[self.RxSBasic.deviceType]
+        else:
+            return self.RxSBasic.timestamp / self.TIMESTAMP_SECONDS_MAP[self.RxSBasic.deviceType]
 
     def get_frame(self):
         return self.CSIKIT_FRAME_MAP[self.RxSBasic.deviceType].from_picoscenes(self)
