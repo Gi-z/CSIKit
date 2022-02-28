@@ -54,9 +54,11 @@ class IWLMVMCSIFrame(CSIFrame):
         "antenna_sel",
         "length",
         "rate",
-        "csi_matrix"
+        "csi_matrix",
+
+        "frame_container"
     ]
-    def __init__(self, header_block: list, csi_matrix: np.array):
+    def __init__(self, header_block: list, csi_matrix: np.array, frame_container=None):
         self.timestamp_low = header_block[0]
         self.bfee_count = header_block[1]
         self.n_rx = header_block[3]
@@ -72,6 +74,9 @@ class IWLMVMCSIFrame(CSIFrame):
         # self.perm = header_block[13]
         self.source_mac = header_block[13]
         self.csi_matrix = csi_matrix
+
+        if frame_container:
+            self.frame_container = frame_container
 
     @classmethod
     def from_picoscenes(cls, frame_container: "FrameContainer"):
@@ -91,4 +96,4 @@ class IWLMVMCSIFrame(CSIFrame):
             0,
             frame_container.RxSBasic.source_mac
         ]
-        return cls(header_block, frame_container.CSI.parsed_csi)
+        return cls(header_block, frame_container.CSI.parsed_csi, frame_container)
