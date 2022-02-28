@@ -73,10 +73,9 @@ class CSIData:
         else:
             time_length = round(float(final_timestamp), 1)
 
-        if final_timestamp == 0:
-            average_sample_rate = 0
-        else:
-            average_sample_rate = round(no_frames/time_length, 1)
+        average_sample_rate = 0
+        if time_length > 0 and final_timestamp != 0:
+                average_sample_rate = round(no_frames/time_length, 1)
 
         rss_total = []
         if hasattr(self.frames[0], "rssi"):
