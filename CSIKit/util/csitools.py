@@ -47,6 +47,8 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
     ranges = itertools.product(*[range(n) for n in [no_frames, no_subcarriers, no_rx_antennas, no_tx_antennas]])
     is_single_antenna = no_rx_antennas == 1 and no_tx_antennas == 1
 
+    drop_indices = []
+
     for frame, subcarrier, rx_antenna_index, tx_antenna_index in ranges:
         frame_data = frames[frame].csi_matrix
         if subcarrier >= frame_data.shape[0]:
@@ -55,9 +57,17 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
             continue
 
         subcarrier_data = frame_data[subcarrier]
+        if subcarrier_data.shape != (no_rx_antennas, no_tx_antennas):
+            # Inhomogenous component
+            # Skip frame for now. Need a better method soon.
+            drop_indices.append(frame)
+            continue
 
         csi[frame][subcarrier][rx_antenna_index][tx_antenna_index] = subcarrier_data if is_single_antenna else \
             subcarrier_data[rx_antenna_index][tx_antenna_index]
+
+    csi = np.delete(csi, drop_indices, 0)
+    csi_data.timestamps = [x for i, x in enumerate(csi_data.timestamps) if i not in drop_indices]
 
     if metric == "amplitude":
         csi = abs(csi)

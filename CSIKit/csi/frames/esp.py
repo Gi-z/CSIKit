@@ -183,7 +183,7 @@ class ESP32CSIFrame(CSIFrame):
         self.csi_matrix = ESP32CSIFrame.parse_matrix(string_data)
 
     @staticmethod
-    def parse_matrix(string_data, bandwidth=20):
+    def parse_matrix(string_data, bandwidth=0):
         array_string = string_data.replace(" ", ", ")
         array_string_asarray = ast.literal_eval(array_string)
 
