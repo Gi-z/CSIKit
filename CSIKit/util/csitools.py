@@ -63,6 +63,12 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
             drop_indices.append(frame)
             continue
 
+        if subcarrier_data.shape != (no_rx_antennas, no_tx_antennas) and not is_single_antenna:
+            if rx_antenna_index >= subcarrier_data.shape[0] or tx_antenna_index >= subcarrier_data.shape[1]:
+                # Inhomogenous component
+                # Skip frame for now. Need a better method soon.
+                continue
+
         csi[frame][subcarrier][rx_antenna_index][tx_antenna_index] = subcarrier_data if is_single_antenna else \
             subcarrier_data[rx_antenna_index][tx_antenna_index]
 
@@ -99,10 +105,6 @@ def scale_csi_frame(csi: np.array, rss: int, noise_floor: int=0) -> np.array:
     # We can observe a linear relationship between CSI magnitude and RSS.
     # Utilising this, we aim to establish a scaling factor between a given
     # RSS/CSI pair.
-
-    # First, we'll convert the RSS measurement from dBm to mW.
-    # if noise_floor != 0:
-    #     rss = rss + noise_floor
 
     rss_pwr = dbinv(rss)
 
