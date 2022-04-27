@@ -57,7 +57,7 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
             continue
 
         subcarrier_data = frame_data[subcarrier]
-        if subcarrier_data.shape != (no_rx_antennas, no_tx_antennas):
+        if subcarrier_data.shape != (no_rx_antennas, no_tx_antennas) and not is_single_antenna:
             # Inhomogenous component
             # Skip frame for now. Need a better method soon.
             drop_indices.append(frame)
