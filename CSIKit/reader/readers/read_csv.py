@@ -109,6 +109,8 @@ class CSVBeamformReader(Reader):
                 break
 
             new_frame = header_frame(data_line)
+            if new_frame.csi_matrix is None:
+                continue
 
             if ret_data.bandwidth == 0:
                 ret_data.bandwidth = new_frame.bandwidth
