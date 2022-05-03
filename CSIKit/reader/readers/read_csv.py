@@ -120,8 +120,8 @@ class CSVBeamformReader(Reader):
 
             no_subcarriers = new_frame.csi_matrix.shape[0]
 
-            if remove_unusable_subcarriers and header_name == "ESP32":
-                new_frame.csi_matrix = new_frame.csi_matrix[[x for x in range(no_subcarriers) if x not in constants.ESP32_20MHZ_UNUSABLE]]
+            # if remove_unusable_subcarriers and header_name == "ESP32":
+            #     new_frame.csi_matrix = new_frame.csi_matrix[[x for x in range(no_subcarriers) if x not in constants.ESP32_20MHZ_UNUSABLE]]
             # elif remove_unusable_subcarriers:
             #     print("Unsupported header format for null/pilot/guard subcarrier removal.")
 

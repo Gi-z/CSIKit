@@ -399,9 +399,9 @@ class NEXBeamformReader(Reader):
 
         no_subcarriers = csi.shape[0]
         # TODO: Revert.
-        remove_unusable_subcarriers = True
-        if remove_unusable_subcarriers and (bandwidth == 20 or bandwidth is None):
-            csi = csi[[x for x in range(no_subcarriers) if x not in constants.PI_20MHZ_UNUSABLE]]
+        # remove_unusable_subcarriers = True
+        # if remove_unusable_subcarriers and (bandwidth == 20 or bandwidth is None):
+        #     csi = csi[[x for x in range(no_subcarriers) if x not in constants.PI_20MHZ_UNUSABLE]]
 
         return NEXCSIFrame(pcap_frame.payloadHeader, csi)
 

@@ -172,6 +172,7 @@ class ESP32CSIFrame(CSIFrame):
 
         # Unit: 0.25dBm
         self.noise_floor = int(csv_line[14])
+
         self.ampdu_cnt = int(csv_line[15])
         self.channel = int(csv_line[16])
         self.secondary_channel = self.SECONDARY_CHANNELS[int(csv_line[17])]

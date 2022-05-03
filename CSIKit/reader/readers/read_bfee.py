@@ -54,10 +54,10 @@ class IWLBeamformReader(Reader):
     def read_bfee(data: bytes, n_rx: int, n_tx: int, expected_length: int, perm: list, i: int=0, filename: str="") -> np.array:
 
         #Flag invalid payloads so we don't error out trying to parse them into matrices.
-        actual_length = len(data)
-        if expected_length != actual_length:
-            # return print_length_error(expected_length, actual_length, i, filename)
-            return None
+        # actual_length = len(data)
+        # if expected_length != actual_length:
+        #     # return print_length_error(expected_length, actual_length, i, filename)
+        #     return None
 
         csi = np.zeros((30, n_rx, n_tx), dtype=np.complex64)
 
@@ -168,19 +168,16 @@ class IWLBeamformReader(Reader):
                 #If less than 3 Rx antennas are detected, default permutation should be used.
                 #Otherwise invalid indices will likely be raised.
                 perm = [0, 1, 2]
-                if sum(perm) == n_rx:
+                if n_rx == 3:
                     perm[0] = ((antenna_sel) & 0x3)
                     perm[1] = ((antenna_sel >> 2) & 0x3)
                     perm[2] = ((antenna_sel >> 4) & 0x3)
-
-                perm_typed = list()
-                [perm_typed.append(x) for x in perm]
 
                 n_tx = header_block[3]
                 n_rx = header_block[4]
                 expected_length = header_block[11]
 
-                csi_matrix = IWLBeamformReader.read_bfee(data_block, n_tx, n_rx, expected_length, perm_typed, ret_data.expected_frames)
+                csi_matrix = IWLBeamformReader.read_bfee(data_block, n_tx, n_rx, expected_length, perm, ret_data.expected_frames)
                 if csi_matrix is not None:
                     if scaled:
                         csi_matrix = IWLBeamformReader.scale_csi_entry(csi_matrix, header_block)
