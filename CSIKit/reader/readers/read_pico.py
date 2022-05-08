@@ -104,8 +104,8 @@ class PicoScenesBeamformReader(Reader):
             if hasattr(frame_container, "RxSBasic"):
                 if frame_container.RxSBasic.deviceType == 0x2000:
                     # initial_timestamp = 0
-                    if frame_container.RxSBasic.mcs == 8:
-                        given_timestamp = frame_container.get_timestamp_seconds()
+                    if frame_container.RxSBasic.mcs == 4 and frame_container.CSI.packetFormat == 1:
+                        # given_timestamp = frame_container.get_timestamp_seconds()
                         # given_timestamp = len(ret_data.frames) * 0.01
                         # frame_container.CSI.parsed_csi = frame_container.CSI.parsed_csi[[x for x in range(frame_container.CSI.parsed_csi.shape[1]) if x not in [8, 22, 35, 48]]]
                         pass
@@ -113,7 +113,7 @@ class PicoScenesBeamformReader(Reader):
                         continue
                 elif frame_container.RxSBasic.deviceType == 0x1234:
                     # initial_timestamp = 0
-                    if frame_container.RxSBasic.mcs == 4:
+                    if frame_container.RxSBasic.mcs == 4 and frame_container.CSI.packetFormat == 1:
                         pass
                     else:
                         continue

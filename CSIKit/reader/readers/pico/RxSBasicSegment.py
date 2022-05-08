@@ -146,6 +146,8 @@ class RxSBasicSegment:
         pos += 2
 
         self.mcs = struct.unpack("B", data[pos:pos + 1])[0]
+        if self.mcs != 4:
+            x = 0
         pos += 1
 
         self.numSTS = struct.unpack("B", data[pos:pos + 1])[0]
