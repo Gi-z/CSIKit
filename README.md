@@ -220,13 +220,14 @@ This format is based on the modified version of [nexmon_csi](https://github.com/
 - Intel IWL5300
 - Broadcom BCM4339, BCM4358, BCM43455c0, BCM4366c0
 - ESP32 via [ESP32-CSI-Tool](https://github.com/StevenMHernandez/ESP32-CSI-Tool)
+- Intel AX200/AX210 via [PicoScenes](https://ps.zpj.io/)
 - USRP SDRs (N2xx, B2xx, X3xx) via [PicoScenes](https://ps.zpj.io/)
 
 ## Coming Soon
 
-### Realtime Retrieval
+### Proper Documentation
 
-- Utilities for retrieving CSI directly from supported drivers for realtime preprocessing and collection.
+- Once my thesis is over.
 
 ## Mistakes and Tests
 
