@@ -246,8 +246,6 @@ class IWLBeamformReader(Reader):
         #Scale CSI -> Signal power : rssi_pwr / (mean of csi_pwr)
         scale = rssi_pwr / (csi_pwr / 30)
 
-        return csi * np.sqrt(scale)
-
         #Thermal noise may be undefined if the trace was captured in monitor mode.
         #If so, set it to 92.
         noise_db = noise
