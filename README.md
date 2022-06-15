@@ -4,7 +4,7 @@ Tools for extracting Channel State Information from formats produced by a range 
 
 Python 3.8+ required.
 
-- **CSI parsing** from Atheros, Intel, Nexmon, ESP32, and PicoScenes (USRP, etc) formats.
+- **CSI parsing** from Atheros, Intel (IWL5300/AX200/AX210), Nexmon, ESP32, and PicoScenes (USRP, etc) formats.
 - **Processing** and **Visualisation** using numpy and matplotlib.
 - **CSV/JSON generators** for dataset serialisation.
 - **Library** and **Tools** for parsing CSI for your own Python applications.
