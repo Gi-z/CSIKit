@@ -8,7 +8,7 @@ from CSIKit.csi import CSIData
 from CSIKit.csi.frames import NEXCSIFrame
 from CSIKit.reader import Reader
 
-from CSIKit.util import byteops, constants
+from CSIKit.util import byteops
 from CSIKit.util import csitools, stringops
 
 start = time.time()
@@ -109,46 +109,6 @@ class PcapFrame:
             payloadHeader["chip"] = "UNKNOWN"
 
         return payloadHeader
-
-    @staticmethod
-    def read_payloadHeaderT3rO(payload: bytes) -> dict:
-        payloadHeader = {}
-
-        GAIN_RECOVERY_V2_COLUMN_NAME_EXT = ["_1", "_2", "_3", "_4", "_9", "_10"]
-
-        payloadHeader["rssi"] = struct.unpack("b", payload[2:3])[0]
-
-        # T3rO has none of this data but I don't feel like writing a new frame type.
-        # Filling with garbage.
-        payloadHeader["frame_control"] = -1
-        payloadHeader["source_mac"] = ""
-        payloadHeader["sequence_no"] = 0
-        payloadHeader["core"] = 0
-        payloadHeader["spatial_stream"] = 0
-        payloadHeader["channel_spec"] = ""
-
-        column_name_extensions = GAIN_RECOVERY_V2_COLUMN_NAME_EXT
-        for i in range(0, 6):
-            payloadHeader["elna" + column_name_extensions[i]] = struct.unpack("b", payload[18 + i:19 + i])[0]
-            payloadHeader["lna1" + column_name_extensions[i]] = struct.unpack("b", payload[18 + i + 6:19 + i + 6])[0]
-            payloadHeader["lna2" + column_name_extensions[i]] = struct.unpack(
-                "b", payload[18 + i + 12:19 + i + 12])[0]
-            payloadHeader["mix" + column_name_extensions[i]] = struct.unpack(
-                "b", payload[18 + i + 18:19 + i + 18])[0]
-            payloadHeader["lpf0" + column_name_extensions[i]] = struct.unpack(
-                "b", payload[18 + i + 24:19 + i + 24])[0]
-            payloadHeader["lpf1" + column_name_extensions[i]] = struct.unpack(
-                "b", payload[18 + i + 30:19 + i + 30])[0]
-            payloadHeader["dvga" + column_name_extensions[i]] = struct.unpack(
-                "b", payload[18 + i + 36:19 + i + 36])[0]
-            payloadHeader["trLoss" + column_name_extensions[i]] = struct.unpack(
-                "b", payload[18 + i + 42:19 + i + 42])[0]
-
-        payloadHeader["agcGain"] = struct.unpack("h", payload[66:68])[0]
-
-        payloadHeader["chip"] = "43455c0"
-
-        return payloadHeader
         
     def read_payload(self) -> np.array:
         if self.header is None or len(self.header["incl_len"]) == 0:
@@ -169,12 +129,7 @@ class PcapFrame:
             ints_size = incl_len
             payload = np.array(struct.unpack(ints_size*"B", payload_bytes), dtype=np.uint8)
 
-        if len(payload) == 92:
-            # Bad identifier for T3r0 rn.
-            self.payloadHeader = PcapFrame.read_payloadHeaderT3rO(payload.tobytes()[42:])
-        else:
-            self.payloadHeader = PcapFrame.read_payloadHeader(payload.tobytes()[42:64])
-
+        self.payloadHeader = PcapFrame.read_payloadHeader(payload.tobytes()[42:64])
         self.length += incl_len
 
         return payload
@@ -194,9 +149,6 @@ class Pcap:
         #Adding an exception here for an additional file I found.
         #Need to figure out what's causing this 26 byte discrepancy.
         1050: 80,
-
-        # T3rO 20Mhz
-        308: 20,
 
         NFFT_80*4: 80,
         NFFT_40*4: 40,
@@ -292,6 +244,7 @@ class NEXBeamformReader(Reader):
             return byteops.unpack_float_acphy(10, 1, 0, 1, 9, 5, nfft, nfftx1)
         elif format == 1:
             return byteops.unpack_float_acphy(10, 1, 0, 1, 12, 6, nfft, nfftx1)
+            # return byteops.unpack_float_acphy(1, 12, 6, nfft, nfftx1)
 
     def read_stream(self, path: str, scaled: bool = False):
         self.chip = " UNKNOWN"
@@ -305,13 +258,13 @@ class NEXBeamformReader(Reader):
         for f in self.pcap.stream():
             ret_data = CSIData()
             ret_data.bandwidth = self.pcap.bandwidth
-            data = self.read_frame(f, ret_data.bandwidth)
+            data = self.read_frame(f, scaled, ret_data.bandwidth)
             ret_data.push_frame(data, data.timestamp)
             ret_data.set_backend("Nexmon CSI")
             ret_data.set_chipset("Broadcom BCM{}".format(self.chip))
             yield ret_data
 
-    def read_file(self, path: str, scaled: bool = False, filter_mac: str = None) -> CSIData:
+    def read_file(self, path: str, scaled: bool = False) -> CSIData:
 
         self.chip = " UNKNOWN"
 
@@ -323,28 +276,29 @@ class NEXBeamformReader(Reader):
         self.pcap.read()
         self.scaled = scaled
 
-        ret_data = CSIData(self.filename, backend="Nexmon CSI", filter_mac=filter_mac)
+        ret_data = CSIData(self.filename, backend="Nexmon CSI")
         ret_data.bandwidth = self.pcap.bandwidth
         ret_data.skipped_frames = self.pcap.skipped_frames
         ret_data.expected_frames = len(self.pcap.frames)+self.pcap.skipped_frames
 
-        data_frames = self.read_frames(self.pcap.frames, ret_data.bandwidth)
+        data_frames = self.read_frames(self.pcap.frames, scaled, ret_data.bandwidth)
         for frame in data_frames:
             if frame is not None:
                 ret_data.push_frame(frame, frame.timestamp)
+                # ret_data.timestamps.append(frame.timestamp)
 
-        # if self.fill_skipped_frames:
-        #     empty_subcount = self.BW_SUBS[ret_data.bandwidth]
-        #     empty_csi = np.zeros((empty_subcount, 1), dtype=np.complex64)
-        #     empty_frame = NEXCSIFrame(self.EMPTY_HEADER, empty_csi)
-        #     for _ in range(ret_data.skipped_frames):
-        #         ret_data.push_frame(empty_frame)
+        if self.fill_skipped_frames:
+            empty_subcount = self.BW_SUBS[ret_data.bandwidth]
+            empty_csi = np.zeros((empty_subcount, 1), dtype=np.complex64)
+            empty_frame = NEXCSIFrame(self.EMPTY_HEADER, empty_csi)
+            for _ in range(ret_data.skipped_frames):
+                ret_data.push_frame(empty_frame, 0)
 
         ret_data.set_chipset("Broadcom BCM{}".format(self.chip))
 
         return ret_data
 
-    def read_bfee(self, pcap_frame: PcapFrame, bandwidth: int, remove_unusable_subcarriers: bool=True) -> NEXCSIFrame:
+    def read_bfee(self, pcap_frame: PcapFrame, bandwidth: int, remove_unusuable_subcarriers: bool=True) -> NEXCSIFrame:
         if pcap_frame is None:
             return None
 
@@ -358,13 +312,7 @@ class NEXBeamformReader(Reader):
 
         if chipType in ["4339", "43455c0"]:
             data.dtype = np.int16
-            # data = data[30:]
-
-            # TODO: Not this way.
-            if len(data) == 184:
-                data = data[56:]
-            else:
-                data = data[30:]
+            data = data[30:]
         elif chipType == "4358":
             data = data[15:15+int(bandwidth*3.2)]
             data = self.unpack_float(0, int(bandwidth*3.2), data)
@@ -397,19 +345,15 @@ class NEXBeamformReader(Reader):
         if self.scaled:
             csi = csitools.scale_csi_frame(csi, pcap_frame.payloadHeader["rssi"])
 
-        no_subcarriers = csi.shape[0]
-        # TODO: Revert.
-        # remove_unusable_subcarriers = True
-        # if remove_unusable_subcarriers and (bandwidth == 20 or bandwidth is None):
+        # no_subcarriers = csi.shape[0]
+        # if remove_unusuable_subcarriers:
         #     csi = csi[[x for x in range(no_subcarriers) if x not in constants.PI_20MHZ_UNUSABLE]]
 
         return NEXCSIFrame(pcap_frame.payloadHeader, csi)
 
     def read_bfee_batch(self, pcap_frames: list, bandwidth: int, rx_num: int = 1, tx_num: int = 1) -> NEXCSIFrame:
 
-        # TODO: Revert.
-        total_csi = np.zeros((tx_num, rx_num, 52), dtype=complex)
-        # total_csi = np.zeros((tx_num, rx_num, self.BW_SUBS[bandwidth]), dtype=complex)
+        total_csi = np.zeros((tx_num, rx_num, self.BW_SUBS[bandwidth]), dtype=complex)
 
         frame_header = pcap_frames[0].header
         payload_header = pcap_frames[0].payloadHeader
@@ -457,12 +401,6 @@ class NEXBeamformReader(Reader):
             if self.scaled:
                 csi = csitools.scale_csi_frame(csi, pcap_frame.payloadHeader["rssi"])
 
-            no_subcarriers = csi.shape[0]
-            # TODO: Revert.
-            remove_unusable_subcarriers = True
-            if remove_unusable_subcarriers and bandwidth == 20:
-                csi = csi[[x for x in range(no_subcarriers) if x not in constants.PI_20MHZ_UNUSABLE]]
-
             core = pcap_frame.payloadHeader["core"]
             spatial_stream = pcap_frame.payloadHeader["spatial_stream"]
 
@@ -470,14 +408,13 @@ class NEXBeamformReader(Reader):
 
         return NEXCSIFrame(payload_header, np.transpose(total_csi))
 
-    def read_frame(self, frame, bandwidth: int):
+    def read_frame(self, frame, scaled:bool, bandwidth: int):
         return self.read_bfee(frame, bandwidth)
 
-    def read_frames(self, frames: list, bandwidth: int) -> list:
+    def read_frames(self, frames: list, scaled: bool, bandwidth: int) -> list:
 
-        # Check if sequence_no changes. If not, 1Rx/Tx stream. (nvm)
-        # If sequence no changes, it may still be a 1Rx/Tx stream.
-        if max([x.payloadHeader["core"] for x in frames]) == 0:
+        # Check if sequence_no changes. If not, 1Rx/Tx stream.
+        if frames[0].payloadHeader["sequence_no"] == frames[-1].payloadHeader["sequence_no"]:
             return [self.read_bfee(x, bandwidth) for x in frames]
 
         # Otherwise, read sequential spatial streams in batches.
@@ -489,7 +426,13 @@ class NEXBeamformReader(Reader):
         max_spatial_stream = 0
 
         for frame in frames:
-            if frame.payloadHeader["sequence_no"] == current_sequence_no:
+            if frame.payloadHeader["sequence_no"] != current_sequence_no:
+                if len(current_sequence) > 0:
+                    sequences.append(current_sequence)
+
+                current_sequence = [frame]
+                current_sequence_no = frame.payloadHeader["sequence_no"]
+            else:
                 if frame.payloadHeader["core"] > max_core:
                     max_core = frame.payloadHeader["core"]
 
@@ -497,12 +440,6 @@ class NEXBeamformReader(Reader):
                     max_spatial_stream = frame.payloadHeader["spatial_stream"]
 
                 current_sequence.append(frame)
-            else:
-                if len(current_sequence) > 0:
-                    sequences.append(current_sequence)
-
-                current_sequence = [frame]
-                current_sequence_no = frame.payloadHeader["sequence_no"]
 
         max_core += 1
         max_spatial_stream += 1
