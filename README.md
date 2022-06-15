@@ -1,4 +1,4 @@
-# CSIKit [![PyPi version](https://pypip.in/v/CSIKit/badge.png)](https://crate.io/packages/CSIKit/) [![Downloads](https://pepy.tech/badge/csikit/month)](https://pepy.tech/project/csikit)
+# CSIKit ![Build](https://giz.semaphoreci.com/badges/CSIKit.svg) [![Downloads](https://pepy.tech/badge/csikit/month)](https://pepy.tech/project/csikit)
 
 Tools for extracting Channel State Information from formats produced by a range of WiFi hardware/drivers, written in Python with numpy.
 
