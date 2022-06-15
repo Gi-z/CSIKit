@@ -81,21 +81,22 @@ class CSIData:
         if hasattr(self.frames[0], "rssi"):
             rss_total = [x.rssi for x in self.frames]
         else:
+            rss_total = [max(frame.rssi_a, frame.rssi_b, frame.rssi_c) for frame in self.frames]
             # Must sum a/b/c.
-            for frame in self.frames:
-                total_rss_for_frame = 0
-                divisor = 0
-                if frame.rssi_a != 0:
-                    total_rss_for_frame += frame.rssi_a
-                    divisor += 1
-                if frame.rssi_b != 0:
-                    total_rss_for_frame += frame.rssi_b
-                    divisor += 1
-                if frame.rssi_c != 0:
-                    total_rss_for_frame += frame.rssi_c
-                    divisor += 1
-                total_rss_for_frame /= divisor
-                rss_total.append(total_rss_for_frame)
+            # for frame in self.frames:
+            #     total_rss_for_frame = 0
+            #     divisor = 0
+            #     if frame.rssi_a != 0:
+            #         total_rss_for_frame += frame.rssi_a
+            #         divisor += 1
+            #     if frame.rssi_b != 0:
+            #         total_rss_for_frame += frame.rssi_b
+            #         divisor += 1
+            #     if frame.rssi_c != 0:
+            #         total_rss_for_frame += frame.rssi_c
+            #         divisor += 1
+            #     total_rss_for_frame /= divisor
+            #     rss_total.append(total_rss_for_frame)
 
         average_rssi = round(np.mean(rss_total), 1)
 

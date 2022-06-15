@@ -143,6 +143,35 @@ class ESP32CSIFrame(CSIFrame):
             self.csi_matrix = ESP32CSIFrame.parse_matrix(csv_line[len(csv_line)-1])
             return
 
+        if len(csv_line) == 5:
+            self.type = 0
+            self.role = 0
+            self.mac = csv_line[1]
+            self.rssi = int(csv_line[2])
+            self.rate = 0
+            self.sig_mode = 0
+            self.mcs = 0
+            self.bandwidth = 20
+            self.smoothing = 0
+            self.not_sounding = 0
+            self.aggregation = 0
+            self.stbc = 0
+            self.fec_coding = 0
+            self.sgi = 0
+            self.noise_floor = int(csv_line[3])
+            self.ampdu_cnt = 0
+            self.channel = 0
+            self.secondary_channel = 0
+            self.local_timestamp = int(csv_line[0])
+            self.ant = 0
+            self.sig_len = 0
+            self.rx_state = 0
+            self.real_time_set = 0
+            self.real_timestamp = int(csv_line[0])
+            self.len = 0
+            self.csi_matrix = ESP32CSIFrame.parse_matrix(csv_line[len(csv_line)-1])
+            return
+
         self.type = csv_line[0]
         self.role = csv_line[1]
         self.mac = csv_line[2]
@@ -194,8 +223,8 @@ class ESP32CSIFrame(CSIFrame):
         array_string = string_data.replace(" ", ", ")
         array_string_asarray = ast.literal_eval(array_string)
 
-        if len(array_string_asarray) != ESP32CSIFrame.SUBS[bandwidth]*2:
-            return None
+        # if len(array_string_asarray) != ESP32CSIFrame.SUBS[bandwidth]*2:
+        #     return None
 
         int8_matrix = np.array(array_string_asarray)
         int8_matrix = int8_matrix.reshape(-1, 2)

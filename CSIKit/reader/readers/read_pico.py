@@ -101,22 +101,24 @@ class PicoScenesBeamformReader(Reader):
             new_timestamp = frame_container.get_timestamp_seconds()
             given_timestamp = new_timestamp - initial_timestamp
 
-            if hasattr(frame_container, "RxSBasic"):
-                if frame_container.RxSBasic.deviceType == 0x2000:
-                    # initial_timestamp = 0
-                    if frame_container.RxSBasic.mcs == 4 and frame_container.CSI.packetFormat == 1:
-                        # given_timestamp = frame_container.get_timestamp_seconds()
-                        # given_timestamp = len(ret_data.frames) * 0.01
-                        # frame_container.CSI.parsed_csi = frame_container.CSI.parsed_csi[[x for x in range(frame_container.CSI.parsed_csi.shape[1]) if x not in [8, 22, 35, 48]]]
-                        pass
-                    else:
-                        continue
-                elif frame_container.RxSBasic.deviceType == 0x1234:
-                    # initial_timestamp = 0
-                    if frame_container.RxSBasic.mcs == 4 and frame_container.CSI.packetFormat == 1:
-                        pass
-                    else:
-                        continue
+            # if hasattr(frame_container, "RxSBasic"):
+            #     if frame_container.RxSBasic.deviceType == 0x2000:
+            #         # initial_timestamp = 0
+            #         if frame_container.RxSBasic.mcs == 4 and frame_container.CSI.packetFormat == 1:
+            #             # given_timestamp = frame_container.get_timestamp_seconds()
+            #             # given_timestamp = len(ret_data.frames) * 0.01
+            #             # frame_container.CSI.parsed_csi = frame_container.CSI.parsed_csi[[x for x in range(frame_container.CSI.parsed_csi.shape[1]) if x not in [8, 22, 35, 48]]]
+            #             pass
+            #         else:
+            #             continue
+            #     elif frame_container.RxSBasic.deviceType == 0x1234:
+            #         # initial_timestamp = 0
+            #         # if frame_container.RxSBasic.mcs == 4 and frame_container.CSI.packetFormat == 1:
+            #         #     pass
+            #         if frame_container.CSI.packetFormat == 0:
+            #             pass
+            #         else:
+            #             continue
 
             ret_data.push_frame(frame_container.get_frame(), given_timestamp)
 

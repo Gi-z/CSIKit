@@ -12,28 +12,34 @@ ESP32_HEADER = ["type", "role", "mac", "rssi", "rate", "sig_mode", "mcs", "bandw
 THROWIE_HEADER = ["time", "movement_detected", "csi"]
 THROWIE_HEADER2 = ["time", "pcc", "movement_detected", "csi"]
 
+FITHOMES_HEADER = ["time", "src_mac", "rssi", "noise_floor", "csi"]
+
 HEADER_NAME_MAPPINGS = {
     "ESP32": ESP32_HEADER,
     "THROWIE": THROWIE_HEADER,
     "THROWIE2": THROWIE_HEADER2,
+    "FITHOMES": FITHOMES_HEADER
 }
 
 HEADER_FRAMES = {
     "ESP32": ESP32CSIFrame,
     "THROWIE": ESP32CSIFrame,
     "THROWIE2": ESP32CSIFrame,
+    "FITHOMES": ESP32CSIFrame
 }
 
 BACKEND_MAPPING = {
     "ESP32": "ESP32 CSI Tool",
     "THROWIE": "prototype thing",
-    "THROWIE2": "prototype thing"
+    "THROWIE2": "prototype thing",
+    "FITHOMES": "FitHomes CSI Platform (Alpha)"
 }
 
 LAST_CHAR_MAPPING = {
     "ESP32": "]",
     "THROWIE": "]",
-    "THROWIE2": "]"
+    "THROWIE2": "]",
+    "FITHOMES": "]",
 }
 
 class CSVBeamformReader(Reader):
@@ -100,6 +106,8 @@ class CSVBeamformReader(Reader):
         header_frame = HEADER_FRAMES[header_name]
         last_char = LAST_CHAR_MAPPING[header_name]
 
+        first_timestamp = -1
+
         while True:
             data_line = data.readline().split(",")
             if not data_line or len(data_line) != len(header_line):
@@ -118,7 +126,13 @@ class CSVBeamformReader(Reader):
             if scaled:
                 new_frame.csi_matrix = csitools.scale_csi_frame(new_frame.csi_matrix, new_frame.rssi, new_frame.noise_floor)
 
-            no_subcarriers = new_frame.csi_matrix.shape[0]
+            if first_timestamp == -1:
+                first_timestamp = new_frame.real_timestamp / 1000
+                new_frame.real_timestamp = 0
+            else:
+                new_frame.real_timestamp = (new_frame.real_timestamp / 1000) - first_timestamp
+
+            # no_subcarriers = new_frame.csi_matrix.shape[0]
 
             # if remove_unusable_subcarriers and header_name == "ESP32":
             #     new_frame.csi_matrix = new_frame.csi_matrix[[x for x in range(no_subcarriers) if x not in constants.ESP32_20MHZ_UNUSABLE]]

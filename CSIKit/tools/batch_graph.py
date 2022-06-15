@@ -159,18 +159,23 @@ class BatchGraph:
         rssis = []
         sumsq = []
 
-        for frame in range(no_frames):
-            csi_frame = self.csi_data.frames[frame]
-            if hasattr(csi_frame, "rssi_a"):
-                rssis.append(IWLBeamformReader.get_total_rss(csi_frame.rssi_a, csi_frame.rssi_b, csi_frame.rssi_c, csi_frame.agc))
-            else:
-                rssis.append(csi_frame.rssi)
-            sumsq.append(matlab.db(np.sum(finalEntry[frame]**2)))
 
-        plt.scatter(rssis, sumsq)
+        csi = finalEntry
+        rss = [x.rssi for x in self.csi_data.frames]
 
-        plt.xlabel("RSS (dB)")
-        plt.ylabel("Subcarrier Magnitude (dBm)")
+        sumsq = np.sum(csi ** 2, axis=1)
+        norm_sumsq = np.sqrt(sumsq) / no_subcarriers
+
+        line = []
+
+        for rss_value, sumsq_value in zip(rss, norm_sumsq):
+            line.append(matlab.db(sumsq_value) / rss_value)
+
+        # plt.scatter(rssis, sumsq)
+        plt.plot(self.csi_data.timestamps, line)
+
+        plt.xlabel("Time (s)")
+        plt.ylabel("RSSI / sumsq")
 
         plt.title(self.csi_data.filename)
 

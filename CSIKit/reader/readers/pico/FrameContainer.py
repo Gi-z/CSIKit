@@ -42,7 +42,7 @@ class FrameContainer:
 
     def get_timestamp_seconds(self):
         if self.RxSBasic.deviceType == 0x2000:
-            return self.RxSBasic.timestamp / self.TIMESTAMP_SECONDS_MAP[self.RxSBasic.deviceType]
+            return self.MVMExtra.muClock / self.TIMESTAMP_SECONDS_MAP[self.RxSBasic.deviceType]
         else:
             return self.RxSBasic.timestamp / self.TIMESTAMP_SECONDS_MAP[self.RxSBasic.deviceType]
 
