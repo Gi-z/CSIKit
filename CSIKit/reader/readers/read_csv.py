@@ -127,10 +127,10 @@ class CSVBeamformReader(Reader):
                 new_frame.csi_matrix = csitools.scale_csi_frame(new_frame.csi_matrix, new_frame.rssi, new_frame.noise_floor)
 
             if first_timestamp == -1:
-                first_timestamp = new_frame.real_timestamp / 1000
+                first_timestamp = float(new_frame.real_timestamp) / 1000
                 new_frame.real_timestamp = 0
             else:
-                new_frame.real_timestamp = (new_frame.real_timestamp / 1000) - first_timestamp
+                new_frame.real_timestamp = (float(new_frame.real_timestamp) / 1000) - first_timestamp
 
             # no_subcarriers = new_frame.csi_matrix.shape[0]
 
