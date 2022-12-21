@@ -68,6 +68,10 @@ class PcapFrame:
             # Device is running stock nexmon.
             payloadHeader["rssi"] = -1
             payloadHeader["frame_control"] = -1
+        # elif payload[:2] == b'\x11\x11' and payload[2:2] != b'\x11\x11': # TODO: Identify if this is necessary with new Nexmon version(s)..
+        #     # Device is running stock nexmon as of 256.
+        #     # Shifting everything along 2 bytes because lazy.
+        #     payload = payload[:2] + b'\x11\x11' + payload[2:]
         else:
             # Device is running mzakharo's PR.
             payloadHeader["rssi"] = struct.unpack("b", payload[2:3])[0]
@@ -148,6 +152,7 @@ class Pcap:
     BW_SIZES = {
         #Adding an exception here for an additional file I found.
         #Need to figure out what's causing this 26 byte discrepancy.
+        1076: 80, # TODO: Resolve extraneous bytes issue with Nexmon PR 256.
         1050: 80,
 
         NFFT_80*4: 80,
@@ -264,7 +269,7 @@ class NEXBeamformReader(Reader):
             ret_data.set_chipset("Broadcom BCM{}".format(self.chip))
             yield ret_data
 
-    def read_file(self, path: str, scaled: bool = False) -> CSIData:
+    def read_file(self, path: str, scaled: bool = False, filter_mac: str = "") -> CSIData:
 
         self.chip = " UNKNOWN"
 
@@ -394,6 +399,8 @@ class NEXBeamformReader(Reader):
             if len(data) % 2 != 0:
                 print("Incomplete payload on frame")
                 exit(1)
+            elif len(data) > 512: # TODO: Resolve extraneous bytes issue with Nexmon PR 256.
+                data = data[-512:]
 
             csiData = data.reshape(-1, 2)
             csi = csiData.astype(np.float32).view(np.complex64)
