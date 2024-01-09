@@ -4,7 +4,7 @@ Tools for extracting Channel State Information from formats produced by a range 
 
 Python 3.8+ required.
 
-- **CSI parsing** from Atheros, Intel (IWL5300/AX200/AX210), Nexmon, ESP32, and PicoScenes (USRP, etc) formats.
+- **CSI parsing** from Atheros, Intel (IWL5300/AX200/AX210), Nexmon, ESP32, FeitCSI and PicoScenes (USRP, etc) formats.
 - **Processing** and **Visualisation** using numpy and matplotlib.
 - **CSV/JSON generators** for dataset serialisation.
 - **Library** and **Tools** for parsing CSI for your own Python applications.
@@ -101,7 +101,7 @@ CSIKit exposes key components for use in other Python applications: `Reader` and
 
 Note: This documentation is initial and brief. More will follow shortly.
 
-A Reader is used to read a given CSI capture file and generate parsed traces and matrices. As each file format differs a significant amount, different readers are necessary for each piece of hardware. Using the `get_reader` method in `CSIKit.reader`, the correct reader can be automatically selected for a given file. Optionally, hardware-specific readers can be imported, as `ATHBeamformReader`, `IWLBeamformReader`, `NEXBeamformReader`, `CSVBeamformReader`, `PicoScenesBemaformReader`.
+A Reader is used to read a given CSI capture file and generate parsed traces and matrices. As each file format differs a significant amount, different readers are necessary for each piece of hardware. Using the `get_reader` method in `CSIKit.reader`, the correct reader can be automatically selected for a given file. Optionally, hardware-specific readers can be imported, as `ATHBeamformReader`, `IWLBeamformReader`, `NEXBeamformReader`, `CSVBeamformReader`, `PicoScenesBemaformReader`, `FeitCSIBeamformReader`.
 
 Once instantiated, a Reader can be used to read a file using the `read_file` method. This method returns a `CSIData` object, which contain frames (`CSIFrame` objects), timestamps, and metadata from parsing (errors, device information, etc). Additional parsing options can be passed to `read_file`, including `scaled` (bool) to rescale CSI values from manufacturer's internal scaling.
 
@@ -212,6 +212,23 @@ This format is based on the modified version of [nexmon_csi](https://github.com/
 - channel_spec: Channel configuration, hex representation of the selected channel and bandwidth pairing.
 - chip: Broadcom chipset version of the collecting device.
 
+### FeitCSIFrame
+
+Format based on [FeitCSI format documentation](https://feitcsi.kuskosoft.com/csi_format/)
+
+- num_rx: Number of receiving antennas present.
+- num_tx: Number of transmitting antennas present.
+- num_subcarriers: Number of subcarriers
+- rssi_1: Observed RSSI on the first receiving antenna.
+- rssi_2: Observed RSSI on the second receiving antenna.
+- source_mac: MAC address for the device which sent the packet.
+- channel_width: Transmission bandwidth.
+- rate_format: Transmission rate.
+- mcs - MCS index.
+- antenna_a: 1 if active, 0 if deactive.
+- antenna_b: 1 if active, 0 if deactive.
+- ftm_clock: FTM clock
+
 ## Supported Hardware
 
 - Qualcomm Atheros 802.11n Chipsets
@@ -220,6 +237,7 @@ This format is based on the modified version of [nexmon_csi](https://github.com/
 - ESP32 via [ESP32-CSI-Tool](https://github.com/StevenMHernandez/ESP32-CSI-Tool)
 - Intel AX200/AX210 via [PicoScenes](https://ps.zpj.io/)
 - USRP SDRs (N2xx, B2xx, X3xx) via [PicoScenes](https://ps.zpj.io/)
+- Intel AX200/AX210 via [FeitCSI](https://feitcsi.kuskosoft.com/)
 
 ## Coming Soon
 
@@ -247,6 +265,8 @@ Further to that, if there are any assertions I have made within code comments or
   - This project was released by [Steven Hernandez](https://github.com/StevenMHernandez).
 - **[PicoScenes](https://ps.zpj.io/)**: A versatile and powerful Wi-Fi sensing platform middleware for a wide range of hardware.
   - This project was released by [Zhiping Jiang](https://zpj.io/bio/).
+- **[FeitCSI](https://feitcsi.kuskosoft.com/)**: First open-source tool that enables CSI extraction and injection frames for all formats (802.11a/g/n/ac/ax) in all bandwidths (20/40/80/160 MHz) from commodity intel NICs AX200/AX210.
+  - This project was released by [Miroslav Hutar](https://kuskosoft.com/).
 
 ## License
 

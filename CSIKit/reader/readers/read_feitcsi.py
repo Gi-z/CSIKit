@@ -39,7 +39,7 @@ RATE_MCS_SS_MSK = (1 << RATE_MCS_SS_POS)
 RATE_MCS_BEAMF_POS = 16
 RATE_MCS_BEAMF_MSK = (1 << RATE_MCS_BEAMF_POS)
 
-class FeitCSIReader(Reader):
+class FeitCSIBeamformReader(Reader):
 
     """
         This class handles parsing for CSI data from FeitCSI (AX200/AX210).
