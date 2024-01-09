@@ -3,3 +3,4 @@ from CSIKit.csi.frames.esp import ESP32CSIFrame
 from CSIKit.csi.frames.iwl import IWLCSIFrame
 from CSIKit.csi.frames.nex import NEXCSIFrame
 from CSIKit.csi.frames.usr import USRPCSIFrame
+from CSIKit.csi.frames.feitcsi import FeitCSIFrame

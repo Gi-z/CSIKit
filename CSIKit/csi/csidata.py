@@ -80,6 +80,8 @@ class CSIData:
         rss_total = []
         if hasattr(self.frames[0], "rssi"):
             rss_total = [x.rssi for x in self.frames]
+        elif self.backend == "FeitCSI":
+            rss_total = [max(frame.rssi_1, frame.rssi_2) for frame in self.frames]
         else:
             rss_total = [max(frame.rssi_a, frame.rssi_b, frame.rssi_c) for frame in self.frames]
             # Must sum a/b/c.
