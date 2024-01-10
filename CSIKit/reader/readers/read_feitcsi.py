@@ -145,14 +145,20 @@ class FeitCSIBeamformReader(Reader):
 
     def interpolate(self, csi):
         indices = []
-        if csi["header"]["rate_format"] == "HT" and csi["header"]["channel_width"] == "20":
+        if csi["header"]["rate_format"] in ("HT", "VHT") and csi["header"]["channel_width"] == "20":
             indices = [7, 21, 34, 48]
-        elif csi["header"]["rate_format"] == "HT" and csi["header"]["channel_width"] == "40":
+        elif csi["header"]["rate_format"] in ("HT", "VHT") and csi["header"]["channel_width"] == "40":
             indices = [5, 33, 47, 66, 80, 108]
+        elif csi["header"]["rate_format"] == "VHT" and csi["header"]["channel_width"] == "80":
+            indices = [19, 47, 83, 111, 130, 158, 194, 222]
+        elif csi["header"]["rate_format"] == "VHT" and csi["header"]["channel_width"] == "160":
+            indices = [19, 47, 83, 111, 130, 158, 194, 222, 261, 289, 325, 353, 372, 400, 436, 464]
         elif csi["header"]["rate_format"] == "HE" and csi["header"]["channel_width"] == "20":
             indices = [6, 32, 74, 100, 141, 167, 209, 235]
         elif csi["header"]["rate_format"] == "HE" and csi["header"]["channel_width"] == "40":
             indices = [6, 32, 74, 100, 140, 166, 208, 234, 249, 275, 317, 343, 383, 409, 451, 477]
+        elif csi["header"]["rate_format"] == "HE" and csi["header"]["channel_width"] == "80":
+            indices = [32, 100, 166, 234, 274, 342, 408, 476, 519, 587, 653, 721, 761, 829, 895, 963]
         elif csi["header"]["rate_format"] == "HE" and csi["header"]["channel_width"] == "160":
             indices = [32, 100, 166, 234, 274, 342, 408, 476, 519, 587, 653, 721, 761, 829, 895, 963, 1028, 1096, 1162, 1230, 1270, 1338, 1404, 1472, 1515, 1583, 1649, 1717, 1757, 1825, 1891, 1959]
 
@@ -186,6 +192,8 @@ class FeitCSIBeamformReader(Reader):
         while (len(fileContent) > step):
             data = {}
             data["header"] = self.parseHeader(fileContent[step:(step+272)])
+            if not ret_data.bandwidth:
+                ret_data.bandwidth = data["header"]["channel_width"]
             step += 272
             data["csi_matrix"] = self.parseCsiData(fileContent[step:(step + data["header"]["csi_length"])], data["header"])
 
