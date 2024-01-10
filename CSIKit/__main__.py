@@ -33,7 +33,7 @@ def main():
         bg = BatchGraph(args.file, args.scaled, args.filter_mac)
         if args.graph_type == "heatmap":
             bg.heatmap()
-        if args.graph_type == "sumsqrssi":
+        elif args.graph_type == "sumsqrssi":
             bg.sumsqrssi()
         elif args.graph_type == "all_subcarriers":
             bg.plotAllSubcarriers()
