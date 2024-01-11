@@ -3,7 +3,7 @@ from CSIKit.reader import get_reader
 
 def display_info(path: str, scaled: bool=False, filter_mac: str=None):
     reader = get_reader(path)
-    # csi_data = reader.read_file(path, scaled=True)
+
     csi_data = reader.read_file(path, scaled=scaled, filter_mac=filter_mac)
     metadata = csi_data.get_metadata()
 
