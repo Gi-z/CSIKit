@@ -1,7 +1,7 @@
-from CSIKit.reader import ATHBeamformReader, CSVBeamformReader, IWLBeamformReader, NEXBeamformReader, PicoScenesBeamformReader
+from CSIKit.reader import ATHBeamformReader, CSVBeamformReader, IWLBeamformReader, NEXBeamformReader, PicoScenesBeamformReader, FeitCSIBeamformReader
 from CSIKit.reader import Reader
 
-READERS = [ATHBeamformReader, CSVBeamformReader, IWLBeamformReader, NEXBeamformReader, PicoScenesBeamformReader]
+READERS = [ATHBeamformReader, CSVBeamformReader, IWLBeamformReader, NEXBeamformReader, PicoScenesBeamformReader, FeitCSIBeamformReader]
 
 def get_reader(path: str) -> Reader:
     for reader in READERS:
