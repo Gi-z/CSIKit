@@ -227,7 +227,7 @@ Format based on [FeitCSI format documentation](https://feitcsi.kuskosoft.com/csi
 - mcs - MCS index.
 - antenna_a: 1 if active, 0 if deactive.
 - antenna_b: 1 if active, 0 if deactive.
-- ftm_clock: FTM clock
+- ftm_clock: Clock tick, every tick 3.125ns.
 
 ## Supported Hardware
 

@@ -39,6 +39,9 @@ RATE_MCS_SS_MSK = (1 << RATE_MCS_SS_POS)
 RATE_MCS_BEAMF_POS = 16
 RATE_MCS_BEAMF_MSK = (1 << RATE_MCS_BEAMF_POS)
 
+MAX_TICK = 4294967295
+TICK_RESOLUTION = 3.125
+
 class FeitCSIBeamformReader(Reader):
 
     """
@@ -75,6 +78,7 @@ class FeitCSIBeamformReader(Reader):
         header["rssi_2"] = struct.unpack("I", data[64:68])[0]
         header["source_mac"] = struct.unpack("BBBBBB", data[68:74])
         header["source_mac_string"] = "%02x:%02x:%02x:%02x:%02x:%02x" % struct.unpack("BBBBBB", data[68:74])
+        header["mu_clock"] = struct.unpack("I", data[88:92])[0]
         header["rate_flags"] = struct.unpack("I", data[92:96])[0]
 
         rate_format = header["rate_flags"] & RATE_MCS_MOD_TYPE_MSK
@@ -189,6 +193,7 @@ class FeitCSIBeamformReader(Reader):
         fileContent = file.read()
         step = 0
         output = []
+    
         while (len(fileContent) > step):
             data = {}
             data["header"] = self.parseHeader(fileContent[step:(step+272)])
@@ -207,6 +212,27 @@ class FeitCSIBeamformReader(Reader):
             frame = FeitCSIFrame(data["header"], data["csi_matrix"])
             step += data["header"]["csi_length"]
             output.append(data)
-            ret_data.push_frame(frame, data["header"]['ftm_clock'])
-           
+
+            # timestamp calculation from ftm_clock (tick counter 3.125ns resolution) max ~13.4s then overflow
+            timestamp = 0
+            if len(ret_data.frames) > 0:
+                if (data["header"]["mu_clock"] - ret_data.frames[-1].mu_clock)/1e6 < (MAX_TICK * TICK_RESOLUTION)/1e9:
+                    if data["header"]["ftm_clock"] > ret_data.frames[-1].ftm_clock:
+                        diff = data["header"]["ftm_clock"] - ret_data.frames[-1].ftm_clock
+                    #overflow ftm_clock
+                    else: 
+                        diff = data["header"]["ftm_clock"] + (MAX_TICK - ret_data.frames[-1].ftm_clock)
+                    timestamp = ret_data.timestamps[-1] + ((diff * TICK_RESOLUTION) / 1e9)
+                # if size between mu_clock si larger than 13s we used mu_clock as reference time
+                else: 
+                    if data["header"]["mu_clock"] > ret_data.frames[-1].mu_clock:
+                        diff = data["header"]["mu_clock"] - ret_data.frames[-1].mu_clock
+                    #overflow mu_clock
+                    else: 
+                        diff = data["header"]["mu_clock"] + (MAX_TICK - ret_data.frames[-1].mu_clock)
+
+                    timestamp = ret_data.timestamps[-1] + (diff / 1e6)
+
+            ret_data.push_frame(frame, timestamp)
+
         return ret_data
