@@ -188,7 +188,7 @@ class FeitCSIBeamformReader(Reader):
 
         file = open(path, "rb")
 
-        ret_data = CSIData(self.filename, "FeitCSI", "", filter_mac=filter_mac)
+        ret_data = CSIData(self.filename, "FeitCSI", "Intel AX2xx", filter_mac=filter_mac)
 
         fileContent = file.read()
         step = 0
