@@ -3,17 +3,17 @@ name: Python
 agent:
   machine:
     type: e1-standard-2
-
+    os_image: ubuntu2004
   containers:
     - name: main
-      image: "registry.semaphoreci.com/python:3.11.5"
+      image: 'registry.semaphoreci.com/python:3.11.5'
 blocks:
   - name: All PyTests
     task:
       jobs:
         - name: pytest
           commands:
-            - sem-version python 3.8
+            - sem-version python 3.11
             - checkout
             - python -m pip install --upgrade pip
             - python setup.py install
