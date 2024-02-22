@@ -86,7 +86,7 @@ class CSISegment:
         nrx = int(self.numRx)
         ant_sel = int(self.antSelByte)
 
-        csi = np.zeros((30, nrx, ntx), dtype=np.complex)
+        csi = np.zeros((30, nrx, ntx), dtype=np.complex64)
 
         perm = np.array([0, 1, 2])
         if sum(perm) == nrx:
