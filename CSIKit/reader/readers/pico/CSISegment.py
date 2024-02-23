@@ -1,3 +1,4 @@
+from CSIKit.reader.readers.pico.utils import parse_with_relevant_parser
 from CSIKit.util import stringops, byteops
 
 from math import floor
@@ -27,9 +28,7 @@ class CSISegment:
 
         self.version = version
 
-        if version in VERSION_MAP:
-            # Parse data with relevant parser.
-            VERSION_MAP[version](data)
+        parse_with_relevant_parser(VERSION_MAP, version, data, self.__class__.__name__)
 
     def parseQCA9300CSIData(self, data: bytes, pos: int):
 
