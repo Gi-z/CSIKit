@@ -1,3 +1,4 @@
+from CSIKit.reader.readers.pico.utils import parse_with_relevant_parser
 from CSIKit.util import stringops
 
 import struct
@@ -9,9 +10,7 @@ class MVMExtraSegment:
             1: self.parseV1,
         }
 
-        if version in VERSION_MAP:
-            # Parse data with relevant parser.
-            VERSION_MAP[version](data)
+        parse_with_relevant_parser(VERSION_MAP, version, data, self.__class__.__name__)
 
     def parseV1(self, data: bytes):
         pos = 0

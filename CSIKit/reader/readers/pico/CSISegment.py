@@ -1,3 +1,4 @@
+from CSIKit.reader.readers.pico.utils import parse_with_relevant_parser
 from CSIKit.util import stringops, byteops
 
 from math import floor
@@ -27,9 +28,7 @@ class CSISegment:
 
         self.version = version
 
-        if version in VERSION_MAP:
-            # Parse data with relevant parser.
-            VERSION_MAP[version](data)
+        parse_with_relevant_parser(VERSION_MAP, version, data, self.__class__.__name__)
 
     def parseQCA9300CSIData(self, data: bytes, pos: int):
 
@@ -86,7 +85,7 @@ class CSISegment:
         nrx = int(self.numRx)
         ant_sel = int(self.antSelByte)
 
-        csi = np.zeros((30, nrx, ntx), dtype=np.complex)
+        csi = np.zeros((30, nrx, ntx), dtype=np.complex64)
 
         perm = np.array([0, 1, 2])
         if sum(perm) == nrx:
