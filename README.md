@@ -62,7 +62,7 @@ pip install csikit
 
 ```console
 csikit log.all_csi.6.7.6.dat
-csikit --graph --graph-type all_subcarriers log.all_csi.6.7.6.dat
+csikit --graph --graph_type all_subcarriers log.all_csi.6.7.6.dat
 csikit --csv log.all_csi.6.7.6.dat
 ```
 
