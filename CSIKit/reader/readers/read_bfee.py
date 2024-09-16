@@ -72,20 +72,26 @@ class IWLBeamformReader(Reader):
                     if ind8+2 >= len(data):
                         break
 
-                    real = (data[ind8] >> remainder) | (data[1+ind8] << (8-remainder))
-                    imag = (data[1+ind8] >> remainder) | (data[2+ind8] << (8-remainder))
+                    real_left = data[ind8] >> remainder
+                    real_right = data[1 + ind8] << (8 - remainder)
 
-                    real = np.int8(real)
-                    imag = np.int8(imag)
+                    real = (real_left | real_right) & 0xFF # 8-bit truncation
+                    if real > 127: # convert from unsigned rep to signed
+                        real -= 256
+
+                    imag_left = data[1 + ind8] >> remainder
+                    imag_right = data[2 + ind8] << (8 - remainder)
+
+                    imag = (imag_left | imag_right) & 0xFF
+                    if imag > 127:
+                        imag -= 256
+
+                    real = float(real)
+                    imag = float(imag)
 
                     complex_no = real + imag * 1j
 
                     csi[i][perm[j]][k] = complex_no
-                    # try:
-                    #     csi[i][perm[j]][k] = complex_no
-                    # except IndexError as e:
-                    #     #Minor backup in instances where severely invalid permutation parameters are generated.
-                    #     csi[i][j][k] = complex_no
 
                     index += 16
 
