@@ -13,26 +13,30 @@ THROWIE_HEADER = ["time", "movement_detected", "csi"]
 THROWIE_HEADER2 = ["time", "pcc", "movement_detected", "csi"]
 
 FITHOMES_HEADER = ["time", "src_mac", "rssi", "noise_floor", "csi"]
+FITHOMES_HEADER2 = ["sensor_id", "timestamp", "sequence_identifier", "antenna", "rssi", "noise_floor", "interval", "imag", "real"]
 
 HEADER_NAME_MAPPINGS = {
     "ESP32": ESP32_HEADER,
     "THROWIE": THROWIE_HEADER,
     "THROWIE2": THROWIE_HEADER2,
-    "FITHOMES": FITHOMES_HEADER
+    "FITHOMES": FITHOMES_HEADER,
+    "FITHOMES2": FITHOMES_HEADER2
 }
 
 HEADER_FRAMES = {
     "ESP32": ESP32CSIFrame,
     "THROWIE": ESP32CSIFrame,
     "THROWIE2": ESP32CSIFrame,
-    "FITHOMES": ESP32CSIFrame
+    "FITHOMES": ESP32CSIFrame,
+    "FITHOMES2": ESP32CSIFrame,
 }
 
 BACKEND_MAPPING = {
     "ESP32": "ESP32 CSI Tool",
     "THROWIE": "prototype thing",
     "THROWIE2": "prototype thing",
-    "FITHOMES": "FitHomes CSI Platform (Alpha)"
+    "FITHOMES": "FitHomes CSI Platform (Alpha)",
+    "FITHOMES2": "FitHomes CSI Platform (Alpha2)"
 }
 
 LAST_CHAR_MAPPING = {
@@ -40,6 +44,7 @@ LAST_CHAR_MAPPING = {
     "THROWIE": "]",
     "THROWIE2": "]",
     "FITHOMES": "]",
+    "FITHOMES2": "]",
 }
 
 class CSVBeamformReader(Reader):
@@ -118,6 +123,9 @@ class CSVBeamformReader(Reader):
 
             new_frame = header_frame(data_line)
             if new_frame.csi_matrix is None:
+                continue
+
+            if new_frame.ant == 1:
                 continue
 
             if ret_data.bandwidth == 0:

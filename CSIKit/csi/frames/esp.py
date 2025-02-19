@@ -171,6 +171,33 @@ class ESP32CSIFrame(CSIFrame):
             self.len = 0
             self.csi_matrix = ESP32CSIFrame.parse_matrix(csv_line[len(csv_line)-1])
             return
+        elif len(csv_line) == 9:
+            self.mac = f"00:16:ea:{":".join(csv_line[0].split())}"
+            self.rssi = int(csv_line[4])
+            self.bandwidth = 20
+            self.rate = 0
+            self.sig_mode = 0
+            self.mcs = 0
+            self.bandwidth = 20
+            self.smoothing = 0
+            self.not_sounding = 0
+            self.aggregation = 0
+            self.stbc = 0
+            self.fec_coding = 0
+            self.sgi = 0
+            self.noise_floor = int(csv_line[5])
+            self.ampdu_cnt = 0
+            self.channel = 0
+            self.secondary_channel = 0
+            self.local_timestamp = int(csv_line[1][:-3])
+            self.ant = int(csv_line[3])
+            self.sig_len = 0
+            self.rx_state = 0
+            self.real_time_set = 0
+            self.real_timestamp = int(csv_line[1][:-3])
+            self.len = 0
+            self.csi_matrix = ESP32CSIFrame.parse_separate_matrices(csv_line[7], csv_line[8])
+            return
 
         self.type = csv_line[0]
         self.role = csv_line[1]
@@ -230,6 +257,24 @@ class ESP32CSIFrame(CSIFrame):
         int8_matrix = int8_matrix.reshape(-1, 2)
 
         complex_matrix = int8_matrix.astype(np.float32).view(np.complex64)
+        return complex_matrix
+
+    @staticmethod
+    def parse_separate_matrices(imag_data, real_data, bandwidth=20):
+        imag_string = imag_data.replace("\"", "")
+        imag_string_py = imag_string.replace(" ", ", ")
+        imag_string_asarray = ast.literal_eval(imag_string_py)
+        imag_int8_matrix = np.array(imag_string_asarray)
+
+        real_string = real_data.replace("\"", "")
+        real_string_py = real_string.replace(" ", ", ")
+        real_string_asarray = ast.literal_eval(real_string_py)
+        real_int8_matrix = np.array(real_string_asarray)
+
+        complex_matrix = np.zeros((len(imag_int8_matrix), 1), dtype=complex)
+        for n in range(len(imag_int8_matrix)):
+            complex_matrix[n] = complex(real_int8_matrix[n], imag_int8_matrix[n])
+
         return complex_matrix
 
     # Seems some CSI lines are missing a value.
