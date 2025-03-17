@@ -169,14 +169,16 @@ class FeitCSIBeamformReader(Reader):
         amplitude = abs(csi["csi_matrix"])
         phase = np.angle(csi["csi_matrix"])
         # phase = np.unwrap(phase)
-        for i in indices:
-            for j in range(csi["csi_matrix"].shape[1]):
-                amplitude[i, j] = self.cubicInterpolate(amplitude[i - 2, j], amplitude[i - 1, j], \
-                    amplitude[i + 1, j], amplitude[i + 2, j], 0.5)
-                phase[i, j] = self.linearInterpolate(phase[i - 1, j], phase[i + 1, j], 0.5)
-                if phase[i - 1, j] > 2 and phase[i + 1, j] < -2:
-                    phase[i, j] = self.linearInterpolate(phase[i + 1, j], phase[i + 2, j], -1)
-                csi["csi_matrix"][i, j] = amplitude[i, j] * np.exp(1j * phase[i, j])
+        for i in indices: # subcarrier_index
+            for j in range(csi["csi_matrix"].shape[1]): # rx index
+                for k in range(csi["csi_matrix"].shape[2]): # tx index
+                    amplitude[i, j, k] = self.cubicInterpolate(amplitude[i - 2, j, k], amplitude[i - 1, j, k], \
+                        amplitude[i + 1, j, k], amplitude[i + 2, j, k], 0.5)
+                    phase[i, j, k] = self.linearInterpolate(phase[i - 1, j, k], phase[i + 1, j, k], 0.5)
+                    if phase[i - 1, j, k] > 2 and phase[i + 1, j, k] < -2:
+                        phase[i, j, k] = self.linearInterpolate(phase[i + 1, j, k], phase[i + 2, j, k], -1)
+
+                    csi["csi_matrix"][i, j, k] = amplitude[i, j, k] * np.exp(1j * phase[i, j, k])
         return csi
 
 
