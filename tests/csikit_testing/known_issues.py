@@ -57,8 +57,6 @@ FEITCSI_MULTI_TX_INTERPOLATION = Issue(
 
 # --- Processing / API -----------------------------------------------------------
 
-NUMPY_GLOBAL_ERRSTATE = Issue(
-    79, "Importing CSIKit changes NumPy's global floating-point error settings")
 UNRECOGNISED_FILES = Issue(
     80, "Unrecognised files fall back to the Intel reader and crash later with IndexError")
 

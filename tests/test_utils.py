@@ -7,7 +7,6 @@ import pytest
 
 from CSIKit.util import byteops, matlab, stringops
 from csikit_testing import REPO_ROOT
-from csikit_testing.known_issues import NUMPY_GLOBAL_ERRSTATE, known_bug
 
 
 @pytest.mark.parametrize(
@@ -23,6 +22,11 @@ def test_get_next_bits_appends_a_little_endian_word():
     assert (data, idx, bits_left) == (0b101 | (0x1234 << 3), 2, 19)
 
 
+def test_db_of_zero_is_minus_infinity_without_a_warning(recwarn):
+    assert matlab.db(0.0) == -np.inf and matlab.db(np.zeros(3), "pow").tolist() == [-np.inf] * 3
+    assert not [w for w in recwarn if issubclass(w.category, RuntimeWarning)]
+
+
 @pytest.mark.parametrize("x", [1e-3, 0.5, 1.0, 42.0])
 def test_db_and_dbinv_are_inverse(x):
     assert matlab.dbinv(matlab.db(x, "pow")) == pytest.approx(x)
@@ -33,7 +37,6 @@ def test_hex_to_mac_string():
     assert stringops.hexToMACString("a1b2c3d4e5f6") == "A1:B2:C3:D4:E5:F6"
 
 
-@known_bug(NUMPY_GLOBAL_ERRSTATE)
 def test_import_does_not_change_numpy_error_state():
     code = (
         "import numpy as np; before = np.geterr(); "
