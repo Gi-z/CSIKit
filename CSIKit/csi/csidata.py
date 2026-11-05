@@ -1,6 +1,5 @@
 from CSIKit.csi.csiframe import CSIFrame
 from CSIKit.csi.csimetadata import CSIMetadata
-from CSIKit.util.csitools import get_CSI
 
 import numpy as np
 
@@ -48,7 +47,8 @@ class CSIData:
         bandwidth = self.bandwidth
 
         unmodified_csi_matrix = self.frames[0].csi_matrix
-        _, no_frames, no_subcarriers = get_CSI(self)
+        no_frames = len(self.frames)
+        no_subcarriers = unmodified_csi_matrix.shape[0]
 
         rx_count = (0, 0)
         tx_count = (0, 0)

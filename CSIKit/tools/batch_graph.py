@@ -61,7 +61,7 @@ class BatchGraph:
 
         # self.csi_data.frames = self.csi_data.frames[slice(1, len(self.csi_data.frames), 2)]
 
-        finalEntry, no_frames, no_subcarriers = get_CSI(self.csi_data)
+        finalEntry, no_frames, no_subcarriers, kept = get_CSI(self.csi_data, return_indices=True)
         if len(finalEntry.shape) == 4:
             #>1 antenna stream.
             #Loading the first for ease.
@@ -75,7 +75,7 @@ class BatchGraph:
 
         x_label = "Time (s)"
         try:
-            x = self.csi_data.timestamps
+            x = [self.csi_data.timestamps[i] for i in kept]
             x = [timestamp-x[0] for timestamp in x]
         except AttributeError as e:
             #No timestamp in frame. Likely an IWL entry.
@@ -150,7 +150,7 @@ class BatchGraph:
         plt.show()
 
     def sumsqrssi(self):
-        finalEntry, no_frames, no_subcarriers = get_CSI(self.csi_data, extract_as_dBm=False)
+        finalEntry, no_frames, no_subcarriers, kept = get_CSI(self.csi_data, extract_as_dBm=False, return_indices=True)
         if len(finalEntry.shape) == 4:
             # >1 antenna stream.
             # Loading the first for ease.
@@ -161,7 +161,7 @@ class BatchGraph:
 
 
         csi = finalEntry
-        rss = [x.rssi for x in self.csi_data.frames]
+        rss = [self.csi_data.frames[i].rssi for i in kept]
 
         sumsq = np.sum(csi ** 2, axis=1)
         norm_sumsq = np.sqrt(sumsq) / no_subcarriers
@@ -172,7 +172,7 @@ class BatchGraph:
             line.append(matlab.db(sumsq_value) / rss_value)
 
         # plt.scatter(rssis, sumsq)
-        plt.plot(self.csi_data.timestamps, line)
+        plt.plot([self.csi_data.timestamps[i] for i in kept], line)
 
         plt.xlabel("Time (s)")
         plt.ylabel("RSSI / sumsq")

@@ -57,8 +57,6 @@ FEITCSI_MULTI_TX_INTERPOLATION = Issue(
 
 # --- Processing / API -----------------------------------------------------------
 
-GET_CSI_DROPPED_FRAMES = Issue(
-    78, "get_CSI returns a stale frame count when it drops frames, and mutates CSIData.timestamps")
 NUMPY_GLOBAL_ERRSTATE = Issue(
     79, "Importing CSIKit changes NumPy's global floating-point error settings")
 UNRECOGNISED_FILES = Issue(
