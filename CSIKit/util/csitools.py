@@ -1,74 +1,74 @@
+from CSIKit.util.errors import NoFramesError
 from CSIKit.util.matlab import db, dbinv
 
+from collections import Counter
 from typing import Tuple
 
+import warnings
+
 import numpy as np
-import itertools
 
 
-# This function takes CSIData and returns the assembled CSI matrix from all frames,
-# as well as the number of frames and subcarrier contained therein.
-# 
-# 1. The first frame's shape is used to establish parameters for the assembled CSI matrix.
-#       ? Some kind of assert test or something to check all frames are uniform would be good!
-#       - First we get the number of subcarriers.
-#       - Then we check the number of dimensions to count the antennas.
-# 2. Assemble the empty matrix to contain our extracted CSI.
-# 3. Iterate through each frame and extract CSI for each subcarrier at each antenna stream.
-# 4. Return complete CSI matrix, number of frames and number of subcarriers.
+def _as_subcarriers_rx_tx(matrix) -> np.ndarray:
+    """View a frame's CSI matrix as (subcarriers, rx, tx)."""
+    matrix = np.asarray(matrix)
+    if matrix.ndim == 1:
+        return matrix.reshape(-1, 1, 1)
+    if matrix.ndim == 2:
+        return matrix.reshape(matrix.shape[0], matrix.shape[1], 1)
+    if matrix.ndim == 3:
+        return matrix
+    raise ValueError("Unsupported CSI matrix shape {}.".format(matrix.shape))
+
 
 def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool = True,
-            squeeze_output: bool = False) -> Tuple[np.array, int, int]:
-    # TODO: Add proper error handling.
+            squeeze_output: bool = False, return_indices: bool = False) -> Tuple[np.ndarray, int, int]:
+    """Assemble the CSI of every frame into one (frames, subcarriers, rx, tx) array.
 
-    # This looks a little ugly.
+    Parameters:
+        metric: "amplitude" (default), "phase", or anything else for the complex values.
+        extract_as_dBm: with metric="amplitude", return 20*log10(|CSI|) instead of |CSI|.
+        squeeze_output: drop singleton dimensions (e.g. single-antenna rx/tx axes).
+        return_indices: also return the indices (into csi_data.frames / csi_data.timestamps)
+            of the frames included, e.g. to select matching timestamps.
+
+    Returns:
+        (csi, no_frames, no_subcarriers), plus the included frame indices if return_indices.
+
+    The array needs every frame to have the same (subcarriers, rx, tx) shape. When frames differ:
+
+    - subcarriers: the most common tone count is used and frames with other counts are left out
+      (different tone sets can't be aligned, e.g. 52-tone legacy vs 56-tone HT frames in PicoScenes);
+    - rx (the capturing device's antennas): the most common count is used; frames with fewer are
+      left out, frames with more keep their first antennas;
+    - tx (spatial streams, which depend on how each packet was sent): every frame is reduced to
+      the streams all frames have.
+
+    A warning says what was left out or reduced. csi_data itself is not modified.
+    """
     frames = csi_data.frames
-    csi_shape = frames[0].csi_matrix.shape
+    if not frames:
+        raise NoFramesError("No CSI frames to assemble: the file may be empty or in an unsupported format.")
 
-    no_frames = len(frames)
-    no_subcarriers = csi_shape[0]
+    matrices = [_as_subcarriers_rx_tx(frame.csi_matrix) for frame in frames]
+    shapes = Counter(matrix.shape for matrix in matrices)
 
-    # Matrices should be Frames * Subcarriers * Rx * Tx.
-    # Single Rx/Tx streams should be squeezed.
-    if len(csi_shape) == 3:
-        # Intel data comes as Subcarriers * Rx * Tx.
-        no_rx_antennas = csi_shape[1]
-        no_tx_antennas = csi_shape[2]
-    elif len(csi_shape) == 2 or len(csi_shape) == 1:
-        # Single antenna stream.
-        no_rx_antennas = 1
-        no_tx_antennas = 1
-    else:
-        # Error. Unknown CSI shape.
-        print("Error: Unknown CSI shape.")
+    # Ties go to the value seen first.
+    n_subcarriers = Counter(m.shape[0] for m in matrices).most_common(1)[0][0]
+    same_tones = [i for i, m in enumerate(matrices) if m.shape[0] == n_subcarriers]
+    n_rx = Counter(matrices[i].shape[1] for i in same_tones).most_common(1)[0][0]
+    kept = [i for i in same_tones if matrices[i].shape[1] >= n_rx]
+    n_tx = min(matrices[i].shape[2] for i in kept)
+    shape = (n_subcarriers, n_rx, n_tx)
 
-    csi = np.zeros((no_frames, no_subcarriers, no_rx_antennas, no_tx_antennas), dtype=complex)
+    if len(shapes) > 1:
+        warnings.warn(
+            "get_CSI: frames have different CSI shapes (shape: count) {}; using {} of {} frames as "
+            "{} subcarriers x {} Rx x {} Tx.".format(dict(shapes), len(kept), len(frames), *shape),
+            stacklevel=2,
+        )
 
-    ranges = itertools.product(*[range(n) for n in [no_frames, no_subcarriers, no_rx_antennas, no_tx_antennas]])
-    is_single_antenna = no_rx_antennas == 1 and no_tx_antennas == 1
-
-    drop_indices = []
-
-    for frame, subcarrier, rx_antenna_index, tx_antenna_index in ranges:
-        frame_data = frames[frame].csi_matrix
-        if subcarrier >= frame_data.shape[0]:
-            # Inhomogenous component
-            # Skip frame for now. Need a better method soon.
-            continue
-
-        subcarrier_data = frame_data[subcarrier]
-        if subcarrier_data.shape != (no_rx_antennas, no_tx_antennas) and not is_single_antenna:
-            if rx_antenna_index >= subcarrier_data.shape[0] or tx_antenna_index >= subcarrier_data.shape[1]:
-                # Inhomogenous component
-                # Skip frame for now. Need a better method soon.
-                drop_indices.append(frame)
-                continue
-
-        csi[frame][subcarrier][rx_antenna_index][tx_antenna_index] = subcarrier_data if is_single_antenna else \
-            subcarrier_data[rx_antenna_index][tx_antenna_index]
-
-    csi = np.delete(csi, drop_indices, 0)
-    csi_data.timestamps = [x for i, x in enumerate(csi_data.timestamps) if i not in drop_indices]
+    csi = np.stack([matrices[i][:, :n_rx, :n_tx] for i in kept]).astype(complex)
 
     if metric == "amplitude":
         csi = abs(csi)
@@ -80,7 +80,8 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
     if squeeze_output:
         csi = np.squeeze(csi)
 
-    return (csi, no_frames, no_subcarriers)
+    result = (csi, len(kept), n_subcarriers)
+    return result + (kept,) if return_indices else result
 
 
 def scale_csi_frame(csi: np.array, rss: int, noise_floor: int=0) -> np.array:

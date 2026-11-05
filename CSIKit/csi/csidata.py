@@ -1,6 +1,7 @@
 from CSIKit.csi.csiframe import CSIFrame
 from CSIKit.csi.csimetadata import CSIMetadata
-from CSIKit.util.csitools import get_CSI
+from CSIKit.util.errors import NoFramesError
+from CSIKit.util.matlab import get_total_rss
 
 import numpy as np
 
@@ -42,13 +43,17 @@ class CSIData:
             self.timestamps.append(timestamp)
 
     def get_metadata(self) -> CSIMetadata:
+        if not self.frames:
+            raise NoFramesError("No CSI frames were read{}.".format(" from " + self.filename if self.filename else ""))
+
         chipset = self.chipset
         backend = self.backend
 
         bandwidth = self.bandwidth
 
         unmodified_csi_matrix = self.frames[0].csi_matrix
-        _, no_frames, no_subcarriers = get_CSI(self)
+        no_frames = len(self.frames)
+        no_subcarriers = unmodified_csi_matrix.shape[0]
 
         rx_count = (0, 0)
         tx_count = (0, 0)
@@ -82,6 +87,9 @@ class CSIData:
             rss_total = [x.rssi for x in self.frames]
         elif self.backend == "FeitCSI":
             rss_total = [max(frame.rssi_1, frame.rssi_2) for frame in self.frames]
+        elif self.backend == "Linux 802.11n CSI Tool":
+            # rssi_a/b/c are raw register values; convert to dBm as get_total_rss.m does.
+            rss_total = [get_total_rss(f.rssi_a, f.rssi_b, f.rssi_c, f.agc) for f in self.frames]
         else:
             rss_total = [max(frame.rssi_a, frame.rssi_b, frame.rssi_c) for frame in self.frames]
             # Must sum a/b/c.

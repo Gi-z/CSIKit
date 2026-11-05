@@ -17,7 +17,8 @@ class FeitCSIFrame(CSIFrame):
         self.num_subcarriers = header_data["num_subcarriers"]
         self.rssi_1 = header_data["rssi_1"]
         self.rssi_2 = header_data["rssi_2"]
-        self.source_mac = header_data["source_mac"]
+        # Same "AA:BB:CC:DD:EE:FF" form as the other readers (CSIData.filter_mac compares strings).
+        self.source_mac = header_data["source_mac_string"].upper()
         self.channel_width = header_data["channel_width"]
         self.rate_format = header_data["rate_format"]
         self.mcs = header_data["mcs"]

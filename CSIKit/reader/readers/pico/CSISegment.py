@@ -104,11 +104,14 @@ class CSISegment:
                     if ind8 + 2 >= len(payload):
                         break
 
-                    real = (payload[ind8] >> remainder) | (payload[1 + ind8] << (8 - remainder))
-                    imag = (payload[1 + ind8] >> remainder) | (payload[2 + ind8] << (8 - remainder))
-
-                    real = np.int8(real)
-                    imag = np.int8(imag)
+                    # 8-bit truncation and two's-complement sign, as in read_bfee.py
+                    # (np.int8() on out-of-range values raises under NumPy 2).
+                    real = ((payload[ind8] >> remainder) | (payload[1 + ind8] << (8 - remainder))) & 0xFF
+                    imag = ((payload[1 + ind8] >> remainder) | (payload[2 + ind8] << (8 - remainder))) & 0xFF
+                    if real > 127:
+                        real -= 256
+                    if imag > 127:
+                        imag -= 256
 
                     complex_no = real + imag * 1j
 
@@ -139,7 +142,8 @@ class CSISegment:
         subcarrier_indices = np.zeros(self.numTone, dtype=np.int16)
 
         for i in range(self.numTone):
-            subcarrier_indices[i] = struct.unpack("H", data[pos:pos + 2])[0]
+            # Indices are signed (negative below DC); NumPy 2 rejects storing uint16 > 32767 in int16.
+            subcarrier_indices[i] = struct.unpack("h", data[pos:pos + 2])[0]
             pos += 2
 
         self.subcarrierIndices = subcarrier_indices

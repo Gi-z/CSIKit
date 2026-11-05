@@ -12,17 +12,15 @@
 
 These tests serve to check the output of CSIKit's parsing and processing functions are identical (to at least 8 decimal places) to that of the MATLAB example scripts supplied with [nexmon_csi](https://github.com/seemoo-lab/nexmon_csi/tree/master/utils/matlab).
 
-The tests work by iterating through each file in `./CSIKit/data/nexmon`, first parsing them with a `NEXBeamformReader`, and then extracting CSI amplitude using `csitools.get_CSI`. The output from these functions can then be compared directly to the matrices produced by the MATLAB scripts, loaded from the accompanying .mat file in `./CSIKit/tests/matlab/nexmon/mats`.
+The tests work by iterating through each file in `./CSIKit/data/nexmon`, first parsing them with a `NEXBeamformReader`, and then comparing the complex CSI matrix of each frame. The output from these functions can then be compared directly to the matrices produced by the MATLAB scripts, loaded from the accompanying .mat file in `./tests/matlab/nexmon/mats`.
 
 These should be run before any deployment occurs to ensure the output of CSIKit is correct, and the core functionality of CSIKit does not contain any critical errors. If you notice an error within one of these tests, please create an Issue with [this link](https://github.com/Gi-z/CSIKit/issues/new) and mark it as URGENT.
 
 ## Running Tests
 
-In order to run the tests in `test_nexmon.py` with PyTest, the following environment variables must be set.
-- `NEX_TEST_EXAMPLE_DIR`: Directory containing pcap files to be used for tests.
-- `NEX_TEST_MAT_DIR`: Directory containing mat files generated for files in the `EXAMPLE_DIR` using the method below.
+From the repository root, run `pytest tests/matlab/nexmon` (or just `pytest` for the whole suite). No environment variables are needed: sample paths are resolved relative to the repository. The tests need `scipy` (`pip install -e .[test]`).
 
-Once these environment variables are set, these tests can be run either by directly running `pytest test_nexmon.py`, or (once the Intel environment variables from `tests/intel/README.md` have been created) all tests can be run from the root directory by just running `pytest`.
+Each `.pcap` file to be checked is listed with its `.mat` reference in `CASES` in `test_matlab_nexmon.py`; add a pair there after generating a new reference with the steps below.
 
 ## Generating MATs
 

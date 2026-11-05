@@ -139,26 +139,32 @@ import numpy as np
 
 my_reader = get_reader("/path/to/csi/file")
 csi_data = my_reader.read_file("/path/to/csi/file", scaled=True)
-csi_matrix, no_frames, no_subcarriers = csitools.get_CSI(csi_data, metric="amplitude")
+csi_matrix, no_frames, no_subcarriers, frame_indices = csitools.get_CSI(csi_data, metric="amplitude", return_indices=True)
 
-# CSI matrix is now returned as (no_frames, no_subcarriers, no_rx_ant, no_tx_ant).
-# First we'll select the first Rx/Tx antenna pairing.
+# CSI matrix is returned as (no_frames, no_subcarriers, no_rx_ant, no_tx_ant).
+# Select the first Rx/Tx antenna pairing, giving (no_frames, no_subcarriers):
+# each row is one frame, and each column is one subcarrier over time.
 csi_matrix_first = csi_matrix[:, :, 0, 0]
-# Then we'll squeeze it to remove the singleton dimensions.
-csi_matrix_squeezed = np.squeeze(csi_matrix_first)
 
-# This example assumes CSI data is sampled at ~100Hz.
+# Timestamps of the frames get_CSI used, and the capture's average sample rate in Hz.
+timestamps = [csi_data.timestamps[i] for i in frame_indices]
+sample_rate = csi_data.get_metadata().average_sample_rate
+
+# Filters are applied to each subcarrier over time, i.e. one column at a time.
 # In this example, we apply (sequentially):
 #  - a lowpass filter to isolate frequencies below 10Hz (order = 5)
+#    (the cutoff must be below half the sample rate)
 #  - a hampel filter to reduce high frequency noise (window size = 10, significance = 3)
 #  - a running mean filter for smoothing (window size = 10)
 
-for x in range(no_frames):
-  csi_matrix_squeezed[x] = lowpass(csi_matrix_squeezed[x], 10, 100, 5)
-  csi_matrix_squeezed[x] = hampel(csi_matrix_squeezed[x], 10, 3)
-  csi_matrix_squeezed[x] = running_mean(csi_matrix_squeezed[x], 10)
+for subcarrier in range(no_subcarriers):
+  series = csi_matrix_first[:, subcarrier]
+  series = lowpass(series, 10, sample_rate, 5)
+  series = hampel(series, 10, 3)
+  csi_matrix_first[:, subcarrier] = running_mean(series, 10)
 
-BatchGraph.plot_heatmap(csi_matrix_squeezed, csi_data.timestamps)
+# plot_heatmap takes a (no_frames, no_subcarriers) matrix and the matching timestamps.
+BatchGraph.plot_heatmap(csi_matrix_first, timestamps)
 ```
 
 ### ATHCSIFrame

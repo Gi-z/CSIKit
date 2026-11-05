@@ -1,3 +1,4 @@
+import bisect
 import os
 import struct
 import time
@@ -41,6 +42,7 @@ class PcapFrame:
         self.header = None
         self.payload = None
         self.payloadHeader = None
+        self.trailing_bytes = 0
 
         self.header = self.read_header()
         self.payload = self.read_payload()
@@ -125,18 +127,35 @@ class PcapFrame:
         payload_bytes = self.data.read(incl_len)
         if payload_bytes is None:
             raise BufferError("Could not read payload")
+        self.length += incl_len
 
-        if (incl_len % 4) == 0:
-            ints_size = int(incl_len / 4)
+        # Some captures carry padding after the end of the UDP datagram (e.g. 4 zero
+        # bytes of Ethernet trailer). It isn't part of nexmon's output: drop it so the
+        # frame is sized by what nexmon actually sent.
+        self.trailing_bytes = PcapFrame.udp_trailing_bytes(payload_bytes)
+        if self.trailing_bytes:
+            payload_bytes = payload_bytes[:len(payload_bytes) - self.trailing_bytes]
+        payload_len = len(payload_bytes)
+
+        if (payload_len % 4) == 0:
+            ints_size = int(payload_len / 4)
             payload = np.array(struct.unpack(ints_size*"I", payload_bytes), dtype=np.uint32)
         else:
-            ints_size = incl_len
+            ints_size = payload_len
             payload = np.array(struct.unpack(ints_size*"B", payload_bytes), dtype=np.uint8)
 
         self.payloadHeader = PcapFrame.read_payloadHeader(payload.tobytes()[42:64])
-        self.length += incl_len
 
         return payload
+
+    @staticmethod
+    def udp_trailing_bytes(frame: bytes) -> int:
+        """Number of captured bytes after the end of an IPv4/UDP datagram (0 if not IPv4/UDP)."""
+        if len(frame) < 42 or frame[12:14] != b"\x08\x00" or frame[23] != 17:
+            return 0
+        udp_start = 14 + (frame[14] & 0x0F) * 4
+        udp_len = int.from_bytes(frame[udp_start + 4:udp_start + 6], "big")
+        return max(0, len(frame) - (udp_start + udp_len))
 
 class Pcap:
     BW_80 = 80
@@ -184,6 +203,8 @@ class Pcap:
         self.header = self.data.read(self.PCAP_HEADER_DTYPE.itemsize)
         self.frames = []
         self.skipped_frames = 0
+        # (number of accepted frames before it, capture timestamp) for each skipped record.
+        self.skipped_records = []
         self.bandwidth = 0
         self.expected_size = None
 
@@ -193,6 +214,10 @@ class Pcap:
                 next_frame = PcapFrame(self.data)
                 if self.calculate_size(next_frame):
                     self.frames.append(next_frame)
+                elif next_frame.header is not None and len(next_frame.header["ts_sec"]):
+                    header = next_frame.header
+                    timestamp = header["ts_sec"][0] + header["ts_usec"][0] / 1e+6
+                    self.skipped_records.append((len(self.frames), timestamp))
             except BufferError:
                 break
 
@@ -202,7 +227,7 @@ class Pcap:
             # self.skipped_frames += 1
             return False
 
-        given_size = frame.header["orig_len"][0]-(self.HOFFSET-1)*4
+        given_size = frame.header["orig_len"][0] - frame.trailing_bytes - (self.HOFFSET-1)*4
 
         # Checking if the frame size is valid for ANY bandwidth.
         if given_size not in self.BW_SIZES or frame.payload is None:
@@ -235,7 +260,12 @@ class NEXBeamformReader(Reader):
      "chip"]
     EMPTY_HEADER = {k: 0 for k in HEADER_SLOTS}
 
-    def __init__(self, fill_skipped_frames: bool = True):
+    def __init__(self, fill_skipped_frames: bool = False):
+        """
+            fill_skipped_frames: insert an all-zero placeholder frame, with the skipped
+            record's capture time, wherever a pcap record couldn't be parsed. By default
+            skipped records are dropped and counted in CSIData.skipped_frames.
+        """
         super().__init__()
         self.fill_skipped_frames = fill_skipped_frames
 
@@ -269,7 +299,7 @@ class NEXBeamformReader(Reader):
             ret_data.set_chipset("Broadcom BCM{}".format(self.chip))
             yield ret_data
 
-    def read_file(self, path: str, scaled: bool = False, filter_mac: str = "") -> CSIData:
+    def read_file(self, path: str, scaled: bool = False, filter_mac: str = None) -> CSIData:
 
         self.chip = " UNKNOWN"
 
@@ -281,27 +311,38 @@ class NEXBeamformReader(Reader):
         self.pcap.read()
         self.scaled = scaled
 
-        ret_data = CSIData(self.filename, backend="Nexmon CSI")
+        ret_data = CSIData(self.filename, backend="Nexmon CSI", filter_mac=filter_mac)
         ret_data.bandwidth = self.pcap.bandwidth
         ret_data.skipped_frames = self.pcap.skipped_frames
         ret_data.expected_frames = len(self.pcap.frames)+self.pcap.skipped_frames
 
         data_frames = self.read_frames(self.pcap.frames, scaled, ret_data.bandwidth)
+
+        if self.fill_skipped_frames and self.pcap.skipped_records and data_frames:
+            data_frames = self.insert_placeholders(data_frames, self.pcap.skipped_records)
+
         for frame in data_frames:
             if frame is not None:
                 ret_data.push_frame(frame, frame.timestamp)
-                # ret_data.timestamps.append(frame.timestamp)
-
-        if self.fill_skipped_frames:
-            empty_subcount = self.BW_SUBS[ret_data.bandwidth]
-            empty_csi = np.zeros((empty_subcount, 1), dtype=np.complex64)
-            empty_frame = NEXCSIFrame(self.EMPTY_HEADER, empty_csi)
-            for _ in range(ret_data.skipped_frames):
-                ret_data.push_frame(empty_frame, 0)
 
         ret_data.set_chipset("Broadcom BCM{}".format(self.chip))
 
         return ret_data
+
+    def insert_placeholders(self, data_frames: list, skipped_records: list) -> list:
+        # Map each output frame to the index of its first accepted pcap record, so a
+        # skipped record lands between the frames it was captured between.
+        starts = self.frame_record_starts
+        template = next(f for f in data_frames if f is not None).csi_matrix
+        out = list(data_frames)
+        inserted = 0
+        for position, timestamp in skipped_records:
+            header = dict(self.EMPTY_HEADER, timestamp=timestamp)
+            placeholder = NEXCSIFrame(header, np.zeros_like(template))
+            index = bisect.bisect_left(starts, position) + inserted
+            out.insert(index, placeholder)
+            inserted += 1
+        return out
 
     def read_bfee(self, pcap_frame: PcapFrame, bandwidth: int, remove_unusuable_subcarriers: bool=True) -> NEXCSIFrame:
         if pcap_frame is None:
@@ -316,7 +357,7 @@ class NEXBeamformReader(Reader):
         chipType = pcap_frame.payloadHeader["chip"]
 
         if chipType in ["4339", "43455c0"]:
-            data.dtype = np.int16
+            data = data.view(np.int16)
             data = data[30:]
         elif chipType == "4358":
             data = data[15:15+int(bandwidth*3.2)]
@@ -379,7 +420,7 @@ class NEXBeamformReader(Reader):
             data = pcap_frame.payload
 
             if chipType in ["4339", "43455c0"]:
-                data.dtype = np.int16
+                data = data.view(np.int16)
                 data = data[30:]
             elif chipType == "4358":
                 data = data[15:15 + int(bandwidth * 3.2)]
@@ -422,6 +463,7 @@ class NEXBeamformReader(Reader):
 
         # Check if sequence_no changes. If not, 1Rx/Tx stream.
         if frames[0].payloadHeader["sequence_no"] == frames[-1].payloadHeader["sequence_no"]:
+            self.frame_record_starts = list(range(len(frames)))
             return [self.read_bfee(x, bandwidth) for x in frames]
 
         # Otherwise, read sequential spatial streams in batches.
@@ -453,5 +495,11 @@ class NEXBeamformReader(Reader):
 
         if len(current_sequence) > 0:
             sequences.append(current_sequence)
+
+        self.frame_record_starts = []
+        record_index = 0
+        for seq in sequences:
+            self.frame_record_starts.append(record_index)
+            record_index += len(seq)
 
         return [self.read_bfee_batch(seq, bandwidth, tx_num=max_core, rx_num=max_spatial_stream) for seq in sequences]

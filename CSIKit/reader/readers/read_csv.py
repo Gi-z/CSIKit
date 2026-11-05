@@ -39,6 +39,39 @@ BACKEND_MAPPING = {
     "FITHOMES2": "FitHomes CSI Platform (Alpha2)"
 }
 
+# Divisor converting the other layouts' timestamp column to seconds (treated as milliseconds,
+# as before). The ESP32 layout is timed from local_timestamp instead; see esp32_seconds().
+TIMESTAMP_DIVISOR = {
+    "THROWIE": 1000,
+    "THROWIE2": 1000,
+    "FITHOMES": 1000,
+    "FITHOMES2": 1000,
+}
+
+# ESP32 rx_ctrl.timestamp (local_timestamp) is a 32-bit microsecond counter: it wraps every ~71.6 min.
+ESP32_LOCAL_TIMESTAMP_RANGE = 2 ** 32
+
+
+def esp32_seconds(local_timestamps):
+    """Seconds since the first frame from ESP32 local_timestamp values, undoing 32-bit wraps.
+
+    local_timestamp is the radio's own receive time in microseconds (precise because
+    ESP32-CSI-Tool disables power saving). real_timestamp is not used: older ESP32-CSI-Tool
+    versions print it as "<seconds>.<microseconds>" without zero-padding the microseconds
+    ("1.87258" is 1.087258 s), newer ones print a steady-clock double with 6 significant
+    digits, and the two can't be told apart from the values alone.
+    """
+    seconds = []
+    wrap_offset = 0
+    previous = None
+    for local in local_timestamps:
+        # Only a drop of more than half the range is a wrap.
+        if previous is not None and previous - local > ESP32_LOCAL_TIMESTAMP_RANGE // 2:
+            wrap_offset += ESP32_LOCAL_TIMESTAMP_RANGE
+        previous = local
+        seconds.append((local + wrap_offset) / 1e6)
+    return [t - seconds[0] for t in seconds] if seconds else seconds
+
 LAST_CHAR_MAPPING = {
     "ESP32": "]",
     "THROWIE": "]",
@@ -112,6 +145,8 @@ class CSVBeamformReader(Reader):
         last_char = LAST_CHAR_MAPPING[header_name]
 
         first_timestamp = -1
+        timestamp_divisor = TIMESTAMP_DIVISOR.get(header_name)
+        frames = []
 
         while True:
             data_line = data.readline().split(",")
@@ -123,9 +158,8 @@ class CSVBeamformReader(Reader):
 
             new_frame = header_frame(data_line)
             if new_frame.csi_matrix is None:
-                continue
-
-            if new_frame.ant == 1:
+                # Malformed CSI buffer (values lost in transit): skip the row, but count it.
+                ret_data.skipped_frames += 1
                 continue
 
             if ret_data.bandwidth == 0:
@@ -134,11 +168,16 @@ class CSVBeamformReader(Reader):
             if scaled:
                 new_frame.csi_matrix = csitools.scale_csi_frame(new_frame.csi_matrix, new_frame.rssi, new_frame.noise_floor)
 
+            if header_name == "ESP32":
+                # Timed from local_timestamp once all rows are read (see esp32_seconds).
+                frames.append(new_frame)
+                continue
+
             if first_timestamp == -1:
-                first_timestamp = float(new_frame.real_timestamp) / 1000
+                first_timestamp = float(new_frame.real_timestamp) / timestamp_divisor
                 new_frame.real_timestamp = 0
             else:
-                new_frame.real_timestamp = (float(new_frame.real_timestamp) / 1000) - first_timestamp
+                new_frame.real_timestamp = (float(new_frame.real_timestamp) / timestamp_divisor) - first_timestamp
 
             # no_subcarriers = new_frame.csi_matrix.shape[0]
 
@@ -148,5 +187,10 @@ class CSVBeamformReader(Reader):
             #     print("Unsupported header format for null/pilot/guard subcarrier removal.")
 
             ret_data.push_frame(new_frame, float(new_frame.real_timestamp))
+
+        # frame.real_timestamp holds seconds since the first frame, as for the other layouts.
+        for frame, timestamp in zip(frames, esp32_seconds([f.local_timestamp for f in frames])):
+            frame.real_timestamp = timestamp
+            ret_data.push_frame(frame, timestamp)
 
         return ret_data

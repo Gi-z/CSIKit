@@ -53,19 +53,20 @@ class FeitCSIBeamformReader(Reader):
 
     @staticmethod
     def can_read(path: str) -> bool:
-        file = open(path, "rb")
-        fileContent = file.read()
+        # A FeitCSI file is a sequence of 272-byte headers, each starting with the
+        # length of the CSI that follows; it must tile the file exactly.
+        if not os.path.isfile(path):
+            return False
+        with open(path, "rb") as file:
+            fileContent = file.read()
+        if len(fileContent) < 272:
+            return False
         step = 0
-        output = []
-        while (len(fileContent) > step):
-            csi_length = struct.unpack("I", fileContent[step:(step+272)][0:4])[0]
-            step += 272
-            step += csi_length
+        while len(fileContent) - step >= 272:
+            csi_length = struct.unpack("I", fileContent[step:step + 4])[0]
+            step += 272 + csi_length
 
-        if step == len(fileContent):
-            return True
-
-        return False
+        return step == len(fileContent)
 
     def parseHeader(self, data):
         header = {}
@@ -74,8 +75,10 @@ class FeitCSIBeamformReader(Reader):
         header["num_rx"] = data[46]
         header["num_tx"] = data[47]
         header["num_subcarriers"] = struct.unpack("I", data[52:56])[0]
-        header["rssi_1"] = struct.unpack("I", data[60:64])[0]
-        header["rssi_2"] = struct.unpack("I", data[64:68])[0]
+        # Intel's CSI header stores each chain's RSSI as the magnitude of a negative dBm value
+        # (PicoScenes AX200 captures carry the same field as -RxSBasic.rssi_ctl0/1), so negate it.
+        header["rssi_1"] = -struct.unpack("I", data[60:64])[0]
+        header["rssi_2"] = -struct.unpack("I", data[64:68])[0]
         header["source_mac"] = struct.unpack("BBBBBB", data[68:74])
         header["source_mac_string"] = "%02x:%02x:%02x:%02x:%02x:%02x" % struct.unpack("BBBBBB", data[68:74])
         header["mu_clock"] = struct.unpack("I", data[88:92])[0]

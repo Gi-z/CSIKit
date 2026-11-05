@@ -82,6 +82,8 @@ class ESP32CSIFrame(CSIFrame):
             Additional field added by ESP32-CSI-Tool.
             Real timestamp (in seconds) factoring in the local time and a base timestamp provided by the user.
             If real_time_set=False, real_timestamp acts as a mirror of local_timestamp, instead measured in seconds.
+            CSVBeamformReader replaces it with seconds since the first frame, taken from local_timestamp
+            (older ESP32-CSI-Tool versions print this field without zero-padding the microseconds).
         len : int
             Length of the 802.11 packet.
         csi_matrix : np.array
@@ -172,7 +174,7 @@ class ESP32CSIFrame(CSIFrame):
             self.csi_matrix = ESP32CSIFrame.parse_matrix(csv_line[len(csv_line)-1])
             return
         elif len(csv_line) == 9:
-            self.mac = f"00:16:ea:{":".join(csv_line[0].split())}"
+            self.mac = "00:16:ea:" + ":".join(csv_line[0].split())
             self.rssi = int(csv_line[4])
             self.bandwidth = 20
             self.rate = 0
@@ -243,20 +245,36 @@ class ESP32CSIFrame(CSIFrame):
 
         string_data = csv_line[25]
 
-        self.csi_matrix = ESP32CSIFrame.parse_matrix(string_data)
+        self.csi_matrix = ESP32CSIFrame.parse_matrix(string_data, expected_values=self.len)
+
+    # ESP32-CSI-Tool's LLTF-only build prints the full `len` but only the first 128 values.
+    LLTF_ONLY_VALUES = 128
 
     @staticmethod
-    def parse_matrix(string_data, bandwidth=20):
+    def parse_matrix(string_data, bandwidth=20, expected_values=None):
+        """Parse a CSI_DATA buffer; returns None if the row is malformed.
+
+        Each subcarrier is an (imaginary, real) pair of int8 values. A buffer
+        with an odd number of values, or fewer than the `len` column says,
+        has lost values in transit. Every pair after the loss would be
+        misaligned and there's no way to tell where it happened, so the row
+        is rejected rather than padded.
+        """
         array_string = string_data.replace(" ", ", ")
         array_string_asarray = ast.literal_eval(array_string)
 
-        # if len(array_string_asarray) != ESP32CSIFrame.SUBS[bandwidth]*2:
-        #     return None
+        n_values = len(array_string_asarray)
+        if n_values % 2:
+            return None
+        if expected_values is not None and n_values != expected_values and not (
+                n_values == ESP32CSIFrame.LLTF_ONLY_VALUES and expected_values > n_values):
+            return None
 
         int8_matrix = np.array(array_string_asarray)
-        int8_matrix = int8_matrix.reshape(-1, 2)
+        pairs = int8_matrix.reshape(-1, 2).astype(np.float32)
 
-        complex_matrix = int8_matrix.astype(np.float32).view(np.complex64)
+        # ESP-IDF stores each subcarrier as two int8s: imaginary part first, then real part.
+        complex_matrix = (pairs[:, 1] + 1j * pairs[:, 0]).astype(np.complex64).reshape(-1, 1)
         return complex_matrix
 
     @staticmethod
