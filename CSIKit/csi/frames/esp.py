@@ -172,7 +172,7 @@ class ESP32CSIFrame(CSIFrame):
             self.csi_matrix = ESP32CSIFrame.parse_matrix(csv_line[len(csv_line)-1])
             return
         elif len(csv_line) == 9:
-            self.mac = f"00:16:ea:{":".join(csv_line[0].split())}"
+            self.mac = "00:16:ea:" + ":".join(csv_line[0].split())
             self.rssi = int(csv_line[4])
             self.bandwidth = 20
             self.rate = 0
