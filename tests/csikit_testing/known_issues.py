@@ -58,8 +58,6 @@ FEITCSI_MULTI_TX_INTERPOLATION = Issue(
 
 # --- CLI -------------------------------------------------------------------------
 
-HEATMAP_SUBCARRIER_AXIS_FLIPPED = Issue(
-    None, "Heatmaps draw subcarrier 0 at the top of a subcarrier axis that increases upwards")
 
 # --- Not bugs we can assert on yet ---------------------------------------------
 

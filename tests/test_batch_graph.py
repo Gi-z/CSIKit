@@ -15,7 +15,6 @@ import pytest  # noqa: E402
 from CSIKit.tools.batch_graph import BatchGraph  # noqa: E402
 from CSIKit.util.csitools import get_CSI  # noqa: E402
 from csikit_testing import repo_path  # noqa: E402
-from csikit_testing.known_issues import HEATMAP_SUBCARRIER_AXIS_FLIPPED, known_bug  # noqa: E402
 
 INTEL = "CSIKit/data/intel/example.dat"  # 26 frames, 30 subcarriers, 3x2, ~2 s
 CONSTANT_TIME = "CSIKit/data/intel/log.all_csi.6.7.6.dat"  # every timestamp_low is identical
@@ -78,13 +77,24 @@ def test_heatmap_image_is_subcarriers_by_frames():
     assert (left, right) == pytest.approx((0, t[-1]))
 
 
-@known_bug(HEATMAP_SUBCARRIER_AXIS_FLIPPED)
-def test_heatmap_draws_subcarrier_0_at_the_low_end_of_the_axis():
-    amplitude = np.zeros((100, 30))
-    amplitude[:, 0] = 10.0  # only subcarrier 0 is bright
-    BatchGraph.plot_heatmap(amplitude, list(np.arange(100) * 0.01))
-    image = plt.gca().get_images()[0]
+def _row_centres(image):
+    """y coordinate at which matplotlib draws the centre of each image row."""
     _, _, bottom, top = image.get_extent()
-    row_height = (top - bottom) / image.get_array().shape[0]
-    y_of_row_0 = top - row_height / 2 if image.origin == "upper" else bottom + row_height / 2
-    assert y_of_row_0 < (bottom + top) / 2, f"subcarrier 0 is drawn at y={y_of_row_0:.1f} of {bottom}..{top}"
+    n_rows = image.get_array().shape[0]
+    height = (top - bottom) / n_rows
+    centres = bottom + height * (np.arange(n_rows) + 0.5)
+    return centres if image.origin == "lower" else centres[::-1]
+
+
+@pytest.mark.parametrize("plot", ["plot_heatmap", "heatmap"])
+def test_heatmap_draws_subcarrier_i_at_y_equals_i(plot):
+    if plot == "plot_heatmap":
+        amplitude = np.zeros((100, 30))
+        amplitude[:, 0] = 10.0  # only subcarrier 0 is bright
+        BatchGraph.plot_heatmap(amplitude, list(np.arange(100) * 0.01))
+    else:
+        graph().heatmap()
+    image = plt.gca().get_images()[0]
+    np.testing.assert_allclose(_row_centres(image), np.arange(30))  # subcarrier 0 at the bottom
+    if plot == "plot_heatmap":
+        assert image.get_array()[0].max() == 10  # and row 0 really is subcarrier 0

@@ -98,10 +98,11 @@ class BatchGraph:
         else:
             xlim = max(x)
 
-        limits = [0, xlim, 1, no_subcarriers]
-            
+        # Subcarrier i is centred on y = i, with subcarrier 0 at the bottom.
+        limits = [0, xlim, -0.5, no_subcarriers - 0.5]
+
         _, ax = plt.subplots()
-        im = ax.imshow(finalEntry, cmap="jet", extent=limits, aspect="auto")
+        im = ax.imshow(finalEntry, cmap="jet", extent=limits, aspect="auto", origin="lower")
 
         cbar = ax.figure.colorbar(im, ax=ax)
         cbar.ax.set_ylabel("Amplitude (dBm)")
@@ -140,10 +141,11 @@ class BatchGraph:
         else:
             xlim = max(x)   
 
-        limits = [0, xlim, 1, csi_matrix.shape[0]]
+        # Subcarrier i is centred on y = i, with subcarrier 0 at the bottom.
+        limits = [0, xlim, -0.5, csi_matrix.shape[0] - 0.5]
 
         _, ax = plt.subplots()
-        im = ax.imshow(csi_matrix, cmap="jet", extent=limits, aspect="auto")
+        im = ax.imshow(csi_matrix, cmap="jet", extent=limits, aspect="auto", origin="lower")
 
         cbar = ax.figure.colorbar(im, ax=ax)
         cbar.ax.set_ylabel("Amplitude (dBm)")
