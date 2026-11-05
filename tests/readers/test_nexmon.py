@@ -140,7 +140,7 @@ def test_read_stream_matches_read_file(sample):
         np.testing.assert_array_equal(chunk.frames[0].csi_matrix, frame.csi_matrix)
 
 
-@pytest.mark.parametrize("sample", [get("tests/reader/example.pcap").param(needs_get_csi=True)])
+@pytest.mark.parametrize("sample", [get("tests/reader/example.pcap").param()])
 def test_get_csi_complex_output(sample):
     data = read_quietly(nexmon_reader(), repo_path(sample.path))
     csi, n_frames, n_subcarriers = csitools.get_CSI(data, metric="complex", squeeze_output=True)

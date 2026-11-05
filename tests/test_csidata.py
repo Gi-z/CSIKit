@@ -3,8 +3,7 @@ import numpy as np
 import pytest
 
 from CSIKit.csi import CSIData
-from csikit_testing import NUMPY_STRICT_SCALAR_ASSIGNMENT
-from csikit_testing.known_issues import NUMPY2_SUPPORT, UNRECOGNISED_FILES, known_bug
+from csikit_testing.known_issues import UNRECOGNISED_FILES, known_bug
 
 
 class Frame:
@@ -48,7 +47,6 @@ def test_metadata_summary():
     assert meta.average_rssi == -40
 
 
-@known_bug(NUMPY2_SUPPORT, condition=NUMPY_STRICT_SCALAR_ASSIGNMENT, raises=TypeError)
 def test_metadata_single_antenna():
     assert _with_frames((64, 1), rssi=-60).get_metadata().antenna_config == "1 Rx, 1 Tx"
 

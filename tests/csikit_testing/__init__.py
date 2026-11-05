@@ -10,33 +10,10 @@ import functools
 import io
 from pathlib import Path
 
-import numpy as np
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ROOT / "CSIKit" / "data"
 TESTS_DIR = REPO_ROOT / "tests"
 SNAPSHOT_DIR = TESTS_DIR / "snapshots"
-
-NUMPY2 = int(np.__version__.split(".")[0]) >= 2
-"""NEP 50 integer promotion: out-of-range Python ints raise OverflowError."""
-
-
-def _scalar_slot_rejects_arrays() -> bool:
-    # Assigning a size-1 array into a scalar slot was deprecated in NumPy 1.25
-    # and became a TypeError in 2.4. csitools.get_CSI relies on it.
-    import warnings
-
-    target = np.zeros(1, dtype=complex)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        try:
-            target[0] = np.ones(1)
-        except TypeError:
-            return True
-    return False
-
-
-NUMPY_STRICT_SCALAR_ASSIGNMENT = _scalar_slot_rejects_arrays()
 
 
 def repo_path(relative: str) -> Path:

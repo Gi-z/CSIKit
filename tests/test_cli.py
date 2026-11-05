@@ -8,10 +8,9 @@ import sys
 import numpy as np
 import pytest
 
-from csikit_testing import NUMPY_STRICT_SCALAR_ASSIGNMENT, REPO_ROOT, repo_path
+from csikit_testing import REPO_ROOT, repo_path
 from csikit_testing.known_issues import (
     CLI_GRAPH_TYPES_CRASH,
-    NUMPY2_SUPPORT,
     UNRECOGNISED_FILES,
     known_bug,
 )
@@ -49,8 +48,7 @@ def test_help():
                      id="picoscenes"),
         pytest.param("CSIKit/data/feitcsi/HT20_2452.csi", ["Backend: FeitCSI", "Frame Count: 48",
                                                            "Subcarrier Count: 56"], id="feitcsi"),
-        pytest.param("CSIKit/data/esp32/example_data.csv", ["Hardware: ESP32", "Frame Count: 60"], id="esp32",
-                     marks=known_bug(NUMPY2_SUPPORT, condition=NUMPY_STRICT_SCALAR_ASSIGNMENT)),
+        pytest.param("CSIKit/data/esp32/example_data.csv", ["Hardware: ESP32", "Frame Count: 60"], id="esp32"),
     ],
 )
 def test_info(path, expected):

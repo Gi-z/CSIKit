@@ -46,8 +46,6 @@ def known_bug(issue: Issue, *, condition: bool = True, raises=None):
 
 # --- Parsing ------------------------------------------------------------------
 
-NUMPY2_SUPPORT = Issue(
-    69, "NumPy 2.x: Nexmon, ESP32 and PicoScenes (IWL5300, USRP) data fails to parse")
 ESP32_IMAG_REAL_ORDER = Issue(
     70, "ESP32: subcarrier values are read as (real, imag) but ESP-IDF stores (imag, real)")
 ESP32_TIMESTAMPS = Issue(

@@ -39,9 +39,12 @@ def unpack_float_acphy(nbits: int, autoscale: int, shft: int, fmt: int, nman: in
     maxbit = -e_p
 
     for i in range(len(H)):
-        vi = ((H[i] >> (nexp + nman)) & iq_mask)
-        vq = ((H[i] >> nexp) & iq_mask)
-        e = (H[i] & e_mask)
+        # Work on a Python int: H holds np.uint32, and under NumPy 2 (NEP 50) the
+        # signed arithmetic below would otherwise stay in uint32 and overflow.
+        h = int(H[i])
+        vi = ((h >> (nexp + nman)) & iq_mask)
+        vq = ((h >> nexp) & iq_mask)
+        e = (h & e_mask)
 
         if e >= e_p:
             e -= (e_p << 1)
@@ -67,10 +70,10 @@ def unpack_float_acphy(nbits: int, autoscale: int, shft: int, fmt: int, nman: in
             if e > maxbit:
                 maxbit = e
 
-        if H[i] & sgnr_mask:
+        if h & sgnr_mask:
             vi |= k_tof_unpack_sgn_mask
 
-        if H[i] & sgni_mask:
+        if h & sgni_mask:
             vq |= k_tof_unpack_sgn_mask
 
         Hout[i << 1] = vi

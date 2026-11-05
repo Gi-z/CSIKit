@@ -316,7 +316,7 @@ class NEXBeamformReader(Reader):
         chipType = pcap_frame.payloadHeader["chip"]
 
         if chipType in ["4339", "43455c0"]:
-            data.dtype = np.int16
+            data = data.view(np.int16)
             data = data[30:]
         elif chipType == "4358":
             data = data[15:15+int(bandwidth*3.2)]
@@ -379,7 +379,7 @@ class NEXBeamformReader(Reader):
             data = pcap_frame.payload
 
             if chipType in ["4339", "43455c0"]:
-                data.dtype = np.int16
+                data = data.view(np.int16)
                 data = data[30:]
             elif chipType == "4358":
                 data = data[15:15 + int(bandwidth * 3.2)]

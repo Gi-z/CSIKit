@@ -5,8 +5,7 @@ import pytest
 from CSIKit.csi import CSIData
 from CSIKit.util import csitools
 from CSIKit.util.matlab import dbinv
-from csikit_testing import NUMPY_STRICT_SCALAR_ASSIGNMENT
-from csikit_testing.known_issues import GET_CSI_DROPPED_FRAMES, NUMPY2_SUPPORT, known_bug
+from csikit_testing.known_issues import GET_CSI_DROPPED_FRAMES, known_bug
 
 
 class Frame:
@@ -43,7 +42,6 @@ def test_single_antenna_1d_frames():
     np.testing.assert_array_equal(csi[:, :, 0, 0], np.stack(mats))
 
 
-@known_bug(NUMPY2_SUPPORT, condition=NUMPY_STRICT_SCALAR_ASSIGNMENT, raises=TypeError)
 def test_single_antenna_column_frames():
     # (subcarriers, 1) is what the ESP32 and single-stream Nexmon readers produce.
     mats = random_csi((64, 1))

@@ -64,8 +64,10 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
                 drop_indices.append(frame)
                 continue
 
-        csi[frame][subcarrier][rx_antenna_index][tx_antenna_index] = subcarrier_data if is_single_antenna else \
-            subcarrier_data[rx_antenna_index][tx_antenna_index]
+        # Single-antenna frames may be (subcarriers,), (subcarriers, 1) or (subcarriers, 1, 1):
+        # take the one value explicitly, since NumPy >= 2.4 rejects assigning an array to a scalar slot.
+        csi[frame][subcarrier][rx_antenna_index][tx_antenna_index] = np.ravel(subcarrier_data)[0] if is_single_antenna \
+            else subcarrier_data[rx_antenna_index][tx_antenna_index]
 
     csi = np.delete(csi, drop_indices, 0)
     csi_data.timestamps = [x for i, x in enumerate(csi_data.timestamps) if i not in drop_indices]

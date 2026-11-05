@@ -33,7 +33,7 @@ GitHub issue. When a fix lands the test passes, pytest reports `XPASS(strict)` a
 marker must be removed in the same change, so `known_issues.py` stays an accurate list of what is
 still broken. Use `pytest --runxfail` to see every known bug fail for real.
 
-Some markers are conditional, e.g. NumPy-2-only failures. CI runs both NumPy 1.x and 2.x.
+CI runs both NumPy 1.x and 2.x, so version-specific breakage shows up too.
 
 Disagreements with csiread that haven't been resolved either way are non-strict xfails pointing at
 `NEEDS_GROUND_TRUTH`.
