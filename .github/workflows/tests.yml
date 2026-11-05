@@ -1,0 +1,35 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    name: Python ${{ matrix.python }} / ${{ matrix.numpy }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        numpy: ["numpy>=2"]
+        include:
+          # Known NumPy-2-only failures are conditional xfails, so also test the 1.x line.
+          - python: "3.12"
+            numpy: "numpy<2"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true
+          cache: pip
+      - name: Install CSIKit with test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test]" "${{ matrix.numpy }}"
+      - name: Install csiread for cross-checks (optional)
+        run: python -m pip install csiread "${{ matrix.numpy }}" || echo "::warning::csiread unavailable on Python ${{ matrix.python }}; cross-check tests will be skipped"
+      - name: Run tests
+        run: python -m pytest --runslow

@@ -11,17 +11,15 @@
 
 These tests serve to check the output of CSIKit's parsing and processing functions are identical (to at least 8 decimal places) to that of the MATLAB example scripts supplied with [linux-80211n-csi-tool-supplementary](https://github.com/dhalperi/linux-80211n-csitool-supplementary/matlab).
 
-The tests work by iterating through each file in `./CSIKit/data/intel`, first parsing them with an `IWLBeamformReader`, and then extracting the CSI matrices from each CSIFrame. The output from these functions can then be compared directly to the cells produced by the MATLAB scripts, loaded from the accompanying .mat file in `./CSIKit/tests/matlab/intel/mats`.
+The tests work by iterating through each file in `./CSIKit/data/intel`, first parsing them with an `IWLBeamformReader`, and then extracting the CSI matrices from each CSIFrame. The output from these functions can then be compared directly to the cells produced by the MATLAB scripts, loaded from the accompanying .mat file in `./tests/matlab/intel/mats`.
 
 These should be run before any deployment occurs to ensure the output of CSIKit is correct, and the core functionality of CSIKit does not contain any critical errors. If you notice an error within one of these tests, please create an Issue with [this link](https://github.com/Gi-z/CSIKit/issues/new) and mark it as URGENT.
 
 ## Running Tests
 
-In order to run the tests in `test_intel.py` with PyTest, the following environment variables must be set.
-- `INTEL_TEST_EXAMPLE_DIR`: Directory containing dat files to be used for tests.
-- `INTEL_TEST_MAT_DIR`: Directory containing mat files generated for files in the `EXAMPLE_DIR` using the method below.
+From the repository root, run `pytest tests/matlab/intel` (or just `pytest` for the whole suite). No environment variables are needed: sample paths are resolved relative to the repository. The tests need `scipy` (`pip install -e .[test]`).
 
-Once these environment variables are set, these tests can be run either by directly running `pytest test_intel.py`, or (once the Nexmon environment variables from `tests/nexmon/README.md` have been created) all tests can be run from the root directory by just running `pytest`.
+Each `.dat` file to be checked is listed with its `.mat` reference in `CASES` in `test_matlab_intel.py`; add a pair there after generating a new reference with the steps below.
 
 ## Generating MATs
 
@@ -33,7 +31,7 @@ Once these environment variables are set, these tests can be run either by direc
 6. Right click in the Workspace column and click Save.
 7. Label your completed file with the same filename (but not extension) as your `.dat`.
 
-This process will generate a `.mat` file which can be used with `run_intel_tests`.
+This process will generate a `.mat` file which can be added to `CASES` in `test_matlab_intel.py`.
 
 ## Example File Listing
 
