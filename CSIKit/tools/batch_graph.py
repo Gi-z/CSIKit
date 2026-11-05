@@ -15,45 +15,51 @@ class BatchGraph:
         reader = get_reader(path)
         self.csi_data = reader.read_file(path, scaled=scaled, filter_mac=filter_mac)
 
-    def prepostfilter(self):
+    def _first_pair_amplitude(self, **kwargs):
+        """CSI amplitude of the first Rx/Tx pair as (frames, subcarriers), with the frames used."""
+        csi, no_frames, no_subcarriers, kept = get_CSI(self.csi_data, return_indices=True, **kwargs)
+        return csi[:, :, 0, 0], no_frames, no_subcarriers, kept
 
-        csi_trace = self.csi_data.frames
-        finalEntry, no_frames, _ = get_CSI(self.csi_data)
+    def _time_axis(self, kept):
+        """Seconds since the first plotted frame, or frame numbers if the capture has no usable timestamps."""
+        timestamps = np.asarray([self.csi_data.timestamps[i] for i in kept], dtype=float)
+        x = timestamps - timestamps[0]
+        if not np.any(x):
+            return np.arange(len(kept)), "Frame No."
+        return x, "Time (s)"
 
-        finalEntry = finalEntry[15]
+    def prepostfilter(self, subcarrier: int = 15):
+        """Plot one subcarrier's amplitude over time: raw, Hampel-filtered, and Hampel + running mean."""
+        amplitude, no_frames, no_subcarriers, kept = self._first_pair_amplitude()
+        subcarrier = min(subcarrier, no_subcarriers - 1)
 
-        hampelData = hampel(finalEntry, 10)
+        raw = amplitude[:, subcarrier]  # one subcarrier, over time
+        hampelData = hampel(raw, 10)
         smoothedData = running_mean(hampelData.copy(), 10)
 
-        y = finalEntry
-        y2 = hampelData
-        y3 = smoothedData
+        x, x_label = self._time_axis(kept)
 
-        x = list([x.timestamp for x in csi_trace])
+        plt.plot(x, raw, label="Raw")
+        plt.plot(x, hampelData, label="Hampel")
+        plt.plot(x, smoothedData, "r", label="Hampel + Running Mean")
 
-        if sum(x) == 0:
-            x = np.arange(0, no_frames, 1)
-
-        plt.plot(x, y, label="Raw")
-        plt.plot(x, y2, label="Hampel")
-        plt.plot(x, y3, "r", label="Hampel + Running Mean")
-
-        plt.xlabel("Time (s)")
+        plt.xlabel(x_label)
         plt.ylabel("Amplitude (dBm)")
+        plt.title("Subcarrier {}".format(subcarrier))
         plt.legend(loc="upper right")
 
         plt.show()
 
     def plotAllSubcarriers(self):
+        """Plot every subcarrier's amplitude over time (first Rx/Tx pair)."""
+        amplitude, no_frames, no_subcarriers, kept = self._first_pair_amplitude()
+        x, x_label = self._time_axis(kept)
 
-        finalEntry, no_frames, _ = get_CSI(self.csi_data)
+        for subcarrier in range(no_subcarriers):
+            plt.plot(x, amplitude[:, subcarrier])
 
-        for x in finalEntry:
-            plt.plot(np.arange(no_frames)/20, x)
-
-        plt.xlabel("Time (s)")
+        plt.xlabel(x_label)
         plt.ylabel("Amplitude (dBm)")
-        plt.legend(loc="upper right")
 
         plt.show()
 

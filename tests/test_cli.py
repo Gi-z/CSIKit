@@ -9,10 +9,6 @@ import numpy as np
 import pytest
 
 from csikit_testing import REPO_ROOT, repo_path
-from csikit_testing.known_issues import (
-    CLI_GRAPH_TYPES_CRASH,
-    known_bug,
-)
 from csikit_testing.synthetic import atheros_record
 
 INTEL = "CSIKit/data/intel/example.dat"  # 26 frames, 30 subcarriers, 3 Rx x 2 Tx
@@ -99,8 +95,9 @@ def test_npz_export(tmp_path, metric):
     [
         pytest.param("heatmap", INTEL, id="heatmap"),
         pytest.param("sumsqrssi", "CSIKit/data/nexmon/example_4339.pcap", id="sumsqrssi"),
-        pytest.param("all_subcarriers", INTEL, id="all_subcarriers", marks=known_bug(CLI_GRAPH_TYPES_CRASH)),
-        pytest.param("subcarrier_filter", INTEL, id="subcarrier_filter", marks=known_bug(CLI_GRAPH_TYPES_CRASH)),
+        pytest.param("all_subcarriers", INTEL, id="all_subcarriers"),
+        pytest.param("subcarrier_filter", INTEL, id="subcarrier_filter"),
+        pytest.param("all_subcarriers", "CSIKit/data/nexmon/example_43455c0.pcap", id="all_subcarriers-1x1"),
     ],
 )
 def test_graph(graph_type, path):
