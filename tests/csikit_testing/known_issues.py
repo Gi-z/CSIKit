@@ -60,8 +60,6 @@ FEITCSI_MULTI_TX_INTERPOLATION = Issue(
 
 # --- CLI -------------------------------------------------------------------------
 
-INFO_INTEL_RSSI_NOT_DBM = Issue(
-    81, "csikit info reports raw Intel RSSI as dBm")
 CLI_GRAPH_TYPES_CRASH = Issue(
     82, "csikit --graph_type all_subcarriers and subcarrier_filter crash")
 

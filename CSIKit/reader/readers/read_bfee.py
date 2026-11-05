@@ -12,7 +12,7 @@ from CSIKit.reader import Reader
 from CSIKit.util import csitools
 
 from CSIKit.util.errors import print_length_error
-from CSIKit.util.matlab import db, dbinv
+from CSIKit.util.matlab import db, dbinv, get_total_rss
 
 SIZE_STRUCT = struct.Struct(">H").unpack
 CODE_STRUCT = struct.Struct("B").unpack
@@ -214,21 +214,8 @@ class IWLBeamformReader(Reader):
 
     @staticmethod
     def get_total_rss(rssi_a: int, rssi_b: int, rssi_c: int, agc: int) -> float:
-        # Calculates the Received Signal Strength (RSS) in dBm
-        # Careful here: rssis could be zero
-
-        rssi_mag = 0
-        if rssi_a != 0:
-            rssi_mag = rssi_mag + dbinv(rssi_a)
-        if rssi_b != 0:
-            rssi_mag = rssi_mag + dbinv(rssi_b)
-        if rssi_c != 0:
-            rssi_mag = rssi_mag + dbinv(rssi_c)
-
-        #Interpreting RSS magnitude as power for RSS/dBm conversion.
-        #This is consistent with Linux 802.11n CSI Tool's MATLAB implementation.
-        #As seen in get_total_rss.m.
-        return db(rssi_mag, "pow") - 44 - agc
+        # Calculates the Received Signal Strength (RSS) in dBm, as get_total_rss.m does.
+        return get_total_rss(rssi_a, rssi_b, rssi_c, agc)
 
     @staticmethod
     def scale_csi_entry(csi: np.array, header: list) -> np.array:

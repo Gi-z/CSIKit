@@ -1,6 +1,7 @@
 from CSIKit.csi.csiframe import CSIFrame
 from CSIKit.csi.csimetadata import CSIMetadata
 from CSIKit.util.errors import NoFramesError
+from CSIKit.util.matlab import get_total_rss
 
 import numpy as np
 
@@ -86,6 +87,9 @@ class CSIData:
             rss_total = [x.rssi for x in self.frames]
         elif self.backend == "FeitCSI":
             rss_total = [max(frame.rssi_1, frame.rssi_2) for frame in self.frames]
+        elif self.backend == "Linux 802.11n CSI Tool":
+            # rssi_a/b/c are raw register values; convert to dBm as get_total_rss.m does.
+            rss_total = [get_total_rss(f.rssi_a, f.rssi_b, f.rssi_c, f.agc) for f in self.frames]
         else:
             rss_total = [max(frame.rssi_a, frame.rssi_b, frame.rssi_c) for frame in self.frames]
             # Must sum a/b/c.

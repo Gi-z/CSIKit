@@ -10,7 +10,6 @@ import pytest
 
 from CSIKit.reader import IWLBeamformReader
 from csikit_testing import read_cached, read_fresh, read_quietly, repo_path
-from csikit_testing.known_issues import INFO_INTEL_RSSI_NOT_DBM, known_bug
 from csikit_testing.samples import IWL, by_reader
 from csikit_testing.synthetic import IWL_BFEE_CODE, iwl_records, set_iwl_timestamps
 
@@ -84,7 +83,6 @@ def test_get_total_rss_matches_toolkit_formula(rssi, agc, expected):
     assert IWLBeamformReader.get_total_rss(*rssi, agc) == pytest.approx(expected)
 
 
-@known_bug(INFO_INTEL_RSSI_NOT_DBM)
 def test_metadata_average_rssi_is_in_dbm():
     data = read_fresh("CSIKit/data/intel/log.all_csi.6.7.6.dat")
     expected = np.mean([
