@@ -15,3 +15,11 @@ def print_length_error(length: int, data_length: int, i: int, filename: str):
     if data_length < length:
         print("\tLast packet was likely cut off by an improper termination.")
         print("\tWhen killing log_to_file, use SIGTERM and ensure writes have been flushed, and files closed.")
+
+
+class UnsupportedFormatError(ValueError):
+    """The file isn't in a format any CSIKit reader recognises."""
+
+
+class NoFramesError(ValueError):
+    """A file or CSIData object contains no CSI frames to work with."""

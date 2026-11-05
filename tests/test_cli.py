@@ -11,7 +11,6 @@ import pytest
 from csikit_testing import REPO_ROOT, repo_path
 from csikit_testing.known_issues import (
     CLI_GRAPH_TYPES_CRASH,
-    UNRECOGNISED_FILES,
     known_bug,
 )
 from csikit_testing.synthetic import atheros_record
@@ -108,10 +107,16 @@ def test_graph(graph_type, path):
     ok(csikit("--graph", "--graph_type", graph_type, repo_path(path)))
 
 
-@known_bug(UNRECOGNISED_FILES)
 def test_unrecognised_file_fails_cleanly(tmp_path):
     path = tmp_path / "notes.txt"
     path.write_text("not a CSI capture\n" * 20)
     result = csikit(path)
-    assert result.returncode != 0
+    assert result.returncode == 1
     assert "Traceback" not in result.stderr
+    assert "Could not detect the CSI format" in result.stderr
+
+
+def test_filter_matching_nothing_fails_cleanly():
+    result = csikit("--filter_mac", "02:00:00:00:00:01", repo_path("CSIKit/data/nexmon/example_4339.pcap"))
+    assert result.returncode == 1
+    assert "Traceback" not in result.stderr and "No CSI frames were read" in result.stderr

@@ -53,19 +53,20 @@ class FeitCSIBeamformReader(Reader):
 
     @staticmethod
     def can_read(path: str) -> bool:
-        file = open(path, "rb")
-        fileContent = file.read()
+        # A FeitCSI file is a sequence of 272-byte headers, each starting with the
+        # length of the CSI that follows; it must tile the file exactly.
+        if not os.path.isfile(path):
+            return False
+        with open(path, "rb") as file:
+            fileContent = file.read()
+        if len(fileContent) < 272:
+            return False
         step = 0
-        output = []
-        while (len(fileContent) > step):
-            csi_length = struct.unpack("I", fileContent[step:(step+272)][0:4])[0]
-            step += 272
-            step += csi_length
+        while len(fileContent) - step >= 272:
+            csi_length = struct.unpack("I", fileContent[step:step + 4])[0]
+            step += 272 + csi_length
 
-        if step == len(fileContent):
-            return True
-
-        return False
+        return step == len(fileContent)
 
     def parseHeader(self, data):
         header = {}

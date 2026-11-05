@@ -1,3 +1,4 @@
+from CSIKit.util.errors import NoFramesError
 from CSIKit.util.matlab import db, dbinv
 
 from collections import Counter
@@ -40,7 +41,7 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
     """
     frames = csi_data.frames
     if not frames:
-        raise ValueError("No CSI frames to assemble: the file may be empty or in an unsupported format.")
+        raise NoFramesError("No CSI frames to assemble: the file may be empty or in an unsupported format.")
 
     matrices = [_as_subcarriers_rx_tx(frame.csi_matrix) for frame in frames]
     shapes = Counter(matrix.shape for matrix in matrices)

@@ -1,5 +1,6 @@
 from CSIKit.csi.csiframe import CSIFrame
 from CSIKit.csi.csimetadata import CSIMetadata
+from CSIKit.util.errors import NoFramesError
 
 import numpy as np
 
@@ -41,6 +42,9 @@ class CSIData:
             self.timestamps.append(timestamp)
 
     def get_metadata(self) -> CSIMetadata:
+        if not self.frames:
+            raise NoFramesError("No CSI frames were read{}.".format(" from " + self.filename if self.filename else ""))
+
         chipset = self.chipset
         backend = self.backend
 

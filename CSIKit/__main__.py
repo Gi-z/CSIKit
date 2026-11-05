@@ -1,4 +1,8 @@
 import argparse
+import sys
+
+from CSIKit.util.errors import NoFramesError, UnsupportedFormatError
+
 
 def main():
     parser = argparse.ArgumentParser(description="CSIKit: Parse and interpret CSI data.")
@@ -27,6 +31,14 @@ def main():
 
     args = parser.parse_args()
 
+    try:
+        run(args)
+    except (UnsupportedFormatError, NoFramesError, FileNotFoundError) as e:
+        print("csikit: error: {}".format(e), file=sys.stderr)
+        sys.exit(1)
+
+
+def run(args):
     if args.graph:
         from CSIKit.tools.batch_graph import BatchGraph
 

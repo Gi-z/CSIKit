@@ -3,7 +3,6 @@ import numpy as np
 import pytest
 
 from CSIKit.csi import CSIData
-from csikit_testing.known_issues import UNRECOGNISED_FILES, known_bug
 
 
 class Frame:
@@ -51,7 +50,6 @@ def test_metadata_single_antenna():
     assert _with_frames((64, 1), rssi=-60).get_metadata().antenna_config == "1 Rx, 1 Tx"
 
 
-@known_bug(UNRECOGNISED_FILES, raises=IndexError)
 def test_metadata_of_empty_data_raises_a_clear_error():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="No CSI frames were read from empty.dat"):
         CSIData("empty.dat").get_metadata()

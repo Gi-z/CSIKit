@@ -13,8 +13,8 @@ from CSIKit.reader import (
     PicoScenesBeamformReader,
     get_reader,
 )
+from CSIKit.util.errors import UnsupportedFormatError
 from csikit_testing import repo_path
-from csikit_testing.known_issues import UNRECOGNISED_FILES, known_bug
 from csikit_testing.samples import SAMPLES
 
 ALL_READERS = [
@@ -42,18 +42,7 @@ def test_only_one_reader_claims_each_sample(sample):
     assert claimed == [sample.reader]
 
 
-@pytest.mark.parametrize(
-    "reader",
-    [
-        pytest.param(
-            r,
-            id=r.__name__,
-            marks=[known_bug(UNRECOGNISED_FILES, raises=FileNotFoundError)]
-            if r is FeitCSIBeamformReader else [],
-        )
-        for r in ALL_READERS
-    ],
-)
+@pytest.mark.parametrize("reader", ALL_READERS, ids=lambda r: r.__name__)
 def test_can_read_missing_file_returns_false(reader, tmp_path):
     assert reader.can_read(str(tmp_path / "does-not-exist.dat")) is False
 
@@ -61,6 +50,7 @@ def test_can_read_missing_file_returns_false(reader, tmp_path):
 @pytest.mark.parametrize(
     "content",
     [
+        pytest.param(b"", id="empty"),
         pytest.param(b"x", id="1-byte"),
         pytest.param(b"hello, this is not CSI\n" * 50, id="text"),
         pytest.param(bytes(range(256)) * 8, id="binary"),
@@ -71,21 +61,23 @@ def test_can_read_never_raises_on_foreign_files(content, tmp_path):
         path = tmp_path / f"foreign{suffix}"
         path.write_bytes(content)
         for reader in ALL_READERS:
-            if reader is FeitCSIBeamformReader and len(content) < 4:
-                continue  # covered by test_feitcsi_can_read_short_file
             reader.can_read(str(path))  # must not raise
 
 
-@known_bug(UNRECOGNISED_FILES, raises=Exception)
-def test_feitcsi_can_read_short_file(tmp_path):
+@pytest.mark.parametrize("content", [b"", b"\x01\x02"], ids=["empty", "2-bytes"])
+def test_feitcsi_does_not_claim_tiny_files(tmp_path, content):
     path = tmp_path / "tiny.csi"
-    path.write_bytes(b"\x01\x02")
+    path.write_bytes(content)
     assert FeitCSIBeamformReader.can_read(str(path)) is False
 
 
-@known_bug(UNRECOGNISED_FILES)
 def test_get_reader_rejects_unrecognised_file(tmp_path):
     path = tmp_path / "notes.txt"
     path.write_text("not a CSI capture\n" * 20)
-    with pytest.raises(ValueError):
+    with pytest.raises(UnsupportedFormatError, match="Could not detect the CSI format"):
         get_reader(str(path))
+
+
+def test_get_reader_missing_file(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        get_reader(str(tmp_path / "missing.pcap"))
