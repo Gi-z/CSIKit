@@ -6,7 +6,7 @@ import pytest
 
 from CSIKit.reader import FeitCSIBeamformReader
 from csikit_testing import read_cached, read_quietly, repo_path
-from csikit_testing.known_issues import FEITCSI_MULTI_TX_INTERPOLATION, FILTER_MAC_BROKEN, known_bug
+from csikit_testing.known_issues import FEITCSI_MULTI_TX_INTERPOLATION, known_bug
 from csikit_testing.samples import FEIT, by_reader
 
 FEIT_PARAMS = [pytest.param(s.path, id=s.id) for s in by_reader(FEIT)]
@@ -67,7 +67,6 @@ def test_pilot_interpolation_multiple_tx():
     np.testing.assert_allclose(np.abs(out), 1, atol=1e-9)
 
 
-@known_bug(FILTER_MAC_BROKEN, raises=AttributeError)
 def test_filter_mac():
     path = repo_path("CSIKit/data/feitcsi/HT20_2452.csi")
     everything = read_cached("CSIKit/data/feitcsi/HT20_2452.csi")

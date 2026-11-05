@@ -11,7 +11,6 @@ import pytest
 from CSIKit.reader import NEXBeamformReader
 from CSIKit.util import csitools
 from csikit_testing import read_cached, read_quietly, repo_path
-from csikit_testing.known_issues import FILTER_MAC_BROKEN, known_bug
 from csikit_testing.samples import NEX, by_reader, get
 from csikit_testing.synthetic import pcap_records, shorten_nexmon_record, write_pcap
 
@@ -147,7 +146,6 @@ def test_filter_mac_keeps_matching_frames():
     assert len(data.frames) == len(unfiltered.frames)
 
 
-@known_bug(FILTER_MAC_BROKEN)
 def test_filter_mac_drops_other_transmitters():
     data = read_quietly(nexmon_reader(), repo_path(BATCHED_4339), filter_mac="02:00:00:00:00:01")
     assert len(data.frames) == 0

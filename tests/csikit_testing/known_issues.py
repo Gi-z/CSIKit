@@ -48,8 +48,6 @@ def known_bug(issue: Issue, *, condition: bool = True, raises=None):
 
 ESP32_TIMESTAMPS = Issue(
     63, "ESP32: timestamps are 1000x too small (seconds divided by 1000)")
-FILTER_MAC_BROKEN = Issue(
-    75, "filter_mac is ignored by the Nexmon reader and crashes the FeitCSI reader")
 ATHEROS_DROPS_TRAILING_FRAMES = Issue(
     None, "Atheros: the last frames of a file are dropped when records are small")
 IWL_TIMESTAMP_WRAP = Issue(
