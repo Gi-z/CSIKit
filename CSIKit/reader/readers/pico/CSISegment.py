@@ -85,41 +85,13 @@ class CSISegment:
         nrx = int(self.numRx)
         ant_sel = int(self.antSelByte)
 
-        csi = np.zeros((30, nrx, ntx), dtype=np.complex64)
-
-        perm = np.array([0, 1, 2])
+        perm = [0, 1, 2]
         if sum(perm) == nrx:
             perm[0] = ((ant_sel) & 0x3)
             perm[1] = ((ant_sel >> 2) & 0x3)
             perm[2] = ((ant_sel >> 4) & 0x3)
 
-        index = 0
-        for i in range(30):
-            index += 3
-            remainder = index % 8
-            for j in range(nrx):
-                for k in range(ntx):
-                    ind8 = floor(index / 8)
-
-                    if ind8 + 2 >= len(payload):
-                        break
-
-                    # 8-bit truncation and two's-complement sign, as in read_bfee.py
-                    # (np.int8() on out-of-range values raises under NumPy 2).
-                    real = ((payload[ind8] >> remainder) | (payload[1 + ind8] << (8 - remainder))) & 0xFF
-                    imag = ((payload[1 + ind8] >> remainder) | (payload[2 + ind8] << (8 - remainder))) & 0xFF
-                    if real > 127:
-                        real -= 256
-                    if imag > 127:
-                        imag -= 256
-
-                    complex_no = real + imag * 1j
-
-                    csi[i][perm[j]][k] = complex_no
-
-                    index += 16
-
-        self.parsed_csi = csi
+        self.parsed_csi = byteops.unpack_iwl5300_csi(payload, nrx, ntx, perm)
 
     def parseIWLMVMCSIData(self, data: bytes, pos: int):
         # total_tones = self.numRx * self.numSTS * self.numTone

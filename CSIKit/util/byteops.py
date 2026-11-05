@@ -1,3 +1,4 @@
+import functools
 from typing import Tuple
 
 import numpy as np
@@ -102,3 +103,67 @@ def unpack_float_acphy(nbits: int, autoscale: int, shft: int, fmt: int, nman: in
         out[i] = sgn * vi
 
     return out
+
+
+IWL5300_SUBCARRIERS = 30
+
+
+def unpack_iwl5300_csi(payload, n_rx: int, n_tx: int, perm) -> np.ndarray:
+    """Decode an IWL5300 beamforming-feedback payload into a (30, n_rx, n_tx) complex64 matrix.
+
+    As in read_bfee.c from the Linux 802.11n CSI Tool: each of the 30 subcarriers starts with 3
+    padding bits, followed by n_rx * n_tx entries of a signed 8-bit real and imaginary part,
+    bit-packed LSB-first with no byte alignment. Rx row j is stored at row perm[j].
+
+    Vectorised: every entry's bit offset is computed up front and all entries are decoded with
+    array operations. Truncated payloads and repeated permutation entries take the original
+    loop, which decodes what it can and leaves the rest zero.
+    """
+    buf = np.frombuffer(payload if isinstance(payload, (bytes, bytearray)) else bytes(payload), dtype=np.uint8)
+    rows = list(perm[:n_rx])
+    ind8, rem, needed = _iwl5300_layout(n_rx, n_tx)
+    if not needed or needed > len(buf) or len(set(rows)) != n_rx:
+        return _unpack_iwl5300_csi_loop(bytes(buf), n_rx, n_tx, perm)
+
+    b = buf.astype(np.uint16)
+    real = (((b[ind8] >> rem) | (b[ind8 + 1] << (8 - rem))) & 0xFF).astype(np.uint8).view(np.int8)
+    imag = (((b[ind8 + 1] >> rem) | (b[ind8 + 2] << (8 - rem))) & 0xFF).astype(np.uint8).view(np.int8)
+
+    csi = np.zeros((IWL5300_SUBCARRIERS, n_rx, n_tx), dtype=np.complex64)
+    csi[:, rows, :] = (real.astype(np.float32) + 1j * imag.astype(np.float32)).reshape(IWL5300_SUBCARRIERS, n_rx, n_tx)
+    return csi
+
+
+@functools.lru_cache(maxsize=None)
+def _iwl5300_layout(n_rx: int, n_tx: int):
+    """Byte index and bit shift of every entry for an antenna layout, plus the payload bytes it needs."""
+    n = n_rx * n_tx
+    if n == 0:
+        return None, None, 0
+    sub = np.arange(IWL5300_SUBCARRIERS)[:, None]
+    bit = 3 * (sub + 1) + 16 * (n * sub + np.arange(n)[None, :])  # (30, n) bit offset of each entry
+    ind8 = bit >> 3
+    return ind8, (bit & 7).astype(np.uint16), int(ind8.max()) + 3
+
+
+def _unpack_iwl5300_csi_loop(data: bytes, n_rx: int, n_tx: int, perm) -> np.ndarray:
+    # Element-by-element reference decoder; stops a row early when the payload runs out.
+    csi = np.zeros((IWL5300_SUBCARRIERS, n_rx, n_tx), dtype=np.complex64)
+    index = 0
+    for i in range(IWL5300_SUBCARRIERS):
+        index += 3
+        remainder = index % 8
+        for j in range(n_rx):
+            for k in range(n_tx):
+                ind8 = index // 8
+                if ind8 + 2 >= len(data):
+                    break
+                real = ((data[ind8] >> remainder) | (data[1 + ind8] << (8 - remainder))) & 0xFF
+                imag = ((data[1 + ind8] >> remainder) | (data[2 + ind8] << (8 - remainder))) & 0xFF
+                if real > 127:
+                    real -= 256
+                if imag > 127:
+                    imag -= 256
+                csi[i][perm[j]][k] = complex(real, imag)
+                index += 16
+    return csi
