@@ -138,11 +138,9 @@ class PcapFrame:
         payload_len = len(payload_bytes)
 
         if (payload_len % 4) == 0:
-            ints_size = int(payload_len / 4)
-            payload = np.array(struct.unpack(ints_size*"I", payload_bytes), dtype=np.uint32)
+            payload = np.frombuffer(payload_bytes, dtype=np.uint32)
         else:
-            ints_size = payload_len
-            payload = np.array(struct.unpack(ints_size*"B", payload_bytes), dtype=np.uint8)
+            payload = np.frombuffer(payload_bytes, dtype=np.uint8)
 
         self.payloadHeader = PcapFrame.read_payloadHeader(payload.tobytes()[42:64])
 
@@ -281,6 +279,31 @@ class NEXBeamformReader(Reader):
             return byteops.unpack_float_acphy(10, 1, 0, 1, 12, 6, nfft, nfftx1)
             # return byteops.unpack_float_acphy(1, 12, 6, nfft, nfftx1)
 
+    FLOAT_FORMATS = {"4358": 0, "4366c0": 1}
+
+    def float_csi(self, pcap_frame, fmt: int, bandwidth: int) -> np.array:
+        """Unpacked CSI ints of a float-format (BCM4358/BCM4366c0) record, decoded in bulk when possible."""
+        nfft = int(bandwidth * 3.2)
+        cached = getattr(pcap_frame, "decoded_float_csi", None)
+        if cached is not None and cached[:2] == (fmt, nfft):
+            return cached[2]
+        return self.unpack_float(fmt, nfft, pcap_frame.payload[15:15 + nfft])
+
+    def predecode_float_csi(self, frames: list, bandwidth: int):
+        # Unpack every float-format record in one vectorised call instead of one call per record.
+        nfft = int(bandwidth * 3.2)
+        for fmt in (0, 1):
+            group = [f for f in frames
+                     if self.FLOAT_FORMATS.get(f.payloadHeader["chip"]) == fmt and f.payload.dtype == np.uint32]
+            if not group:
+                continue
+            words = np.zeros((len(group), nfft), dtype=np.int64)
+            for row, frame in zip(words, group):
+                section = frame.payload[15:15 + nfft]
+                row[:len(section)] = section
+            for frame, decoded in zip(group, self.unpack_float(fmt, nfft, words)):
+                frame.decoded_float_csi = (fmt, nfft, decoded)
+
     def read_stream(self, path: str, scaled: bool = False):
         self.chip = " UNKNOWN"
         self.scaled = scaled
@@ -360,11 +383,9 @@ class NEXBeamformReader(Reader):
             data = data.view(np.int16)
             data = data[30:]
         elif chipType == "4358":
-            data = data[15:15+int(bandwidth*3.2)]
-            data = self.unpack_float(0, int(bandwidth*3.2), data)
+            data = self.float_csi(pcap_frame, 0, bandwidth)
         elif chipType == "4366c0":
-            data = data[15:15+int(bandwidth*3.2)]
-            data = self.unpack_float(1, int(bandwidth*3.2), data)
+            data = self.float_csi(pcap_frame, 1, bandwidth)
         else:
             # print("Invalid chip: " + chipType)
             # print("Current supported chipsets: 4339,43455c0,4358,4366c0")
@@ -423,11 +444,9 @@ class NEXBeamformReader(Reader):
                 data = data.view(np.int16)
                 data = data[30:]
             elif chipType == "4358":
-                data = data[15:15 + int(bandwidth * 3.2)]
-                data = self.unpack_float(0, int(bandwidth * 3.2), data)
+                data = self.float_csi(pcap_frame, 0, bandwidth)
             elif chipType == "4366c0":
-                data = data[15:15 + int(bandwidth * 3.2)]
-                data = self.unpack_float(1, int(bandwidth * 3.2), data)
+                data = self.float_csi(pcap_frame, 1, bandwidth)
             else:
                 print("Invalid chip: " + chipType)
                 print("Current supported chipsets: 4339,43455c0,4358,4366c0")
@@ -460,6 +479,7 @@ class NEXBeamformReader(Reader):
         return self.read_bfee(frame, bandwidth)
 
     def read_frames(self, frames: list, scaled: bool, bandwidth: int) -> list:
+        self.predecode_float_csi(frames, bandwidth)
 
         # Check if sequence_no changes. If not, 1Rx/Tx stream.
         if frames[0].payloadHeader["sequence_no"] == frames[-1].payloadHeader["sequence_no"]:
