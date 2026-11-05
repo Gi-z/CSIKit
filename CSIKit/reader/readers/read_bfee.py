@@ -9,7 +9,7 @@ from math import floor
 from CSIKit.csi import CSIData
 from CSIKit.csi.frames import IWLCSIFrame
 from CSIKit.reader import Reader
-from CSIKit.util import csitools
+from CSIKit.util import byteops, csitools
 
 from CSIKit.util.errors import print_length_error
 from CSIKit.util.matlab import db, dbinv, get_total_rss
@@ -53,50 +53,8 @@ class IWLBeamformReader(Reader):
 
     @staticmethod
     def read_bfee(data: bytes, n_rx: int, n_tx: int, expected_length: int, perm: list, i: int=0, filename: str="") -> np.array:
-
-        #Flag invalid payloads so we don't error out trying to parse them into matrices.
-        # actual_length = len(data)
-        # if expected_length != actual_length:
-        #     # return print_length_error(expected_length, actual_length, i, filename)
-        #     return None
-
-        csi = np.zeros((30, n_rx, n_tx), dtype=np.complex64)
-
-        index = 0
-        for i in range(30):
-            index += 3
-            remainder = index % 8
-            for j in range(n_rx):
-                for k in range(n_tx):
-                    ind8 = floor(index/8)
-
-                    if ind8+2 >= len(data):
-                        break
-
-                    real_left = data[ind8] >> remainder
-                    real_right = data[1 + ind8] << (8 - remainder)
-
-                    real = (real_left | real_right) & 0xFF # 8-bit truncation
-                    if real > 127: # convert from unsigned rep to signed
-                        real -= 256
-
-                    imag_left = data[1 + ind8] >> remainder
-                    imag_right = data[2 + ind8] << (8 - remainder)
-
-                    imag = (imag_left | imag_right) & 0xFF
-                    if imag > 127:
-                        imag -= 256
-
-                    real = float(real)
-                    imag = float(imag)
-
-                    complex_no = real + imag * 1j
-
-                    csi[i][perm[j]][k] = complex_no
-
-                    index += 16
-
-        return csi
+        # Decodes the bit-packed CSI payload into a (30, n_rx, n_tx) complex64 matrix (see byteops).
+        return byteops.unpack_iwl5300_csi(data, n_rx, n_tx, perm)
 
     @staticmethod
     def read_bf_entry(data: bytes, scaled: bool=False) -> np.array:

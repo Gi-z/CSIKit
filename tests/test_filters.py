@@ -44,6 +44,29 @@ def test_hampel_replaces_isolated_outlier():
     assert x[50] == 10, "input must not be modified"
 
 
+@pytest.mark.parametrize("seed", range(6))
+def test_hampel_matches_original_loop(seed):
+    # hampel() screens long series with array operations; its output must equal the original
+    # per-sample loop's exactly, including how replacements feed into later windows.
+    rng = np.random.default_rng(seed)
+    for _ in range(40):
+        n = int(rng.integers(4, 300))
+        k = int(rng.integers(1, max(2, n // 4 + 1)))
+        if seed % 3 == 0:
+            x = rng.integers(-5, 5, n)  # integers, with ties
+        else:
+            x = rng.normal(0, 1, n)
+            if seed % 3 == 2:
+                x = np.round(2 * x)
+                x[rng.random(n) < 0.02] = -np.inf  # dB of a zero subcarrier
+        x[rng.random(n) < 0.05] += 40
+        for nsigma in (1, 3):
+            expected = util_filters._hampel_loop(x, k, nsigma)
+            actual = util_filters.hampel(x, k, nsigma)
+            assert actual.dtype == expected.dtype
+            np.testing.assert_array_equal(actual, expected)
+
+
 @pytest.mark.parametrize(
     "name, args",
     [

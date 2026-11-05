@@ -154,3 +154,17 @@ def test_scaling_matches_mean_subcarrier_power_to_rssi(path):
     for frame in data.frames[:200]:
         power = np.mean(np.abs(frame.csi_matrix) ** 2)
         assert power == pytest.approx(dbinv(frame.rssi), rel=1e-4)
+
+
+def test_separate_imag_and_real_columns():
+    # FITHOMES2 rows carry imaginary and real parts in separate quoted columns.
+    from CSIKit.csi.frames import ESP32CSIFrame
+    csi = ESP32CSIFrame.parse_separate_matrices('"1 2 -3"', '"4 -5 6"')
+    np.testing.assert_array_equal(csi, np.array([[4 + 1j], [-5 + 2j], [6 - 3j]]))
+    assert csi.dtype == np.complex128
+
+
+@pytest.mark.parametrize("text", ["[1 -2 3 4]", "[1 -2 3 4 ]\n", "[1, -2, 3, 4]", '"1 -2 3 4"'])
+def test_csi_field_parsing(text):
+    from CSIKit.csi.frames import ESP32CSIFrame
+    np.testing.assert_array_equal(ESP32CSIFrame.parse_values(text), [1, -2, 3, 4])
