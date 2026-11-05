@@ -243,15 +243,30 @@ class ESP32CSIFrame(CSIFrame):
 
         string_data = csv_line[25]
 
-        self.csi_matrix = ESP32CSIFrame.parse_matrix(string_data)
+        self.csi_matrix = ESP32CSIFrame.parse_matrix(string_data, expected_values=self.len)
+
+    # ESP32-CSI-Tool's LLTF-only build prints the full `len` but only the first 128 values.
+    LLTF_ONLY_VALUES = 128
 
     @staticmethod
-    def parse_matrix(string_data, bandwidth=20):
+    def parse_matrix(string_data, bandwidth=20, expected_values=None):
+        """Parse a CSI_DATA buffer; returns None if the row is malformed.
+
+        Each subcarrier is an (imaginary, real) pair of int8 values. A buffer
+        with an odd number of values, or fewer than the `len` column says,
+        has lost values in transit. Every pair after the loss would be
+        misaligned and there's no way to tell where it happened, so the row
+        is rejected rather than padded.
+        """
         array_string = string_data.replace(" ", ", ")
         array_string_asarray = ast.literal_eval(array_string)
 
-        # if len(array_string_asarray) != ESP32CSIFrame.SUBS[bandwidth]*2:
-        #     return None
+        n_values = len(array_string_asarray)
+        if n_values % 2:
+            return None
+        if expected_values is not None and n_values != expected_values and not (
+                n_values == ESP32CSIFrame.LLTF_ONLY_VALUES and expected_values > n_values):
+            return None
 
         int8_matrix = np.array(array_string_asarray)
         pairs = int8_matrix.reshape(-1, 2).astype(np.float32)

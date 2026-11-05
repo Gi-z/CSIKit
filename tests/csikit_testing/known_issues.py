@@ -48,8 +48,6 @@ def known_bug(issue: Issue, *, condition: bool = True, raises=None):
 
 ESP32_TIMESTAMPS = Issue(
     63, "ESP32: timestamps are 1000x too small (seconds divided by 1000)")
-ESP32_ODD_LENGTH_ROW = Issue(
-    71, "ESP32: a CSV row with an odd number of CSI values aborts the whole read")
 CSV_DROPS_ANTENNA_1 = Issue(
     72, "CSV reader drops every row with ant == 1, for all CSV formats")
 NEXMON_OVERSIZED_FRAMES_DROPPED = Issue(

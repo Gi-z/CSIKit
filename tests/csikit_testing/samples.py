@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from csikit_testing.known_issues import ESP32_ODD_LENGTH_ROW, known_bug
+from csikit_testing.known_issues import known_bug
 
 
 @dataclass(frozen=True)
@@ -67,7 +67,7 @@ SAMPLES = [
     Sample("CSIKit/data/esp32/example_data.csv", CSV),
     Sample("CSIKit/data/esp32/example_fast_100hz_pitraffic.csv", CSV),
     Sample("CSIKit/data/esp32/example_fast2_100hz_pitraffic.csv", CSV),
-    Sample("CSIKit/data/esp32/example_100hz_pitraffic.csv", CSV, unreadable=ESP32_ODD_LENGTH_ROW),
+    Sample("CSIKit/data/esp32/example_100hz_pitraffic.csv", CSV),  # row 17 is incomplete
     # PicoScenes (Intel AX200/AX210, IWL5300, USRP)
     Sample("CSIKit/data/pico/picoscenes_ax200_example.csi", PICO),
     Sample("CSIKit/data/pico/picoscenes_ax200_agcdemo.csi", PICO),

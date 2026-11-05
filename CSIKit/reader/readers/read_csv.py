@@ -123,6 +123,8 @@ class CSVBeamformReader(Reader):
 
             new_frame = header_frame(data_line)
             if new_frame.csi_matrix is None:
+                # Malformed CSI buffer (values lost in transit): skip the row, but count it.
+                ret_data.skipped_frames += 1
                 continue
 
             if new_frame.ant == 1:
