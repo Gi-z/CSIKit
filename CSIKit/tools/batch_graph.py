@@ -3,8 +3,8 @@ import numpy as np
 from CSIKit.util import matlab
 
 from CSIKit.util.csitools import get_CSI
-from CSIKit.util.filters import bandpass, hampel, running_mean
-from CSIKit.reader import get_reader, IWLBeamformReader
+from CSIKit.reader import get_reader
+from CSIKit.tools.downsample import DownsampledImage, DownsampledLines
 
 DEFAULT_PATH = "./data/intel/misc/log.all_csi.6.7.6.dat"
 # DEFAULT_PATH = "./data/pi/walk_1597159475.pcap"
@@ -22,7 +22,7 @@ class BatchGraph:
 
     def _time_axis(self, kept):
         """Seconds since the first plotted frame, or frame numbers if the capture has no usable timestamps."""
-        timestamps = np.asarray([self.csi_data.timestamps[i] for i in kept], dtype=float)
+        timestamps = np.asarray(self.csi_data.timestamps, dtype=float)[np.asarray(kept, dtype=int)]
         x = timestamps - timestamps[0]
         if not np.any(x):
             return np.arange(len(kept)), "Frame No."
@@ -30,6 +30,9 @@ class BatchGraph:
 
     def prepostfilter(self, subcarrier: int = 15):
         """Plot one subcarrier's amplitude over time: raw, Hampel-filtered, and Hampel + running mean."""
+        # Imported here: SciPy and pandas take most of a second to load, and only this view needs them.
+        from CSIKit.util.filters import hampel, running_mean
+
         amplitude, no_frames, no_subcarriers, kept = self._first_pair_amplitude()
         subcarrier = min(subcarrier, no_subcarriers - 1)
 
@@ -39,9 +42,10 @@ class BatchGraph:
 
         x, x_label = self._time_axis(kept)
 
-        plt.plot(x, raw, label="Raw")
-        plt.plot(x, hampelData, label="Hampel")
-        plt.plot(x, smoothedData, "r", label="Hampel + Running Mean")
+        ax = plt.gca()
+        DownsampledLines(ax, x, raw, label="Raw")
+        DownsampledLines(ax, x, hampelData, label="Hampel")
+        DownsampledLines(ax, x, smoothedData, color="r", label="Hampel + Running Mean")
 
         plt.xlabel(x_label)
         plt.ylabel("Amplitude (dBm)")
@@ -55,8 +59,8 @@ class BatchGraph:
         amplitude, no_frames, no_subcarriers, kept = self._first_pair_amplitude()
         x, x_label = self._time_axis(kept)
 
-        for subcarrier in range(no_subcarriers):
-            plt.plot(x, amplitude[:, subcarrier])
+        # One line per subcarrier.
+        DownsampledLines(plt.gca(), x, amplitude)
 
         plt.xlabel(x_label)
         plt.ylabel("Amplitude (dBm)")
@@ -79,30 +83,13 @@ class BatchGraph:
         #Transpose to get subcarriers * amplitude.
         finalEntry = np.transpose(finalEntry)
 
-        x_label = "Time (s)"
-        try:
-            x = [self.csi_data.timestamps[i] for i in kept]
-            x = [timestamp-x[0] for timestamp in x]
-        except AttributeError as e:
-            #No timestamp in frame. Likely an IWL entry.
-            #Will be moving timestamps to CSIData to account for this.
-            x = [0]
-
-        if sum(x) == 0:
-            #Some files have invalid timestamp_low values which means we can't plot based on timestamps.
-            #Instead we'll just plot by frame count.
-
-            xlim = no_frames
-
-            x_label = "Frame No."
-        else:
-            xlim = max(x)
+        x, x_label = self._time_axis(kept)
+        xlim = no_frames if x_label == "Frame No." else np.max(x)
 
         # Subcarrier i is centred on y = i, with subcarrier 0 at the bottom.
-        limits = [0, xlim, -0.5, no_subcarriers - 0.5]
-
         _, ax = plt.subplots()
-        im = ax.imshow(finalEntry, cmap="jet", extent=limits, aspect="auto", origin="lower")
+        im = DownsampledImage(ax, finalEntry, xlim, (-0.5, no_subcarriers - 0.5),
+                              cmap="jet", aspect="auto", origin="lower").artist
 
         cbar = ax.figure.colorbar(im, ax=ax)
         cbar.ax.set_ylabel("Amplitude (dBm)")
@@ -123,15 +110,10 @@ class BatchGraph:
         csi_matrix = np.transpose(csi_matrix)
 
         x_label = "Time (s)"
-        try:
-            x = timestamps
-            x = [timestamp - x[0] for timestamp in x]
-        except AttributeError as e:
-            # No timestamp in frame. Likely an IWL entry.
-            # Will be moving timestamps to CSIData to account for this.
-            x = [0]
+        x = np.asarray(timestamps, dtype=float)
+        x = x - x[0] if len(x) else x
 
-        if sum(x) == 0:
+        if not np.any(x):
             # Some files have invalid timestamp_low values which means we can't plot based on timestamps.
             # Instead we'll just plot by frame count.
 
@@ -139,13 +121,12 @@ class BatchGraph:
 
             x_label = "Frame No."
         else:
-            xlim = max(x)   
+            xlim = np.max(x)
 
         # Subcarrier i is centred on y = i, with subcarrier 0 at the bottom.
-        limits = [0, xlim, -0.5, csi_matrix.shape[0] - 0.5]
-
         _, ax = plt.subplots()
-        im = ax.imshow(csi_matrix, cmap="jet", extent=limits, aspect="auto", origin="lower")
+        im = DownsampledImage(ax, csi_matrix, xlim, (-0.5, csi_matrix.shape[0] - 0.5),
+                              cmap="jet", aspect="auto", origin="lower").artist
 
         cbar = ax.figure.colorbar(im, ax=ax)
         cbar.ax.set_ylabel("Amplitude (dBm)")
