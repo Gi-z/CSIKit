@@ -47,25 +47,25 @@ def known_bug(issue: Issue, *, condition: bool = True, raises=None):
 # --- Parsing ------------------------------------------------------------------
 
 NUMPY2_SUPPORT = Issue(
-    69, "NumPy 2.x: Nexmon, ESP32 and PicoScenes (IWL5300, USRP) data fails to parse")
+    None, "NumPy 2.x: Nexmon, ESP32 and PicoScenes (IWL5300, USRP) data fails to parse")
 ESP32_IMAG_REAL_ORDER = Issue(
-    70, "ESP32: subcarrier values are read as (real, imag) but ESP-IDF stores (imag, real)")
+    None, "ESP32: subcarrier values are read as (real, imag) but ESP-IDF stores (imag, real)")
 ESP32_TIMESTAMPS = Issue(
     63, "ESP32: timestamps are 1000x too small (seconds divided by 1000)")
 ESP32_ODD_LENGTH_ROW = Issue(
-    71, "ESP32: a CSV row with an odd number of CSI values aborts the whole read")
+    None, "ESP32: a CSV row with an odd number of CSI values aborts the whole read")
 CSV_DROPS_ANTENNA_1 = Issue(
-    72, "CSV reader drops every row with ant == 1, for all CSV formats")
+    None, "CSV reader drops every row with ant == 1, for all CSV formats")
 NEXMON_OVERSIZED_FRAMES_DROPPED = Issue(
-    73, "Nexmon: frames with trailing padding are silently dropped")
+    None, "Nexmon: frames with trailing padding are silently dropped")
 NEXMON_SKIPPED_FRAMES_APPENDED = Issue(
-    74, "Nexmon: skipped frames are appended as zero-CSI frames at the end with timestamp 0")
+    None, "Nexmon: skipped frames are appended as zero-CSI frames at the end with timestamp 0")
 FILTER_MAC_BROKEN = Issue(
-    75, "filter_mac is ignored by the Nexmon reader and crashes the FeitCSI reader")
+    None, "filter_mac is ignored by the Nexmon reader and crashes the FeitCSI reader")
 ATHEROS_DROPS_TRAILING_FRAMES = Issue(
-    76, "Atheros: the last frames of a file are dropped when records are small")
+    None, "Atheros: the last frames of a file are dropped when records are small")
 IWL_TIMESTAMP_WRAP = Issue(
-    77, "IWL5300: 32-bit timestamp_low wraparound produces negative timestamps")
+    None, "IWL5300: 32-bit timestamp_low wraparound produces negative timestamps")
 PICOSCENES_LOG_EXCEPTION = Issue(
     54, "PicoScenes: invalid frame header raises AttributeError (log_exception)")
 FEITCSI_MULTI_TX_INTERPOLATION = Issue(
@@ -74,21 +74,21 @@ FEITCSI_MULTI_TX_INTERPOLATION = Issue(
 # --- Processing / API -----------------------------------------------------------
 
 GET_CSI_DROPPED_FRAMES = Issue(
-    78, "get_CSI returns a stale frame count when it drops frames, and mutates CSIData.timestamps")
+    None, "get_CSI returns a stale frame count when it drops frames, and mutates CSIData.timestamps")
 NUMPY_GLOBAL_ERRSTATE = Issue(
-    79, "Importing CSIKit changes NumPy's global floating-point error settings")
+    None, "Importing CSIKit changes NumPy's global floating-point error settings")
 UNRECOGNISED_FILES = Issue(
-    80, "Unrecognised files fall back to the Intel reader and crash later with IndexError")
+    None, "Unrecognised files fall back to the Intel reader and crash later with IndexError")
 
 # --- CLI -------------------------------------------------------------------------
 
 INFO_INTEL_RSSI_NOT_DBM = Issue(
-    81, "csikit info reports raw Intel RSSI as dBm")
+    None, "csikit info reports raw Intel RSSI as dBm")
 CLI_GRAPH_TYPES_CRASH = Issue(
-    82, "csikit --graph_type all_subcarriers and subcarrier_filter crash")
+    None, "csikit --graph_type all_subcarriers and subcarrier_filter crash")
 
 # --- Not bugs we can assert on yet ---------------------------------------------
 
 NEEDS_GROUND_TRUTH = Issue(
-    84, "Unverified conventions: Atheros element order/offset, PicoScenes IWL5300 antenna "
+    None, "Unverified conventions: Atheros element order/offset, PicoScenes IWL5300 antenna "
        "permutation, Nexmon core/spatial-stream axes")
