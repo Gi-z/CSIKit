@@ -9,7 +9,6 @@ from CSIKit.util.matlab import dbinv
 from csikit_testing import read_cached, read_quietly, repo_path
 from csikit_testing.known_issues import (
     CSV_DROPS_ANTENNA_1,
-    ESP32_IMAG_REAL_ORDER,
     ESP32_ODD_LENGTH_ROW,
     ESP32_TIMESTAMPS,
     known_bug,
@@ -66,10 +65,9 @@ def test_timestamps_are_seconds_since_first_frame(path):
     np.testing.assert_allclose(read_cached(path).timestamps, real_ts - real_ts[0], atol=1e-6)
 
 
-@known_bug(ESP32_IMAG_REAL_ORDER)
 def test_each_subcarrier_is_stored_imaginary_part_first(tmp_path):
-    # ESP-IDF: each subcarrier is two int8s, imaginary part then real part.
-    # csiread's ESP32 parser agrees: csi = buf[1::2] + 1j * buf[::2].
+    # ESP-IDF (wifi-vendor-features.rst): "imaginary part followed by real part". ESP32-CSI-Tool's
+    # parse_csi.py and firmware (atan2(buf[2i], buf[2i+1])) and csiread all read it this way.
     buf = [v for k in range(64) for v in (k % 7 - 3, k % 5 - 2)]
     path = write_esp32_csv(tmp_path / "order.csv", [esp32_row(buf)])
     frame = read_quietly(CSVBeamformReader(), path).frames[0]

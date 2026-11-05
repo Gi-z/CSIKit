@@ -46,8 +46,6 @@ def known_bug(issue: Issue, *, condition: bool = True, raises=None):
 
 # --- Parsing ------------------------------------------------------------------
 
-ESP32_IMAG_REAL_ORDER = Issue(
-    70, "ESP32: subcarrier values are read as (real, imag) but ESP-IDF stores (imag, real)")
 ESP32_TIMESTAMPS = Issue(
     63, "ESP32: timestamps are 1000x too small (seconds divided by 1000)")
 ESP32_ODD_LENGTH_ROW = Issue(

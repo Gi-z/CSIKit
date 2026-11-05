@@ -14,7 +14,7 @@ import pytest
 
 from CSIKit.reader import ATHBeamformReader, IWLBeamformReader, NEXBeamformReader, PicoScenesBeamformReader
 from csikit_testing import read_cached, read_quietly, repo_path
-from csikit_testing.known_issues import ESP32_IMAG_REAL_ORDER, NEEDS_GROUND_TRUTH, known_bug
+from csikit_testing.known_issues import NEEDS_GROUND_TRUTH
 from csikit_testing.samples import get
 from csikit_testing.synthetic import atheros_record
 
@@ -180,7 +180,6 @@ def test_esp32_amplitude_matches_csiread(esp32_ref):
         np.testing.assert_allclose(np.abs(frame.csi_matrix[:, 0]), np.abs(expected), rtol=1e-6)
 
 
-@known_bug(ESP32_IMAG_REAL_ORDER)
 def test_esp32_complex_values_match_csiread(esp32_ref):
     for frame, expected in zip(read_cached(ESP32).frames, esp32_ref):
         np.testing.assert_allclose(frame.csi_matrix[:, 0], expected, atol=1e-6)

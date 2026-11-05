@@ -254,9 +254,10 @@ class ESP32CSIFrame(CSIFrame):
         #     return None
 
         int8_matrix = np.array(array_string_asarray)
-        int8_matrix = int8_matrix.reshape(-1, 2)
+        pairs = int8_matrix.reshape(-1, 2).astype(np.float32)
 
-        complex_matrix = int8_matrix.astype(np.float32).view(np.complex64)
+        # ESP-IDF stores each subcarrier as two int8s: imaginary part first, then real part.
+        complex_matrix = (pairs[:, 1] + 1j * pairs[:, 0]).astype(np.complex64).reshape(-1, 1)
         return complex_matrix
 
     @staticmethod
