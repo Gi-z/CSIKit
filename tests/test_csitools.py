@@ -74,7 +74,7 @@ def _mixed_antenna_data():
 
 def test_frame_count_matches_matrix_when_frames_are_left_out():
     data, kept = _mixed_antenna_data()
-    with pytest.warns(UserWarning, match="3 of 4 frames"):
+    with pytest.warns(UserWarning, match="using 3 of 4 frames"):
         csi, n_frames, _, indices = csitools.get_CSI(data, metric="complex", return_indices=True)
     assert csi.shape[0] == n_frames == 3  # the 2-Rx frame can't fit a 3-Rx matrix
     assert indices == kept
@@ -95,10 +95,39 @@ def test_mixed_tone_counts_use_the_most_common_shape_without_padding():
     legacy = random_csi((52, 2, 1), n=1, seed=3)
     ht = random_csi((56, 2, 1), n=3, seed=4)
     data = make_data([legacy[0], *ht])
-    with pytest.warns(UserWarning, match="3 of 4 frames"):
+    with pytest.warns(UserWarning, match="using 3 of 4 frames"):
         csi, n_frames, n_subcarriers, indices = csitools.get_CSI(data, metric="complex", return_indices=True)
     assert (csi.shape, n_frames, n_subcarriers, indices) == ((3, 56, 2, 1), 3, 56, [1, 2, 3])
     np.testing.assert_array_equal(csi, np.stack(ht))
+
+
+def test_varying_tx_streams_are_reduced_to_the_common_ones():
+    # IWL5300 frames carry as many Tx streams as the packet was sent with (here 1, 3 and 2).
+    mats = [random_csi((30, 3, n_tx), n=1, seed=n_tx)[0] for n_tx in (1, 3, 2)]
+    with pytest.warns(UserWarning, match="using 3 of 3 frames as 30 subcarriers x 3 Rx x 1 Tx"):
+        csi, n_frames, _, indices = csitools.get_CSI(make_data(mats), metric="complex", return_indices=True)
+    assert (csi.shape, indices) == ((3, 30, 3, 1), [0, 1, 2])
+    np.testing.assert_array_equal(csi, np.stack([m[:, :, :1] for m in mats]))
+
+
+@pytest.mark.parametrize(
+    "path, frames, shape",
+    [
+        ("CSIKit/data/intel/log.all_csi.6.7.6.dat", 29, (30, 3, 1)),        # Tx varies 1-3
+        ("CSIKit/visualization/example_dat/los_100.dat", 1359, (30, 3, 1)),  # 18 frames with 2 Rx
+        ("CSIKit/data/pico/picoscenes_ax200_example.csi", 778, (56, 2, 1)),  # 107 legacy 52-tone frames
+        ("CSIKit/data/intel/rx_7_211206_160817.csi", 8701, (52, 2, 1)),     # mostly legacy, first frame HT
+    ],
+)
+def test_mixed_shapes_in_bundled_captures(path, frames, shape):
+    from csikit_testing import read_fresh
+    data = read_fresh(path)
+    with pytest.warns(UserWarning):
+        csi, n_frames, n_subcarriers, indices = csitools.get_CSI(data, metric="complex", return_indices=True)
+    assert csi.shape == (frames, *shape) and n_frames == frames and n_subcarriers == shape[0]
+    for row, i in zip(csi[:: max(1, frames // 50)], indices[:: max(1, frames // 50)]):
+        expected = np.asarray(data.frames[i].csi_matrix).reshape(shape[0], -1, np.asarray(data.frames[i].csi_matrix).shape[-1])
+        np.testing.assert_array_equal(row, expected[:, :shape[1], :shape[2]])
 
 
 def test_return_indices_for_uniform_frames():

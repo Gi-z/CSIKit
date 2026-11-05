@@ -35,9 +35,16 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
     Returns:
         (csi, no_frames, no_subcarriers), plus the included frame indices if return_indices.
 
-    The array can only hold frames of one shape. If frames differ (e.g. PicoScenes captures mixing
-    52-tone legacy and 56-tone HT frames), the most common shape is used, the other frames are left
-    out, and a warning says how many. csi_data itself is not modified.
+    The array needs every frame to have the same (subcarriers, rx, tx) shape. When frames differ:
+
+    - subcarriers: the most common tone count is used and frames with other counts are left out
+      (different tone sets can't be aligned, e.g. 52-tone legacy vs 56-tone HT frames in PicoScenes);
+    - rx (the capturing device's antennas): the most common count is used; frames with fewer are
+      left out, frames with more keep their first antennas;
+    - tx (spatial streams, which depend on how each packet was sent): every frame is reduced to
+      the streams all frames have.
+
+    A warning says what was left out or reduced. csi_data itself is not modified.
     """
     frames = csi_data.frames
     if not frames:
@@ -45,18 +52,23 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
 
     matrices = [_as_subcarriers_rx_tx(frame.csi_matrix) for frame in frames]
     shapes = Counter(matrix.shape for matrix in matrices)
-    shape, _ = shapes.most_common(1)[0]  # ties go to the shape seen first
-    kept = [i for i, matrix in enumerate(matrices) if matrix.shape == shape]
 
-    if len(kept) < len(frames):
-        others = {other: count for other, count in shapes.items() if other != shape}
+    # Ties go to the value seen first.
+    n_subcarriers = Counter(m.shape[0] for m in matrices).most_common(1)[0][0]
+    same_tones = [i for i, m in enumerate(matrices) if m.shape[0] == n_subcarriers]
+    n_rx = Counter(matrices[i].shape[1] for i in same_tones).most_common(1)[0][0]
+    kept = [i for i in same_tones if matrices[i].shape[1] >= n_rx]
+    n_tx = min(matrices[i].shape[2] for i in kept)
+    shape = (n_subcarriers, n_rx, n_tx)
+
+    if len(shapes) > 1:
         warnings.warn(
-            "get_CSI: using the {} of {} frames with CSI shape {}; left out frames with other shapes "
-            "(shape: count) {}.".format(len(kept), len(frames), shape, others),
+            "get_CSI: frames have different CSI shapes (shape: count) {}; using {} of {} frames as "
+            "{} subcarriers x {} Rx x {} Tx.".format(dict(shapes), len(kept), len(frames), *shape),
             stacklevel=2,
         )
 
-    csi = np.stack([matrices[i] for i in kept]).astype(complex)
+    csi = np.stack([matrices[i][:, :n_rx, :n_tx] for i in kept]).astype(complex)
 
     if metric == "amplitude":
         csi = abs(csi)
@@ -68,7 +80,7 @@ def get_CSI(csi_data: 'CSIData', metric: str = "amplitude", extract_as_dBm: bool
     if squeeze_output:
         csi = np.squeeze(csi)
 
-    result = (csi, len(kept), shape[0])
+    result = (csi, len(kept), n_subcarriers)
     return result + (kept,) if return_indices else result
 
 
