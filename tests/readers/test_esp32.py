@@ -64,16 +64,41 @@ def test_csi_amplitudes_match_raw_buffer(path):
         np.testing.assert_allclose(np.abs(frame.csi_matrix[:, 0]), np.hypot(values[:, 0], values[:, 1]), rtol=1e-6)
 
 
+def sec_usec(value: str) -> float:
+    """real_timestamp as these files write it: "<seconds>.<microseconds>", microseconds not zero-padded."""
+    sec, _, usec = value.partition(".")
+    return int(sec) + int(usec or 0) / 1e6
+
+
 @pytest.mark.parametrize("path", ESP32_SAMPLES)
 def test_timestamps_are_seconds_since_first_frame(path):
-    # ESP32-CSI-Tool writes real_timestamp in seconds (steady clock).
+    # Timed from the radio's own microsecond receive counter (local_timestamp).
     rows = valid_rows(path)
-    real_ts = np.array([float(r[COL["real_timestamp"]]) for r in rows])
-    np.testing.assert_allclose(read_cached(path).timestamps, real_ts - real_ts[0], atol=1e-6)
-    # Cross-check against the radio's own microsecond counter (local_timestamp).
+    data = read_cached(path)
     local_us = np.array([int(r[COL["local_timestamp"]]) for r in rows])
-    duration = read_cached(path).timestamps[-1]
-    assert duration == pytest.approx((local_us[-1] - local_us[0]) / 1e6, rel=0.02)
+    np.testing.assert_allclose(data.timestamps, (local_us - local_us[0]) / 1e6, atol=1e-9)
+    assert np.all(np.diff(data.timestamps) >= 0)
+    assert [f.real_timestamp for f in data.frames] == list(data.timestamps)
+    # real_timestamp, read as seconds plus unpadded microseconds, agrees to within the
+    # serial printing delay. Read as a decimal number it would jump backwards.
+    real_ts = np.array([sec_usec(r[COL["real_timestamp"]]) for r in rows])
+    np.testing.assert_allclose(data.timestamps, real_ts - real_ts[0], atol=0.02)
+
+
+def test_timestamps_survive_unpadded_real_timestamp(tmp_path):
+    # 1.087258 s then 1.101285 s, written the way older ESP32-CSI-Tool builds print them.
+    rows = [esp32_row([1, 2] * 64, local_timestamp=1087258, real_timestamp="1.87258"),
+            esp32_row([1, 2] * 64, local_timestamp=1101285, real_timestamp="1.101285")]
+    data = read_quietly(CSVBeamformReader(), write_esp32_csv(tmp_path / "unpadded.csv", rows))
+    np.testing.assert_allclose(data.timestamps, [0, 0.014027], atol=1e-9)
+
+
+def test_local_timestamp_wraparound(tmp_path):
+    # local_timestamp is a 32-bit microsecond counter and wraps every ~71.6 minutes.
+    stamps = [2 ** 32 - 20_000, 2 ** 32 - 10_000, 0, 10_000]
+    rows = [esp32_row([1, 2] * 64, local_timestamp=t) for t in stamps]
+    data = read_quietly(CSVBeamformReader(), write_esp32_csv(tmp_path / "wrap.csv", rows))
+    np.testing.assert_allclose(data.timestamps, [0, 0.01, 0.02, 0.03], atol=1e-9)
 
 
 def test_each_subcarrier_is_stored_imaginary_part_first(tmp_path):

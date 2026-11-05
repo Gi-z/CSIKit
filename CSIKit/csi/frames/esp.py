@@ -82,6 +82,8 @@ class ESP32CSIFrame(CSIFrame):
             Additional field added by ESP32-CSI-Tool.
             Real timestamp (in seconds) factoring in the local time and a base timestamp provided by the user.
             If real_time_set=False, real_timestamp acts as a mirror of local_timestamp, instead measured in seconds.
+            CSVBeamformReader replaces it with seconds since the first frame, taken from local_timestamp
+            (older ESP32-CSI-Tool versions print this field without zero-padding the microseconds).
         len : int
             Length of the 802.11 packet.
         csi_matrix : np.array
