@@ -50,8 +50,6 @@ ESP32_TIMESTAMPS = Issue(
     63, "ESP32: timestamps are 1000x too small (seconds divided by 1000)")
 ATHEROS_DROPS_TRAILING_FRAMES = Issue(
     None, "Atheros: the last frames of a file are dropped when records are small")
-IWL_TIMESTAMP_WRAP = Issue(
-    77, "IWL5300: 32-bit timestamp_low wraparound produces negative timestamps")
 PICOSCENES_LOG_EXCEPTION = Issue(
     54, "PicoScenes: invalid frame header raises AttributeError (log_exception)")
 FEITCSI_MULTI_TX_INTERPOLATION = Issue(

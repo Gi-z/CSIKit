@@ -19,6 +19,7 @@ CODE_STRUCT = struct.Struct("B").unpack
 
 HEADER_STRUCT = struct.Struct("<LHHBBBBBbBBHH").unpack
 VALID_BEAMFORMING_MEASUREMENT = 187
+TIMESTAMP_LOW_RANGE = 2 ** 32
 
 class IWLBeamformReader(Reader):
     """
@@ -149,7 +150,10 @@ class IWLBeamformReader(Reader):
 
         cursor = 0
 
-        initial_timestamp = 0
+        # timestamp_low is the card's 32-bit microsecond counter; it wraps every ~71.6 minutes.
+        first_timestamp_low = None
+        previous_timestamp_low = None
+        wrap_offset = 0
 
         while (length - cursor) > 100:
             size = SIZE_STRUCT(data[cursor:cursor+2])[0]
@@ -190,12 +194,16 @@ class IWLBeamformReader(Reader):
 
                     frame = IWLCSIFrame(header_block, csi_matrix)
 
-                    timestamp_low = header_block[0] * 10e-7
+                    timestamp_low = header_block[0]
+                    if first_timestamp_low is None:
+                        first_timestamp_low = timestamp_low
+                    elif previous_timestamp_low - timestamp_low > TIMESTAMP_LOW_RANGE // 2:
+                        # Only a drop of more than half the range is a wrap: real captures also
+                        # contain small backward steps, which are kept as they are.
+                        wrap_offset += TIMESTAMP_LOW_RANGE
+                    previous_timestamp_low = timestamp_low
 
-                    if initial_timestamp == 0:
-                        initial_timestamp = timestamp_low
-
-                    ret_data.push_frame(frame, timestamp_low - initial_timestamp)
+                    ret_data.push_frame(frame, (timestamp_low + wrap_offset - first_timestamp_low) * 1e-6)
             else:
                 print("Invalid code for beamforming measurement at {}.".format(hex(cursor)))
 

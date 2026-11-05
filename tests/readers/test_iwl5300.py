@@ -10,7 +10,7 @@ import pytest
 
 from CSIKit.reader import IWLBeamformReader
 from csikit_testing import read_cached, read_fresh, read_quietly, repo_path
-from csikit_testing.known_issues import INFO_INTEL_RSSI_NOT_DBM, IWL_TIMESTAMP_WRAP, known_bug
+from csikit_testing.known_issues import INFO_INTEL_RSSI_NOT_DBM, known_bug
 from csikit_testing.samples import IWL, by_reader
 from csikit_testing.synthetic import IWL_BFEE_CODE, iwl_records, set_iwl_timestamps
 
@@ -59,11 +59,16 @@ def test_timestamps_are_microseconds_since_first_frame(tmp_path):
     np.testing.assert_allclose(data.timestamps, np.arange(n) * 0.01, atol=1e-9)
 
 
-@known_bug(IWL_TIMESTAMP_WRAP)
 def test_timestamp_low_wraparound_keeps_time_increasing(tmp_path):
     # timestamp_low is a 32-bit microsecond counter: it wraps every ~71.6 minutes.
     data, n = _with_timestamps(tmp_path, start=2**32 - 5 * 10_000, step=10_000)
     np.testing.assert_allclose(data.timestamps, np.arange(n) * 0.01, atol=1e-9)
+
+
+def test_timestamp_low_wraps_repeatedly(tmp_path):
+    step = 2**30  # a quarter of the counter range (~18 minutes): wraps every 4 frames
+    data, n = _with_timestamps(tmp_path, start=0, step=step)
+    np.testing.assert_allclose(data.timestamps, np.arange(n) * step * 1e-6, rtol=1e-12)
 
 
 @pytest.mark.parametrize(
