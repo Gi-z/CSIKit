@@ -48,10 +48,6 @@ def known_bug(issue: Issue, *, condition: bool = True, raises=None):
 
 ESP32_TIMESTAMPS = Issue(
     63, "ESP32: timestamps are 1000x too small (seconds divided by 1000)")
-NEXMON_OVERSIZED_FRAMES_DROPPED = Issue(
-    73, "Nexmon: frames with trailing padding are silently dropped")
-NEXMON_SKIPPED_FRAMES_APPENDED = Issue(
-    74, "Nexmon: skipped frames are appended as zero-CSI frames at the end with timestamp 0")
 FILTER_MAC_BROKEN = Issue(
     75, "filter_mac is ignored by the Nexmon reader and crashes the FeitCSI reader")
 ATHEROS_DROPS_TRAILING_FRAMES = Issue(

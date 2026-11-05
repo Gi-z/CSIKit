@@ -57,7 +57,7 @@ def test_nexmon_matches_csiread(path, chip):
         by_time[(int(sec), int(usec), int(seq), int(core), int(ss))].append(i)
         by_stream[(int(seq), int(core), int(ss))].append(i)
 
-    data = read_quietly(NEXBeamformReader(fill_skipped_frames=False), repo_path(path))
+    data = read_quietly(NEXBeamformReader(), repo_path(path))
     compared = 0
     for frame in data.frames:
         matrix = frame.csi_matrix.reshape(256, -1)

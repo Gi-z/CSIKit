@@ -143,6 +143,25 @@ def pcap_records(path) -> Iterator[PcapRecord]:
         pos += 16 + incl
 
 
+def write_pcap(path: Path, template, records: Sequence[PcapRecord]) -> Path:
+    """Write records (little-endian) behind the global header of the ``template`` capture."""
+    header = Path(template).read_bytes()[:PCAP_GLOBAL_HEADER_SIZE]
+    body = b"".join(
+        struct.pack("<IIII", r.ts_sec, r.ts_usec, len(r.data), r.orig_len) + r.data for r in records)
+    path.write_bytes(header + body)
+    return path
+
+
+def shorten_nexmon_record(record: PcapRecord, csi_bytes: int) -> PcapRecord:
+    """A copy of a Nexmon record carrying only ``csi_bytes`` of CSI (as if sent at another bandwidth)."""
+    nexmon_header = 18
+    data = bytearray(record.data[:NEXMON_UDP_OFFSET + nexmon_header + csi_bytes])
+    udp_len = 8 + nexmon_header + csi_bytes
+    struct.pack_into(">H", data, 16, 20 + udp_len)  # IPv4 total length
+    struct.pack_into(">H", data, 38, udp_len)       # UDP length
+    return PcapRecord(0, record.ts_sec, record.ts_usec, len(data), len(data), bytes(data))
+
+
 # ---------------------------------------------------------------------------
 # Linux 802.11n CSI Tool (IWL5300 .dat)
 # ---------------------------------------------------------------------------

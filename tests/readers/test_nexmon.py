@@ -11,20 +11,16 @@ import pytest
 from CSIKit.reader import NEXBeamformReader
 from CSIKit.util import csitools
 from csikit_testing import read_cached, read_quietly, repo_path
-from csikit_testing.known_issues import (
-    FILTER_MAC_BROKEN,
-    NEXMON_OVERSIZED_FRAMES_DROPPED,
-    NEXMON_SKIPPED_FRAMES_APPENDED,
-    known_bug,
-)
+from csikit_testing.known_issues import FILTER_MAC_BROKEN, known_bug
 from csikit_testing.samples import NEX, by_reader, get
-from csikit_testing.synthetic import pcap_records
+from csikit_testing.synthetic import pcap_records, shorten_nexmon_record, write_pcap
 
-OVERSIZED = "CSIKit/data/nexmon/example_43455c0.pcap"  # 18 of 566 records carry 4 extra bytes
+PADDED = "CSIKit/data/nexmon/example_43455c0.pcap"  # 18 of 566 records carry 4 bytes of padding after the UDP datagram
 FOUR_BY_FOUR = "CSIKit/data/nexmon/example_4366c0_4x4mimo.pcap"
 BATCHED_4339 = "CSIKit/data/nexmon/example_4339.pcap"  # 3 spatial streams per sequence number
 # Files where every pcap record becomes its own CSIKit frame.
 UNBATCHED = [
+    PADDED,
     "CSIKit/data/nexmon/example_4358.pcap",
     "CSIKit/data/nexmon/example_4366c0.pcap",
     "CSIKit/data/nexmon/test.pcap",
@@ -53,15 +49,16 @@ def test_chip_and_bandwidth_identified(sample):
     assert data.chipset == f"Broadcom BCM{chip}"
     assert data.backend == "Nexmon CSI"
     assert data.bandwidth == 80
+    assert data.skipped_frames == 0
     for frame in data.frames:
-        assert frame.chip in (chip, 0)  # 0: placeholder frames, see NEXMON_SKIPPED_FRAMES_APPENDED
+        assert frame.chip == chip
 
 
 @pytest.mark.parametrize("sample", [get(p).param() for p in UNBATCHED])
 def test_one_frame_per_pcap_record(sample):
     path = repo_path(sample.path)
     records = list(pcap_records(path))
-    data = read_quietly(nexmon_reader(fill_skipped_frames=False), path)
+    data = read_quietly(nexmon_reader(), path)
     assert len(data.frames) == len(records)
     assert [f.sequence_no for f in data.frames] == [r.nexmon["sequence_no"] for r in records]
     assert [f.source_mac for f in data.frames] == [r.nexmon["source_mac"] for r in records]
@@ -75,7 +72,7 @@ def test_one_frame_per_pcap_record(sample):
 def test_timestamps_are_pcap_capture_times(sample):
     path = repo_path(sample.path)
     expected = [r.ts_sec + r.ts_usec / 1e6 for r in pcap_records(path)]
-    data = read_quietly(nexmon_reader(fill_skipped_frames=False), path)
+    data = read_quietly(nexmon_reader(), path)
     np.testing.assert_allclose(data.timestamps, expected, rtol=0, atol=1e-6)
 
 
@@ -99,20 +96,47 @@ def test_4x4_mimo_capture(sample):
     assert {f.csi_matrix.shape for f in data.frames} == {(256, 4, 4)}
 
 
-@known_bug(NEXMON_OVERSIZED_FRAMES_DROPPED)
-def test_records_with_trailing_bytes_are_kept():
-    records = list(pcap_records(repo_path(OVERSIZED)))
+def test_records_with_padding_after_the_datagram_are_kept():
+    records = list(pcap_records(repo_path(PADDED)))
     assert collections.Counter(r.orig_len for r in records) == {1084: 548, 1088: 18}
-    data = read_quietly(nexmon_reader(fill_skipped_frames=False), repo_path(OVERSIZED))
-    assert len(data.frames) == len(records)
+    padded = [i for i, r in enumerate(records) if r.orig_len == 1088]
+    assert all(records[i].data[-4:] == bytes(4) for i in padded)
+    data = read_quietly(nexmon_reader(), repo_path(PADDED))
+    assert len(data.frames) == len(records) and data.skipped_frames == 0
+    for i in padded:  # the padding is not part of the CSI
+        assert data.frames[i].csi_matrix.shape == data.frames[0].csi_matrix.shape
+        np.testing.assert_array_equal(
+            data.frames[i].csi_matrix[:, 0],
+            np.frombuffer(records[i].data[60:60 + 1024], dtype=np.int16).astype(np.float32).view(np.complex64))
 
 
-@known_bug(NEXMON_SKIPPED_FRAMES_APPENDED)
-def test_default_reader_does_not_append_placeholder_frames():
-    data = read_quietly(nexmon_reader(), repo_path(OVERSIZED))
-    ts = np.asarray(data.timestamps)
-    assert np.all(np.diff(ts) >= 0), "timestamps jump back to 0 at the end of the file"
-    assert all(np.any(f.csi_matrix != 0) for f in data.frames), "all-zero CSI frames present"
+@pytest.fixture
+def capture_with_a_skipped_record(tmp_path):
+    # Real 43455c0 records, with the third shortened to a 40 MHz-sized payload:
+    # a bandwidth change, which the reader skips.
+    records = list(pcap_records(repo_path(PADDED)))[:5]
+    records[2] = shorten_nexmon_record(records[2], 512)
+    path = write_pcap(tmp_path / "skip.pcap", repo_path(PADDED), records)
+    return path, records
+
+
+def test_skipped_records_are_dropped_and_counted(capture_with_a_skipped_record):
+    path, records = capture_with_a_skipped_record
+    data = read_quietly(nexmon_reader(), path)
+    assert len(data.frames) == 4 and data.skipped_frames == 1
+    assert [f.sequence_no for f in data.frames] == [records[i].nexmon["sequence_no"] for i in (0, 1, 3, 4)]
+    assert np.all(np.diff(data.timestamps) >= 0)
+
+
+def test_fill_skipped_frames_inserts_placeholders_in_place(capture_with_a_skipped_record):
+    path, records = capture_with_a_skipped_record
+    data = read_quietly(nexmon_reader(fill_skipped_frames=True), path)
+    assert len(data.frames) == 5 and data.skipped_frames == 1
+    placeholder = data.frames[2]
+    assert not np.any(placeholder.csi_matrix)
+    assert placeholder.csi_matrix.shape == data.frames[0].csi_matrix.shape
+    assert data.timestamps[2] == pytest.approx(records[2].ts_sec + records[2].ts_usec / 1e6)
+    assert np.all(np.diff(data.timestamps) >= 0)
 
 
 def test_filter_mac_keeps_matching_frames():
