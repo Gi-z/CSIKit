@@ -46,8 +46,6 @@ def known_bug(issue: Issue, *, condition: bool = True, raises=None):
 
 # --- Parsing ------------------------------------------------------------------
 
-ESP32_TIMESTAMPS = Issue(
-    63, "ESP32: timestamps are 1000x too small (seconds divided by 1000)")
 ATHEROS_DROPS_TRAILING_FRAMES = Issue(
     None, "Atheros: the last frames of a file are dropped when records are small")
 PICOSCENES_LOG_EXCEPTION = Issue(

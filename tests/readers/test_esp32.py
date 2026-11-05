@@ -7,7 +7,6 @@ import pytest
 from CSIKit.reader import CSVBeamformReader, get_reader
 from CSIKit.util.matlab import dbinv
 from csikit_testing import read_cached, read_quietly, repo_path
-from csikit_testing.known_issues import ESP32_TIMESTAMPS, known_bug
 from csikit_testing.samples import CSV, by_reader
 from csikit_testing.synthetic import ESP32_FIELDS, esp32_row, write_esp32_csv
 
@@ -65,11 +64,16 @@ def test_csi_amplitudes_match_raw_buffer(path):
         np.testing.assert_allclose(np.abs(frame.csi_matrix[:, 0]), np.hypot(values[:, 0], values[:, 1]), rtol=1e-6)
 
 
-@known_bug(ESP32_TIMESTAMPS)
 @pytest.mark.parametrize("path", ESP32_SAMPLES)
 def test_timestamps_are_seconds_since_first_frame(path):
-    real_ts = np.array([float(r[COL["real_timestamp"]]) for r in valid_rows(path)])
+    # ESP32-CSI-Tool writes real_timestamp in seconds (steady clock).
+    rows = valid_rows(path)
+    real_ts = np.array([float(r[COL["real_timestamp"]]) for r in rows])
     np.testing.assert_allclose(read_cached(path).timestamps, real_ts - real_ts[0], atol=1e-6)
+    # Cross-check against the radio's own microsecond counter (local_timestamp).
+    local_us = np.array([int(r[COL["local_timestamp"]]) for r in rows])
+    duration = read_cached(path).timestamps[-1]
+    assert duration == pytest.approx((local_us[-1] - local_us[0]) / 1e6, rel=0.02)
 
 
 def test_each_subcarrier_is_stored_imaginary_part_first(tmp_path):

@@ -39,6 +39,17 @@ BACKEND_MAPPING = {
     "FITHOMES2": "FitHomes CSI Platform (Alpha2)"
 }
 
+# Divisor converting each layout's timestamp column to seconds. ESP32-CSI-Tool writes
+# real_timestamp in seconds (get_steady_clock_timestamp()); the other layouts' timestamps
+# are treated as milliseconds, as before.
+TIMESTAMP_DIVISOR = {
+    "ESP32": 1,
+    "THROWIE": 1000,
+    "THROWIE2": 1000,
+    "FITHOMES": 1000,
+    "FITHOMES2": 1000,
+}
+
 LAST_CHAR_MAPPING = {
     "ESP32": "]",
     "THROWIE": "]",
@@ -112,6 +123,7 @@ class CSVBeamformReader(Reader):
         last_char = LAST_CHAR_MAPPING[header_name]
 
         first_timestamp = -1
+        timestamp_divisor = TIMESTAMP_DIVISOR[header_name]
 
         while True:
             data_line = data.readline().split(",")
@@ -134,10 +146,10 @@ class CSVBeamformReader(Reader):
                 new_frame.csi_matrix = csitools.scale_csi_frame(new_frame.csi_matrix, new_frame.rssi, new_frame.noise_floor)
 
             if first_timestamp == -1:
-                first_timestamp = float(new_frame.real_timestamp) / 1000
+                first_timestamp = float(new_frame.real_timestamp) / timestamp_divisor
                 new_frame.real_timestamp = 0
             else:
-                new_frame.real_timestamp = (float(new_frame.real_timestamp) / 1000) - first_timestamp
+                new_frame.real_timestamp = (float(new_frame.real_timestamp) / timestamp_divisor) - first_timestamp
 
             # no_subcarriers = new_frame.csi_matrix.shape[0]
 
