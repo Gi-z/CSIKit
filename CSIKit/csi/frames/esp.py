@@ -1,6 +1,5 @@
 from CSIKit.csi import CSIFrame
 
-import ast
 import numpy as np
 
 
@@ -260,18 +259,16 @@ class ESP32CSIFrame(CSIFrame):
         misaligned and there's no way to tell where it happened, so the row
         is rejected rather than padded.
         """
-        array_string = string_data.replace(" ", ", ")
-        array_string_asarray = ast.literal_eval(array_string)
+        values = ESP32CSIFrame.parse_values(string_data)
 
-        n_values = len(array_string_asarray)
+        n_values = len(values)
         if n_values % 2:
             return None
         if expected_values is not None and n_values != expected_values and not (
                 n_values == ESP32CSIFrame.LLTF_ONLY_VALUES and expected_values > n_values):
             return None
 
-        int8_matrix = np.array(array_string_asarray)
-        pairs = int8_matrix.reshape(-1, 2).astype(np.float32)
+        pairs = values.reshape(-1, 2).astype(np.float32)
 
         # ESP-IDF stores each subcarrier as two int8s: imaginary part first, then real part.
         complex_matrix = (pairs[:, 1] + 1j * pairs[:, 0]).astype(np.complex64).reshape(-1, 1)
@@ -279,21 +276,22 @@ class ESP32CSIFrame(CSIFrame):
 
     @staticmethod
     def parse_separate_matrices(imag_data, real_data, bandwidth=20):
-        imag_string = imag_data.replace("\"", "")
-        imag_string_py = imag_string.replace(" ", ", ")
-        imag_string_asarray = ast.literal_eval(imag_string_py)
-        imag_int8_matrix = np.array(imag_string_asarray)
+        imag = ESP32CSIFrame.parse_values(imag_data)
+        real = ESP32CSIFrame.parse_values(real_data)
+        return (real[:len(imag)] + 1j * imag).reshape(-1, 1)
 
-        real_string = real_data.replace("\"", "")
-        real_string_py = real_string.replace(" ", ", ")
-        real_string_asarray = ast.literal_eval(real_string_py)
-        real_int8_matrix = np.array(real_string_asarray)
+    @staticmethod
+    def parse_values(text: str) -> np.ndarray:
+        """Numbers from a CSV CSI field such as "[38 96 2 0]" or a quoted "1 2 3", as float64.
 
-        complex_matrix = np.zeros((len(imag_int8_matrix), 1), dtype=complex)
-        for n in range(len(imag_int8_matrix)):
-            complex_matrix[n] = complex(real_int8_matrix[n], imag_int8_matrix[n])
-
-        return complex_matrix
+        Replaces ast.literal_eval, which compiled every row as Python source.
+        """
+        body = text.strip().strip('"').strip()
+        if body.startswith("["):
+            body = body[1:]
+        if body.endswith("]"):
+            body = body[:-1]
+        return np.array(body.replace(",", " ").split(), dtype=np.float64)
 
     # Seems some CSI lines are missing a value.
     # Very rare, I assume weird dropped behaviour.
