@@ -48,8 +48,6 @@ def known_bug(issue: Issue, *, condition: bool = True, raises=None):
 
 ESP32_TIMESTAMPS = Issue(
     63, "ESP32: timestamps are 1000x too small (seconds divided by 1000)")
-CSV_DROPS_ANTENNA_1 = Issue(
-    72, "CSV reader drops every row with ant == 1, for all CSV formats")
 NEXMON_OVERSIZED_FRAMES_DROPPED = Issue(
     73, "Nexmon: frames with trailing padding are silently dropped")
 NEXMON_SKIPPED_FRAMES_APPENDED = Issue(

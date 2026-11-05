@@ -7,7 +7,7 @@ import pytest
 from CSIKit.reader import CSVBeamformReader, get_reader
 from CSIKit.util.matlab import dbinv
 from csikit_testing import read_cached, read_quietly, repo_path
-from csikit_testing.known_issues import CSV_DROPS_ANTENNA_1, ESP32_TIMESTAMPS, known_bug
+from csikit_testing.known_issues import ESP32_TIMESTAMPS, known_bug
 from csikit_testing.samples import CSV, by_reader
 from csikit_testing.synthetic import ESP32_FIELDS, esp32_row, write_esp32_csv
 
@@ -113,7 +113,6 @@ def test_lltf_only_rows_are_kept(tmp_path):
     assert len(data.frames) == 2 and data.skipped_frames == 0
 
 
-@known_bug(CSV_DROPS_ANTENNA_1)
 def test_rows_from_antenna_1_are_kept(tmp_path):
     rows = [esp32_row([1, 2] * 64, ant=ant, local_timestamp=i) for i, ant in enumerate([0, 1, 0, 1])]
     data = read_quietly(CSVBeamformReader(), write_esp32_csv(tmp_path / "ant.csv", rows))

@@ -127,9 +127,6 @@ class CSVBeamformReader(Reader):
                 ret_data.skipped_frames += 1
                 continue
 
-            if new_frame.ant == 1:
-                continue
-
             if ret_data.bandwidth == 0:
                 ret_data.bandwidth = new_frame.bandwidth
 
