@@ -75,8 +75,10 @@ class FeitCSIBeamformReader(Reader):
         header["num_rx"] = data[46]
         header["num_tx"] = data[47]
         header["num_subcarriers"] = struct.unpack("I", data[52:56])[0]
-        header["rssi_1"] = struct.unpack("I", data[60:64])[0]
-        header["rssi_2"] = struct.unpack("I", data[64:68])[0]
+        # Intel's CSI header stores each chain's RSSI as the magnitude of a negative dBm value
+        # (PicoScenes AX200 captures carry the same field as -RxSBasic.rssi_ctl0/1), so negate it.
+        header["rssi_1"] = -struct.unpack("I", data[60:64])[0]
+        header["rssi_2"] = -struct.unpack("I", data[64:68])[0]
         header["source_mac"] = struct.unpack("BBBBBB", data[68:74])
         header["source_mac_string"] = "%02x:%02x:%02x:%02x:%02x:%02x" % struct.unpack("BBBBBB", data[68:74])
         header["mu_clock"] = struct.unpack("I", data[88:92])[0]

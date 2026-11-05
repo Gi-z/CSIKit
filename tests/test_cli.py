@@ -42,7 +42,7 @@ def test_help():
                                                                        "Backend: PicoScenes", "Frame Count: 885"],
                      id="picoscenes"),
         pytest.param("CSIKit/data/feitcsi/HT20_2452.csi", ["Backend: FeitCSI", "Frame Count: 48",
-                                                           "Subcarrier Count: 56"], id="feitcsi"),
+                                                           "Subcarrier Count: 56", "Average RSSI: -"], id="feitcsi"),
         pytest.param("CSIKit/data/esp32/example_data.csv", ["Hardware: ESP32", "Frame Count: 60",
                                                             "Length: 12.50s", "Average Sample Rate: 4.80Hz"], id="esp32"),
     ],

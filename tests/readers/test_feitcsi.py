@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from CSIKit.reader import FeitCSIBeamformReader
+from CSIKit.util.matlab import dbinv
 from csikit_testing import read_cached, read_quietly, repo_path
 from csikit_testing.known_issues import FEITCSI_MULTI_TX_INTERPOLATION, known_bug
 from csikit_testing.samples import FEIT, by_reader
@@ -72,3 +73,30 @@ def test_filter_mac():
     everything = read_cached("CSIKit/data/feitcsi/HT20_2452.csi")
     assert len(read_quietly(FeitCSIBeamformReader(), path, filter_mac="00:16:EA:12:34:56").frames) == len(everything.frames)
     assert len(read_quietly(FeitCSIBeamformReader(), path, filter_mac="02:00:00:00:00:01").frames) == 0
+
+
+def test_intel_csi_header_rssi_is_a_positive_magnitude():
+    # FeitCSI's rssi_1/rssi_2 come from Intel's CSI header. PicoScenes AX200 captures carry
+    # the same header (MVMExtra) next to PicoScenes' own per-chain RSSI in dBm, and the two
+    # always agree up to sign, which is why FeitCSI's values are negated.
+    data = read_cached("CSIKit/data/pico/picoscenes_ax200_example.csi")
+    for frame in data.frames:
+        container = frame.frame_container
+        assert container.MVMExtra.rssi1 == -container.RxSBasic.rssi_ctl0
+        assert container.MVMExtra.rssi2 == -container.RxSBasic.rssi_ctl1
+
+
+@pytest.mark.parametrize("path", FEIT_PARAMS)
+def test_rssi_is_negative_dbm(path):
+    data = read_cached(path)
+    for frame in data.frames:
+        assert -110 < frame.rssi_1 < 0 and -110 < frame.rssi_2 < 0
+    expected = np.mean([max(f.rssi_1, f.rssi_2) for f in data.frames])  # strongest chain
+    assert data.get_metadata().average_rssi == pytest.approx(expected, abs=0.1)
+
+
+@pytest.mark.parametrize("path", FEIT_PARAMS)
+def test_scaling_matches_first_chain_power_to_its_rssi(path):
+    for frame in read_cached(path, scaled=True).frames:
+        power = np.mean(np.sum(np.abs(frame.csi_matrix[:, 0, :]) ** 2, axis=-1))
+        assert power == pytest.approx(dbinv(frame.rssi_1), rel=1e-4)
