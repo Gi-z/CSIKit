@@ -3,7 +3,7 @@ import os
 from CSIKit.csi import CSIData
 from CSIKit.csi.frames import FeitCSIFrame
 from CSIKit.reader import Reader
-from CSIKit.util import csitools, constants
+from CSIKit.util import byteops, csitools, constants
 import numpy as np
 import struct
 
@@ -126,16 +126,7 @@ class FeitCSIBeamformReader(Reader):
         return header
 
     def parseCsiData(self, data, header):
-        csi_matrix = np.zeros((header["num_subcarriers"], header["num_rx"], header["num_tx"]), dtype=complex)
-        pos = 0
-        for j in range(header["num_rx"]):
-            for k in range(header["num_tx"]):
-                for n in range(header["num_subcarriers"]):
-                    real = struct.unpack("h", data[pos:pos + 2])[0]
-                    imag = struct.unpack("h", data[pos + 2:pos + 4])[0]
-                    pos += 4
-                    csi_matrix[n, j, k] = complex(real, imag)
-        return csi_matrix
+        return byteops.unpack_int16_csi(data, 0, header["num_subcarriers"], header["num_rx"], header["num_tx"])
 
     def cubicInterpolate(self, y0, y1, y2, y3, mu):
         mu2 = mu * mu

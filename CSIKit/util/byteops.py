@@ -214,3 +214,14 @@ def _unpack_iwl5300_csi_loop(data: bytes, n_rx: int, n_tx: int, perm) -> np.ndar
                 csi[i][perm[j]][k] = complex(real, imag)
                 index += 16
     return csi
+
+
+def unpack_int16_csi(data, pos: int, n_tones: int, n_rx: int, n_tx: int) -> np.ndarray:
+    """(n_tones, n_rx, n_tx) complex128 CSI from little-endian int16 (real, imag) pairs.
+
+    The layout used by Intel's iwlwifi CSI dumps (PicoScenes AX200/AX210, FeitCSI): Rx outermost,
+    then Tx, then tone.
+    """
+    count = 2 * n_tones * n_rx * n_tx
+    pairs = np.frombuffer(data, dtype="<i2", count=count, offset=pos).astype(np.float64).reshape(n_rx, n_tx, n_tones, 2)
+    return np.ascontiguousarray((pairs[..., 0] + 1j * pairs[..., 1]).transpose(2, 0, 1))

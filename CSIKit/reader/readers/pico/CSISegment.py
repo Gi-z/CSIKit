@@ -94,19 +94,7 @@ class CSISegment:
         self.parsed_csi = byteops.unpack_iwl5300_csi(payload, nrx, ntx, perm)
 
     def parseIWLMVMCSIData(self, data: bytes, pos: int):
-        # total_tones = self.numRx * self.numSTS * self.numTone
-        csi_matrix = np.zeros((self.numTone, self.numRx, self.numSTS), dtype=complex)
-
-        for j in range(self.numRx):
-            for k in range(self.numSTS):
-                for n in range(self.numTone):
-                    real = struct.unpack("h", data[pos:pos + 2])[0]
-                    imag = struct.unpack("h", data[pos + 2:pos + 4])[0]
-                    pos += 4
-
-                    csi_matrix[n, j, k] = complex(real, imag)
-
-        self.parsed_csi = csi_matrix
+        self.parsed_csi = byteops.unpack_int16_csi(data, pos, self.numTone, self.numRx, self.numSTS)
 
     def parseUSRPCSIData(self, data: bytes, pos: int):
         csi_array_length = self.CSIBufferLength - 2 * self.numTone
